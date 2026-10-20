@@ -59,10 +59,13 @@
         t.setAttribute('lengthAdjust', 'spacingAndGlyphs');
       }
     }
-    // On narrow screens the sheet is wider than the panel; keep your room in view.
     const here = mapScroll.querySelector('#map-you-are-here');
-    if (here && mapScroll.scrollWidth > mapScroll.clientWidth + 4) {
-      here.scrollIntoView({ block: 'nearest', inline: 'center' });
+    // The sheet can be taller (and on phones wider) than the panel; keep your room in view.
+    if (here && (mapScroll.scrollWidth > mapScroll.clientWidth + 4 || mapScroll.scrollHeight > mapScroll.clientHeight + 4)) {
+      const box = here.getBoundingClientRect();
+      const panel = mapScroll.getBoundingClientRect();
+      mapScroll.scrollLeft += box.left + box.width / 2 - (panel.left + panel.width / 2);
+      mapScroll.scrollTop += box.top + box.height / 2 - (panel.top + panel.height / 2);
     }
   }
 

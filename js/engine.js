@@ -336,8 +336,9 @@
 
       // --- movement
       if (words.length === 1 && DIRS[words[0]]) return this.go(DIRS[words[0]]);
-      if ((m = cmd.match(/^(?:go|walk|run|drive|head|travel|move|hike|climb)(?: to| toward| towards)? (\w+)$/)) && DIRS[m[1]]) return this.go(DIRS[m[1]]);
-      if ((m = cmd.match(/^(?:go|walk|run|drive|head|travel|hike) (?:to |into |toward |towards |back to )?(.+)$/))) return this.goByName(m[1]);
+      if ((m = cmd.match(/^(?:go|walk|run|drive|head|travel|move|hike|climb|row|paddle)(?: to| toward| towards)? (\w+)$/)) && DIRS[m[1]]) return this.go(DIRS[m[1]]);
+      if (/^(row|paddle|launch(?: .+)?|push off|row (?:across|out|over)(?: .+)?|use (?:skiff|boat))$/.test(cmd)) return this.row();
+      if ((m = cmd.match(/^(?:go|walk|run|drive|head|travel|hike|row|paddle) (?:to |into |toward |towards |back to )?(.+)$/))) return this.goByName(m[1]);
       if (/^(get out|climb out|step out|hop out|get out of .+|climb out of .+|exit (?:truck|pickup|car|cab|vehicle)|leave (?:truck|pickup|car|cab))$/.test(cmd)) {
         if (!this.exitsOf(this.rooms[this.state.loc]).out) { this.print("You're not in anything. You're already out here in the weather."); return false; }
         return this.go('out');
@@ -496,12 +497,11 @@
       // Farther away: if you've been there before, find the way.
       const target = this.roomByName(p);
       if (target) {
-        if (!this.state.visited[target.id]) {
-          this.print("You don't know the way there yet. Explore a little first.");
+        const path = this.route(target.id);
+        if (!path) {
+          this.print(this.state.visited[target.id] ? "You can't find a way there from here." : "You don't know the way there yet. Explore a little first.");
           return false;
         }
-        const path = this.route(target.id);
-        if (!path) { this.print("You can't find a way there from here."); return false; }
         return this.travel(path);
       }
       this.print("You can't get there directly from here. Use compass directions: NORTH, SOUTH, EAST, WEST (or N, S, E, W).");
@@ -509,6 +509,7 @@
     }
 
     // Shortest list of compass moves to a room, through places you've already been.
+    // The destination itself may be new, as long as you've seen a way leading to it.
     route(targetId) {
       const start = this.state.loc;
       const prev = { [start]: null };
@@ -519,7 +520,7 @@
         for (const [dir, exit] of Object.entries(this.exitsOf(this.rooms[cur]))) {
           if (!COMPASS_DIRS.has(dir)) continue;
           const to = this.exitTo(exit);
-          if (to in prev || !this.state.visited[to]) continue;
+          if (to in prev || (!this.state.visited[to] && to !== targetId)) continue;
           prev[to] = [cur, dir];
           queue.push(to);
         }
@@ -891,6 +892,13 @@
         return;
       }
       return this.goByName(phrase, 'in');
+    }
+
+    row() {
+      const room = this.rooms[this.state.loc];
+      if (!room.row) { this.print("There's nothing here to row."); return false; }
+      const r = room.row(this);
+      if (typeof r === 'string') this.print(r);
     }
 
     fish() {

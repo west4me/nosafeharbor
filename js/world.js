@@ -91,10 +91,20 @@
         title: 'Rick keeps driving up the Thorne road',
         note: "Cal Brenner: Rick has been driving up Thorne Bay Road every few days since Dale went missing. Says he's scouting deer. According to Cal, Rick 'couldn't hit a deer with his truck.'"
       },
+      rick_note: {
+        points: 5,
+        title: 'Rick moved him to Sweetwater',
+        note: "Note left in the empty Thorne River cabin, signed R: Walt's nephew got nosy, so Rick moved 'D' to the Forest Service cabin on Sweetwater Lake, near Coffman Cove, and took the skiff's oars so nobody else could row over."
+      },
+      hazel_tip: {
+        points: 5,
+        title: 'Groceries for two, and borrowed oars',
+        note: "Hazel at the Coffman Cove store: Rick has been buying groceries for two twice a week, paying cash. Last week he borrowed her spare oars 'for the Sweetwater skiff' and never brought them back."
+      },
       found_dale: {
-        points: 20,
+        points: 10,
         title: 'Dale Haugen is alive',
-        note: "Found Dale Haugen alive and well in the Forest Service cabin up the Thorne River, with two fresh propane cylinders from the Craig fuel dock and his '52 Winston in the corner."
+        note: "Found Dale Haugen alive and well in the Forest Service cabin on Sweetwater Lake, with the missing Forest Service oars by the door and his '52 Winston in the corner."
       },
       solved: {
         points: 10,
@@ -104,7 +114,7 @@
     };
 
     // Clues Dale can't talk his way around.
-    const HARD_EVIDENCE = ['calm_night', 'lanyard', 'rod_missing', 'foreclosure', 'napkin', 'receipt'];
+    const HARD_EVIDENCE = ['calm_night', 'lanyard', 'rod_missing', 'foreclosure', 'napkin', 'receipt', 'rick_note', 'hazel_tip'];
     const evidenceCount = (g) => HARD_EVIDENCE.filter((c) => g.has(c)).length;
 
     // ---------------------------------------------------------------- rooms
@@ -196,9 +206,10 @@
         map: { x: 4, y: 0, label: ['Trailhead'] },
         name: 'Thorne River Trailhead',
         aliases: ['trailhead', 'pullout'],
-        desc: "A gravel pullout at the edge of serious forest. A brown Forest Service sign, bullet-pocked in one corner, marks a trail heading east into the old growth toward the Thorne River. The mud here is churned up with tire tracks, and one set is a lot fresher than the rest. Thorne Bay Road heads back south.",
+        desc: "A gravel pullout at the edge of serious forest. A brown Forest Service sign, bullet-pocked in one corner, marks a trail heading east into the old growth toward the Thorne River. The mud here is churned up with tire tracks, and one set is a lot fresher than the rest. The gravel road keeps going north toward Coffman Cove, and Thorne Bay Road heads back south.",
         exits: {
           south: road('thorne_road', 'You bump back out of the pullout and head south on the gravel.'),
+          north: road('dog_creek', 'North past the trailhead the road gets narrower and the trees get bigger. A grouse explodes out of the ditch and nearly gives you a heart attack. The road drops down to a one-lane bridge and you pull over just short of it.'),
           east: 'river_trail'
         }
       },
@@ -218,7 +229,7 @@
         map: { x: 6, y: 0, label: ['River', 'Ford'] },
         name: 'Thorne River Crossing',
         aliases: ['river', 'ford', 'crossing', 'thorne river'],
-        desc: "The trail ends at a gravel bar on the Thorne River. The river is big here, running high and cold and the color of strong tea, pushing hard over a riffle that crosses to the far bank. Through the trees on the other side, a thin line of woodsmoke rises. The trail runs back west into the forest.",
+        desc: "The trail ends at a gravel bar on the Thorne River. The river is big here, running high and cold and the color of strong tea, pushing hard over a riffle that crosses to the far bank. Through the trees on the other side you can make out a cabin roof. No smoke from the chimney. The trail runs back west into the forest.",
         exits: {
           west: 'river_trail',
           east: {
@@ -232,18 +243,137 @@
             }
           }
         },
-        fish: "Even without a rod you can read it: the seam along the far bank, the soft water behind that boulder. Dale picked a hiding spot with good water. Of course he did."
+        fish: "Even without a rod you can read it: the seam along the far bank, the soft water behind that boulder. Whoever picked that cabin picked it for the water."
       },
 
       cabin: {
-        map: { x: 7, y: 0, label: ['USFS', 'Cabin'] },
-        name: 'Forest Service Cabin',
-        aliases: ['cabin'],
-        desc: (g) => 'A one-room cabin of weathered spruce logs. The Forest Service rents it out in summer, and nobody uses it this late in the year. Somebody is using it now. A propane heater hisses in the corner next to two fresh propane cylinders, and a sleeping bag is unrolled on the plank bunk. ' +
-          (g.itemAt('winston', 'cabin') ? 'In the corner, leaning in a place of honor, is a bamboo fly rod. ' : '') +
-          'The door leads west, back to the river.',
-        exits: { west: 'ford', out: 'ford' },
+        map: { x: 7, y: 0, label: ['Thorne', 'Cabin'] },
+        name: 'Thorne River Cabin',
+        aliases: ['thorne cabin', 'thorne river cabin', 'cabin'],
+        desc: 'A one-room cabin of weathered spruce logs. The Forest Service rents it out in summer, and nobody uses it this late in the year. Somebody did, though, and not long ago. Two propane cylinders stand next to a cold propane heater, a cardboard box is full of empty cans, and the bunk has been stripped to bare planks. Whoever was here left in a hurry, maybe a few days back. The door leads west, back to the river.',
+        exits: { west: 'ford', out: 'ford' }
+      },
+
+      // ----- the north end: Coffman Cove country
+      dog_creek: {
+        map: { x: 4, y: -1, label: ['Dog Creek'] },
+        name: 'Dog Creek Bridge',
+        aliases: ['dog creek', 'dog creek bridge'],
+        desc: "The gravel road drops to cross Dog Creek on a one-lane bridge of creosoted timbers. The creek runs clear and quick over gravel, and the bank below the bridge is trampled flat where the bears come down to fish. Downstream, a black bear sow and her cub are working the shallows and ignoring you completely. The road climbs north toward Luck Lake and Coffman Cove, and runs back south to the Thorne River trailhead.",
+        exits: {
+          south: road('trailhead', 'You ease back across the bridge and head south. The bears do not look up.'),
+          north: road('luck_lake', 'The road climbs out of the creek bottom through second-growth and old clearcuts. Through the trees, a long dark lake opens up on your right. You turn down a gravel spur to the water and park.')
+        },
+        fish: "Coho fry are flicking in the shallows by the bridge. The sow is fishing. The cub is supervising. You, sadly, are only watching."
+      },
+
+      luck_lake: {
+        map: { x: 4, y: -2, label: ['Luck Lake'] },
+        name: 'Luck Lake',
+        aliases: ['luck lake', 'luck'],
+        desc: "A gravel spur leads down to the Luck Lake day-use area: a rock beach, a covered picnic shelter and an outhouse with a crescent moon on the door. The lake stretches away to the east, long and dark, with the clouds sitting right down on the hills around it. A loon calls from somewhere out on the water. The road runs north toward Coffman Cove and south toward Dog Creek.",
+        exits: {
+          south: road('dog_creek', 'Back up the spur and south down the hill. You slow for the Dog Creek bridge. The bears are still there.'),
+          north: road('sweetwater_turnoff', 'North along the Coffman Cove road. A doe and twin fawns stand in the ditch and watch you pass with no particular concern. At a junction marked by a brown Forest Service sign, you pull over.')
+        },
+        fish: "Cutthroat are rising along the drop-off, one after another, like they know. You do not have a rod. This should be illegal."
+      },
+
+      sweetwater_turnoff: {
+        map: { x: 4, y: -3, label: ['Sweetwater', 'Turnoff'] },
+        name: 'Sweetwater Turnoff',
+        aliases: ['sweetwater turnoff', 'turnoff', 'junction'],
+        desc: 'A junction on the Coffman Cove road, marked by a brown Forest Service sign with an arrow pointing east: SWEETWATER LAKE. A muddy spur heads that way into the trees. The main road continues north to Coffman Cove and back south to Luck Lake.',
+        exits: {
+          north: road('coffman_cove', 'The last few miles to Coffman Cove run along the hills above Clarence Strait. Then the trees open up, the road tips downhill, and there is the cove: houses, woodpiles and skiffs, gray water and gulls. You park by the community hall.'),
+          south: road('luck_lake', 'South to Luck Lake. You pull back into the day-use area and park facing the water.'),
+          east: road('sweetwater_landing', 'The spur is one lane of mud and potholes, with alder brushing both sides of the truck. Fresh tire tracks run ahead of you the whole way. It dead-ends in a muddy turnaround in the trees, and you park next to the tracks.')
+        }
+      },
+
+      sweetwater_landing: {
+        map: { x: 5, y: -3, label: ['Sweetwater', 'Landing'] },
+        name: 'Sweetwater Lake Landing',
+        aliases: ['sweetwater landing', 'landing', 'sweetwater', 'boat landing'],
+        desc: "The spur ends in a muddy turnaround. A short trail, maybe two hundred feet of roots and puddles, drops through the trees to a gravel landing on Sweetwater Lake. A Forest Service skiff lies upside down on the bank. Across a half mile of still water to the east, smoke rises from the stovepipe of a small log cabin. The spur leads back west to the road.",
+        exits: {
+          west: road('sweetwater_turnoff', 'You climb back up the trail, turn the truck around in the mud on the fourth try, and bounce back out the spur to the main road.'),
+          east: {
+            to: 'sweetwater_lake',
+            guard: (g) => {
+              if (!g.inInv('oars')) {
+                return "You could flip the skiff, but somebody has taken the oars. Paddling half a mile of October lake with your hands is a good way to end up in Joe Kitka's next incident report.";
+              }
+              g.print('You flip the skiff, drag it into the shallows, drop the oars into the oarlocks and push off. The lake is black and glassy, and every stroke sounds enormous.', 'travel');
+              return null;
+            }
+          }
+        },
+        row: (g) => { g.go('east'); return true; }
+      },
+
+      sweetwater_lake: {
+        map: { x: 6, y: -3, label: ['Sweetwater', 'Lake'] },
+        name: 'Sweetwater Lake',
+        aliases: ['sweetwater lake', 'middle of the lake'],
+        desc: "You're in the Forest Service skiff in the middle of Sweetwater Lake, oars dripping. The water is dark as coffee and so still that the clouds float in it upside down. Back to the west is the landing. Ahead to the east, a small cedar log cabin sits above a little float, smoke curling from its stovepipe.",
+        exits: {
+          west: { to: 'sweetwater_landing', guard: (g) => { g.print('You row back to the landing and drag the skiff up onto the gravel.', 'travel'); return null; } },
+          east: { to: 'sweetwater_cabin', guard: (g) => { g.print("You row the last stretch and bump up against the cabin's little float. You tie off, climb out and walk up to the door.", 'travel'); return null; } }
+        },
+        row: () => 'Which way? Row EAST to the cabin or WEST back to the landing.',
+        noExit: 'The lake is long, but the cabin is east and the landing is west.',
+        fish: 'A trout rises ten feet from the boat. Then another. No rod. Life is cruel and specific.'
+      },
+
+      sweetwater_cabin: {
+        map: { x: 7, y: -3, label: ['Sweetwater', 'Cabin'] },
+        name: 'Sweetwater Lake Cabin',
+        aliases: ['sweetwater cabin', 'sweetwater lake cabin'],
+        desc: (g) => "A twelve-by-fourteen cabin of pre-cut cedar logs above the lake, with wooden bunks, a table and benches, and a woodstove ticking with heat. Somebody has moved in for the long haul: a sleeping bag on the lower bunk, groceries stacked under the table and paperbacks on the windowsill. A pair of oars leans by the door. " +
+          (g.itemAt('winston', 'sweetwater_cabin') ? 'In the corner, leaning in a place of honor, is a bamboo fly rod. ' : '') +
+          'The float and the skiff are back down to the west.',
+        exits: {
+          west: { to: 'sweetwater_lake', guard: (g) => { g.print('You climb back into the skiff and push off from the float.', 'travel'); return null; } },
+          out: { to: 'sweetwater_lake', guard: (g) => { g.print('You climb back into the skiff and push off from the float.', 'travel'); return null; } }
+        },
+        row: (g) => { g.go('west'); return true; },
         onEnter: (g) => { g.clue('found_dale'); }
+      },
+
+      coffman_cove: {
+        map: { x: 4, y: -4, label: ['Coffman', 'Cove'] },
+        name: 'Coffman Cove',
+        aliases: ['coffman cove', 'coffman'],
+        desc: "The road ends where the trees give up and Clarence Strait begins. Coffman Cove started out as a logging camp and has never quite stopped looking like one: houses and trailers scattered along the cove, woodpiles under blue tarps, a school, a community hall, and more skiffs parked in yards than trucks. The general store is a short walk west. The harbor is down the hill to the east. The road runs back south toward Luck Lake.",
+        exits: {
+          south: road('sweetwater_turnoff', 'You climb out of the cove and head south through the hills. At the Sweetwater Lake sign, you pull over.'),
+          west: 'cove_store',
+          east: 'cove_harbor'
+        }
+      },
+
+      cove_store: {
+        map: { x: 3, y: -4, label: ['General', 'Store'] },
+        name: 'Cove General Store',
+        aliases: ['store', 'general store', 'cove store', 'shop'],
+        desc: "A low building with a covered porch, a woodstove going in the middle of the floor, and narrow aisles of everything: canned goods, chainsaw chain, ammunition, birthday candles, rain gear and fishing tackle, plus a cooler of bait next to a cooler of milk. A coffee pot sits on the woodstove for anyone who wants it. By the register, a hand-lettered sign: COFFMAN COVE. POP.: ENOUGH. The door is east.",
+        exits: { east: 'coffman_cove', out: 'coffman_cove' },
+        buy: (g, what) => {
+          if (/coffee|cup/.test(what)) return "Hazel waves at the pot on the woodstove. 'Help yourself. Coffee's free. Advice costs extra.' You pour a cup. It's good.";
+          if (/oar/.test(what)) return g.inInv('oars') ? "You've already got her spare pair." : "'Not for sale,' Hazel says. 'Talk to me first.'";
+          if (/bait|herring|tackle|lure|fly|flies/.test(what)) return "'You got a rod?' Hazel asks. You do not have a rod. 'Then no.'";
+          return "Hazel rings it up in her head, decides you don't need it, and goes back to her crossword.";
+        }
+      },
+
+      cove_harbor: {
+        map: { x: 5, y: -4, label: ['Cove', 'Harbor'] },
+        name: 'Coffman Cove Harbor',
+        aliases: ['cove harbor', 'coffman harbor', 'coffman cove harbor', 'boat harbor'],
+        desc: "A small boat harbor tucked behind a rock breakwater: a few dozen slips of skiffs and crabbers, and one old seiner that hasn't left the dock in a decade. Up the shore is the old ferry ramp where the inter-island ferry used to come in, now just a concrete apron and a gull convention. Beyond the breakwater, Clarence Strait runs gray all the way to the mountains on the far side. A black lab trots along the floats like he's the harbormaster. The road climbs back west into town.",
+        exits: { west: 'coffman_cove' },
+        fish: "A kid on the old ferry ramp hauls in a pink salmon and holds it up for you to see. You give him a thumbs up. You are jealous of a twelve-year-old."
       },
 
       klawock: {
@@ -537,7 +667,7 @@
       tracks: {
         name: 'tire tracks', loc: 'trailhead', fixed: true,
         names: ['tracks', 'tire tracks', 'tire', 'mud', 'tread'],
-        desc: "Wide truck tires with an aggressive tread. The freshest tracks run over yesterday's, and yesterday's run over the day before's. Somebody comes out here a lot."
+        desc: "Wide truck tires with an aggressive tread. The freshest tracks run over yesterday's, and yesterday's run over the day before's. Somebody comes out here a lot. And lately, the freshest set doesn't stop here at all. It keeps going north up the road."
       },
       propane_cap: {
         name: 'red plastic cap', short: 'a red plastic cap', loc: 'trailhead',
@@ -558,30 +688,51 @@
       thorne_river: {
         name: 'Thorne River', loc: 'ford', fixed: true,
         names: ['river', 'thorne', 'thorne river', 'water', 'riffle', 'current'],
-        desc: 'Thigh-deep across the riffle and moving like it has somewhere to be. The smoke on the far bank is more interesting than the water. For once.'
+        desc: 'Thigh-deep across the riffle and moving like it has somewhere to be. The cabin on the far bank is more interesting than the water. For once.'
       },
       smoke: {
-        name: 'smoke', loc: 'ford', fixed: true,
-        names: ['smoke', 'woodsmoke'],
-        desc: 'A thin gray line rising through the spruce on the far bank. Somebody is home.'
+        name: 'cabin roof', loc: 'ford', fixed: true,
+        names: ['cabin roof', 'roof', 'chimney', 'smoke', 'cabin'],
+        desc: "A mossy cabin roof through the spruce on the far bank. No smoke from the chimney. Either nobody's home, or somebody's being careful."
       },
       heater: {
         name: 'propane heater', loc: 'cabin', fixed: true,
         names: ['heater', 'propane heater', 'stove'],
-        desc: 'A portable propane heater hissing away and keeping the cabin warmer than any Forest Service cabin has a right to be.'
+        desc: 'A portable propane heater, cold to the touch. Somebody kept this cabin warm for a while, then stopped.'
       },
       cylinders: {
         name: 'propane cylinders', loc: 'cabin', fixed: true,
         names: ['cylinders', 'propane cylinders', 'propane', 'tanks', 'cylinder', 'tank'],
-        desc: 'Two 20-pound propane cylinders. One still has the price sticker on it: CRAIG FUEL DOCK.'
+        desc: 'Two 20-pound propane cylinders, both empty. One still has the price sticker on it: CRAIG FUEL DOCK.'
       },
       bunk: {
         name: 'bunk', loc: 'cabin', fixed: true,
-        names: ['bunk', 'sleeping bag', 'bag', 'bed'],
-        desc: 'A good down sleeping bag on a plank bunk, plus a stack of paperbacks and a box of groceries. Somebody is set up for a long stay.'
+        names: ['bunk', 'bed', 'planks'],
+        desc: 'Bare planks. Somebody rolled up their sleeping bag and took it with them.'
+      },
+      rick_note: {
+        name: 'folded note', short: 'a folded note', loc: 'cabin',
+        names: ['note', 'folded note', 'paper', 'ricks note', 'rick note', 'coffee can'],
+        roomDesc: 'A folded piece of paper sits on the table, weighted down with a coffee can.',
+        desc: 'A sheet of lined paper, folded in quarters. Try reading it.',
+        text: "In neat block capitals. Not Dale's hand:\n  'D — Walt's nephew was up here with a spotlight. Too many eyes\n   on the Thorne. Thursday I'll move you to the Sweetwater cabin.\n   Different road, and nobody goes up there in October. I'll take\n   the Forest Service oars across so nobody else can row over.\n   Bring the rod if you have to. Leave the rest. BURN THIS. — R'\n\nNobody in this case burns anything.",
+        onRead: (g) => { g.clue('rick_note'); g.flag('knows_sweetwater', true); }
+      },
+      oars: {
+        name: 'oars', short: 'a pair of oars', loc: null,
+        names: ['oars', 'oar', 'pair of oars', 'spare oars', 'hazels oars'],
+        desc: 'A pair of spruce oars, worn pale at the grips, with HAZEL burned into each blade.',
+        verbs: { use: (g) => (g.state.loc === 'sweetwater_landing' ? (g.go('east'), true) : "There's nothing here to row.") }
+      },
+      fs_skiff: {
+        name: 'Forest Service skiff', loc: 'sweetwater_landing', fixed: true,
+        names: ['skiff', 'forest service skiff', 'boat', 'oarlocks', 'chain', 'padlock'],
+        desc: (g) => 'A 14-foot aluminum Forest Service skiff, upside down on two logs and chained to a tree with an open padlock. A sign screwed to the transom: USDA FOREST SERVICE — PFDs NOT PROVIDED. The oarlocks are there. ' + (g.inInv('oars') ? "The oars weren't, but you brought Hazel's." : 'The oars are not.'),
+        fixedMsg: "It's a boat. You row it. (Try ROW or EAST.)",
+        verbs: { enter: (g) => { g.go('east'); return true; }, push: (g) => { g.go('east'); return true; } }
       },
       winston: {
-        name: "'52 Winston bamboo rod", short: 'a bamboo fly rod', loc: 'cabin', fixed: true,
+        name: "'52 Winston bamboo rod", short: 'a bamboo fly rod', loc: 'sweetwater_cabin', fixed: true,
         names: ['rod', 'fly rod', 'bamboo rod', 'winston', 'bamboo', 'fishing rod', 'winston rod'],
         desc: "A 1952 Winston bamboo rod, 8'6\" for a five-weight, its varnish gone the color of clover honey and its wraps a deep burgundy. This is the rod from the empty slot on the lodge rack. It's the kind of rod a man would come back from the dead for.",
         fixedMsg: (g) => g.npcHere('dale')
@@ -814,7 +965,7 @@
       },
       napkin: {
         name: 'napkin', short: 'a folded napkin', loc: 'safe',
-        names: ['napkin', 'folded napkin', 'bar napkin', 'note'],
+        names: ['napkin', 'folded napkin', 'bar napkin'],
         desc: 'A bar napkin from the Riptide Tavern, folded small. There is writing on it. Try reading it.',
         text: "In blocky pencil, the same hand as the back of the photo:\n  'R — 60/40 after the payout, like we said.\n   Nobody else knows. Not M.\n   Burn this.   — D'",
         onRead: (g) => { g.clue('napkin'); }
@@ -877,7 +1028,8 @@
           { k: ['cal', 'brenner', 'guide'], r: "'Cal guided for us for six seasons. He and Dale fought about wages at the end of the summer. Cal drinks, but he's no liar. He's probably at the Riptide.'" },
           { k: ['money', 'bank', 'debt', 'foreclosure', 'loan', 'notice'], r: "'Dale did the books. I did everything else.' She stops kneading. 'Why? What's wrong with the money?'" },
           { k: ['office', 'key', 'safe', 'desk'], r: "'He kept the important things in that safe. I never knew the combination. He said I'd remember it if I ever needed it. I never needed it.'" },
-          { k: ['cabin', 'thorne', 'river'], r: "'Dale fished the Thorne every spring. Steelhead. He'd come home soaked and smiling.'" }
+          { k: ['cabin', 'thorne', 'river'], r: "'Dale fished the Thorne every spring. Steelhead. He'd come home soaked and smiling.'" },
+          { k: ['coffman', 'cove', 'luck', 'hazel', 'sweetwater', 'wedding'], r: "'We started out in Coffman Cove. Dale set chokers for the logging camp and I cooked for the crew. We got married on the beach at Luck Lake.' For the first time, she smiles. 'It rained.'" }
         ],
         askDefault: "Marnie shakes her head. 'I don't know anything about that.'",
         show: {
@@ -904,6 +1056,7 @@
           { k: ['boat', 'skiff', 'kittiwake', 'night', 'weather'], r: "'He went out to check his crab pots. Said he'd be back by ten. He wasn't.'" },
           { k: ['suit', 'survival', 'immersion'], r: "'His survival suit? I... wouldn't know anything about that.' Rick looks at the fire very hard." },
           { k: ['belize', 'caribbean', 'warm'], r: "Rick laughs a little too loudly. 'Belize? Who said anything about Belize?'" },
+          { k: ['sweetwater', 'coffman', 'hazel', 'oars', 'luck'], r: "Rick's left eye twitches. 'Coffman Cove? Never been. Long drive. Bad road.' Rick has a lot of opinions about a road he's never driven." },
           { k: ['thorne', 'cabin', 'river', 'trail', 'road', 'deer', 'hunting'], r: "Rick's hands find his pockets. 'Thorne? I don't get up that way much. Deer scouting, once or twice. Why?'" },
           { k: ['propane', 'receipt', 'fuel', 'gas'], r: "'I buy gas sometimes. I have a truck.'" },
           { k: ['rod', 'winston', 'rack'], r: "Rick glances at the empty slot on the rack and quickly looks away. 'Dale must have... I don't know. I don't fish.'" }
@@ -1030,6 +1183,7 @@
           { k: ['cabin', 'thorne', 'river', 'light', 'nephew'], r: (g) => { g.flag('knows_cabin', true); return "'Take Thorne Bay Road north off the highway to the trailhead. The trail goes east through the big trees to the river. The cabin's on the far bank. River's high this time of year. Don't try it in street clothes, and bring a light. It's dark under those trees.'"; } },
           { k: ['dale', 'haugen'], r: "'Good fisherman. Stubborn. The kind of man who'd rather lose everything than lose his pride. That's not always a good thing.'" },
           { k: ['rick', 'sorensen'], r: "'He's been driving up the Thorne road a lot. Not hunting. You don't hunt in loafers.'" },
+          { k: ['coffman', 'cove', 'hazel', 'sweetwater', 'north'], r: "'Hazel at the store in Coffman Cove knows everything that happens north of the Thorne. Up past Dog Creek and Luck Lake.'" },
           { k: ['totem', 'totems', 'pole', 'poles', 'carving', 'log', 'cedar', 'raven'], r: "'This one's for the school. Raven. It'll take me most of a year if I do it right, and I do it right.'" },
           { k: ['island', 'prince of wales', 'klawock'], r: "'People have lived here a very long time. Everything on this island remembers things. People forget that.'" }
         ],
@@ -1037,6 +1191,43 @@
         show: {
           topo_map: "Walt taps the pencil circle. 'That's the cabin. Like I said.'",
           photo: "'Thorne River steelhead. Dale always did love that river.'"
+        }
+      },
+
+      hazel: {
+        name: 'Hazel', loc: 'cove_store',
+        names: ['hazel', 'storekeeper', 'clerk', 'owner', 'shopkeeper'],
+        here: 'Hazel, who has run this store for thirty years and knows everything that happens north of the Thorne, is doing a crossword behind the counter with a pencil she sharpens with a pocketknife.',
+        desc: 'Seventies, sharp-eyed, wool vest, reading glasses on a beaded chain. She has been watching you since before you came in.',
+        talk: (g) => {
+          if (!g.flag('hazel_talked')) {
+            g.flag('hazel_talked', true);
+            g.flag('knows_sweetwater', true);
+            g.clue('hazel_tip');
+            g.moveItem('oars', 'inv');
+            return "'You're the insurance one.' Hazel doesn't look up from her crossword. 'Seven letters. A man who isn't where he's supposed to be.' She fills it in.\n\n'Rick Sorensen has been in twice a week since the middle of the month, buying groceries for two. Chili, coffee, saltines, eggs. Pays cash. Says he's deer hunting out of a Forest Service cabin.' Now she looks up. 'Then last Thursday he borrowed my spare oars. Said the Sweetwater skiff was missing a pair. Never brought them back.'\n\nShe reaches under the counter and sets a second pair of oars across it. 'If you're going out there yourself, take these. I keep two of everything. Bring them back.'\n\nYou take the oars.";
+          }
+          return "'Sweetwater's east off the road at the turnoff, short trail down to the lake,' Hazel says. 'Row east. Bring my oars back.'";
+        },
+        topics: [
+          { k: ['rick', 'sorensen'], r: "'Buys for two, pays cash, tips like a man who wants you to remember he was friendly. I remember.'" },
+          { k: ['dale', 'haugen'], r: "'Dale set chokers for the camp up here when he was young. Married Marnie on the beach at Luck Lake. Rained like the end of the world. Best wedding I ever went to.'" },
+          { k: ['marnie'], r: "'Marnie cooked for the logging crews up here. Best bread on the north end. Still is, I hear, down in Craig.'" },
+          { k: ['sweetwater', 'cabin', 'lake', 'skiff', 'boat'], r: "'East off the road at the Sweetwater sign. Two hundred feet of trail down to the lake. The Forest Service leaves a skiff there. Usually with oars.'" },
+          { k: ['oars', 'oar'], r: (g) => g.inInv('oars') ? "'You've got my good ones. Bring them back.'" : "'Talk to me first, then we'll see about oars.'" },
+          { k: ['coffman', 'cove', 'town', 'camp', 'logging'], r: "'Used to be a logging camp. Now it's a town that still thinks it's a logging camp. Best place on the island, if you like rain and minding your own business.'" },
+          { k: ['luck'], r: "'Prettiest lake on the island. Don't tell anybody.'" },
+          { k: ['dog', 'creek', 'bears', 'bear'], r: "'The sow and her cub have been fishing Dog Creek since August. Make noise and don't get between them.'" },
+          { k: ['weather', 'rain'], r: "'It's not raining. It's Coffman Cove.'" },
+          { k: ['crossword', 'puzzle'], r: "'Seven letters, a man who isn't where he's supposed to be.' She taps the page. 'ABSCOND. I already got it.'" }
+        ],
+        askDefault: "'Couldn't tell you. And I can tell you most things.'",
+        show: {
+          receipt: "Hazel squints at it. 'Craig prices. Highway robbery.' Then she reads the name. 'Same Rick, though.'",
+          napkin: "Hazel reads it and lets out a breath through her nose. 'Sixty-forty. Dale always did think he was the smart one.'",
+          photo: "'That's Dale, all right. With a fish, of course. You'd never catch him without one.'",
+          topo_map: "'That's the Thorne cabin. Whoever was in it, Rick moved last week. Sweetwater now, I'd bet.' She shrugs. 'Small island.'",
+          rick_note: "Hazel reads it twice. 'Burn this.' She snorts. 'Nobody on this island has ever burned anything they were told to.'"
         }
       },
 
@@ -1052,7 +1243,8 @@
           { k: ['marnie'], r: "'Lost her husband and her spot on the policy in the same season. If she's a suspect, she's the worst one I've ever seen.'" },
           { k: ['cal', 'brenner'], r: "'Cal's got two DUIs and a heart of gold. Not a killer.'" },
           { k: ['accuse', 'evidence', 'case', 'proof'], r: "'You tell me who did what, and you show me why. ACCUSE and the name. Or names.'" },
-          { k: ['search', 'coast guard'], r: "'Helicopter out of Sitka flew it for two days. Nothing. Not a boot, not a hat.'" }
+          { k: ['search', 'coast guard'], r: "'Helicopter out of Sitka flew it for two days. Nothing. Not a boot, not a hat.'" },
+          { k: ['sweetwater', 'coffman', 'luck', 'hazel'], r: "'Sweetwater Lake? Up past Luck Lake on the Coffman Cove road. Forest Service cabin out there. Nobody goes there in October.' She looks at you a beat longer. 'Why?'" }
         ],
         askDefault: "'Not my problem today.'",
         show: {
@@ -1061,12 +1253,14 @@
           report: "'I've read it. Flat calm. That bugged me too.'",
           foreclosure: "'Motive. Doesn't tell me who did what.'",
           topo_map: "'Thorne River cabin. Have you been up there?'",
+          rick_note: "Reyes reads it and goes very still. 'Sweetwater.' She reaches for her radio, then stops. 'Is he there? Did you see him? Because a note's a note.'",
+          oars: "'Hazel's oars.' Reyes almost smiles. 'She lent you those? She must like you.'",
           badge: "'I know who you are.'"
         }
       },
 
       dale: {
-        name: 'Dale Haugen', loc: 'cabin',
+        name: 'Dale Haugen', loc: 'sweetwater_cabin',
         names: ['dale', 'dale haugen', 'haugen', 'man', 'bill', 'stranger'],
         here: "A man with a week of gray stubble sits at the plank table, a cup of coffee halfway to his mouth. He looks exactly like the photo in your case file, minus the drowning.",
         desc: "Sixty-one, fit, sunburned and very much alive. He keeps glancing at the bamboo rod in the corner, like a man checking on a sleeping kid.",
@@ -1077,6 +1271,8 @@
           { k: ['rod', 'winston', 'bamboo'], r: "'My father's. He bought it in 1952 with his first season's crab money.' A long pause. 'Rick told me to leave it. I couldn't do it.'" },
           { k: ['suit', 'survival', 'immersion', 'swim'], r: (g) => g.flag('dale_confessed') ? "'Half a mile in that suit at slack water. Coldest twenty minutes of my life.'" : "'Found it,' he says. 'On the beach.' Nobody finds a survival suit with their own name on it." },
           { k: ['belize', 'caribbean', 'book', 'books', 'bonefish'], r: "'Always wanted to chase bonefish.' He almost smiles. 'Guess I still do.'" },
+          { k: ['oars', 'hazel', 'sweetwater', 'lake', 'thorne'], r: "'Rick took the Forest Service oars so nobody could row out here.' He looks at Hazel's oars and shakes his head. 'Never figured on Hazel. She keeps two of everything.'" },
+          { k: ['coffman', 'luck', 'cove'], r: "'Marnie and I started out up here. I set chokers for the logging camp, she cooked for the crew. Married her on the beach at Luck Lake.' He looks out the window. 'Rained the whole time.'" },
           { k: ['boat', 'skiff', 'kittiwake', 'plug', 'lanyard'], r: (g) => g.flag('dale_confessed') ? "'Pulled the plug off Fish Egg, swam for the island in a survival suit, and Rick picked me up on the back side. Forty years on the water and the hardest part was leaving that lanyard clipped to the console.'" : "'I don't know anything about boats.' A forty-year boatman, lying badly." }
         ],
         askDefault: (g) => g.flag('dale_confessed') ? "Dale just looks tired." : "'I'm just here for the fishing.'",
@@ -1095,7 +1291,7 @@
       }
       if (napkinShown || evidenceCount(g) >= 3) {
         g.flag('dale_confessed', true);
-        return "Dale looks at you for a long time. Then he puts down the coffee.\n\n'The lodge was going under,' he says. 'The bank was going to take everything. Marnie's kitchen, the boats, forty years. Rick said it would be clean. One flat night, pull the plug off Fish Egg, swim for the island in a survival suit, and he picks me up on the back side. I hole up here until the money comes through, and then we start over somewhere warm.'\n\nHe looks at the bamboo rod in the corner. 'Rick told me to leave that. Said a dead man doesn't take his rod with him.' He rubs his face with both hands. 'I couldn't leave it. Stupid.'\n\n'I'll come in,' he says finally. 'Go tell Reyes. Tell her it was my boat and my hand on the plug. And tell her it was Rick's idea.'";
+        return "Dale looks at you for a long time. Then he puts down the coffee.\n\n'The lodge was going under,' he says. 'The bank was going to take everything. Marnie's kitchen, the boats, forty years. Rick said it would be clean. One flat night, pull the plug off Fish Egg, swim for the island in a survival suit, and he picks me up on the back side. I hid out in the Thorne cabin until Walt's nephew came around with a spotlight, and then Rick moved me out here. Nobody comes to Sweetwater in October. We wait for the money, and then we start over somewhere warm.'\n\nHe looks at the bamboo rod in the corner. 'Rick told me to leave that. Said a dead man doesn't take his rod with him.' He rubs his face with both hands. 'I couldn't leave it. Stupid.'\n\n'I'll come in,' he says finally. 'Go tell Reyes. Tell her it was my boat and my hand on the plug. And tell her it was Rick's idea.'";
       }
       return "'Name's Bill,' the man says. 'From Ketchikan. Just here for the fishing.' His eyes go to the bamboo rod in the corner and back to you. He's lying, and you both know it, but you don't have enough to make him stop. (You might want more evidence before you press him.)";
     }
@@ -1160,7 +1356,7 @@
 
     function endingBest(g) {
       return [
-        "Reyes listens to all of it: the flat calm, the pulled plug, the unworn kill switch, the empty slot on the rod rack, the napkin, the propane and the cabin up the Thorne. When you finish, she's quiet for a moment. Then she picks up the phone.",
+        "Reyes listens to all of it: the flat calm, the pulled plug, the unworn kill switch, the empty slot on the rod rack, the napkin, the propane, the empty cabin on the Thorne and, finally, the cabin on Sweetwater Lake. When you finish, she's quiet for a moment. Then she picks up the phone.",
         "By dark, Dale Haugen is sitting in the holding cell, sheepish and very much alive. He keeps his word and tells it straight. Rick Sorensen is picked up at the Klawock airstrip trying to catch the morning floatplane to Ketchikan, with a duffel bag and a story that falls apart in about four minutes.",
         'Claim #NM-1187 is denied. The fraud referral goes to the state. Your supervisor writes back: "Told you to look hard. Did you fall in a river?" You did not.',
         "Three weeks later a postcard shows up on your desk with a photo of the Harbor Light Lodge. 'Bank gave me until spring to refinance. Kitchen's still mine. — M.' And underneath, in smaller letters: 'The Winston is back on the rack. He asked me to keep it for him.'",
@@ -1170,8 +1366,8 @@
 
     function endingWarrant(g) {
       return [
-        "Reyes reads the napkin, then the receipt, then the napkin again. 'Sixty-forty after the payout. Propane the morning after a drowning.' She picks up the phone. 'That'll get me a warrant for Rick's truck and a helicopter up the Thorne.'",
-        "The next afternoon, troopers find Dale Haugen in the Forest Service cabin up the Thorne River, alive, warm and holding his '52 Winston like a life jacket. Rick Sorensen gets picked up at the Klawock airstrip with a duffel bag and a story that doesn't hold.",
+        "Reyes reads the napkin, then the receipt, then the napkin again. 'Sixty-forty after the payout. Propane the morning after a drowning.' She picks up the phone. 'That'll get me a warrant for Rick's truck and a helicopter over the north end.'",
+        "The next afternoon, after checking an empty cabin on the Thorne and borrowing a pair of oars from Hazel in Coffman Cove, troopers find Dale Haugen in the Forest Service cabin on Sweetwater Lake, alive, warm and holding his '52 Winston like a life jacket. Rick Sorensen gets picked up at the Klawock airstrip with a duffel bag and a story that doesn't hold.",
         'Claim #NM-1187 is denied. Your supervisor\'s email says "Good work!" with only one exclamation point. Reyes got the collar. You get the paperwork. (Next time, try finding Dale yourself.)',
         '*** THE CASE IS CLOSED ***'
       ].join('\n\n');
@@ -1186,7 +1382,8 @@
       'puddle, puddles, ground': 'Every low spot is a puddle, and every puddle is deeper than it looks.',
       'ravens, raven': 'Big, glossy and loud, and they seem to be discussing you.'
     };
-    const OUTDOOR_ROOMS = ['ferry', 'hwy', 'thorne_road', 'trailhead', 'ford', 'klawock', 'totem_park', 'craig', 'harbor', 'fuel_dock', 'lodge_road'];
+    const OUTDOOR_ROOMS = ['ferry', 'hwy', 'thorne_road', 'trailhead', 'ford', 'klawock', 'totem_park', 'craig', 'harbor', 'fuel_dock', 'lodge_road',
+      'dog_creek', 'luck_lake', 'sweetwater_turnoff', 'sweetwater_landing', 'sweetwater_lake', 'coffman_cove', 'cove_harbor'];
 
     const SCENERY = {
       ferry: {
@@ -1222,6 +1419,7 @@
         'logging country, hills, hillside, hillsides': 'Hills of second-growth and old clearcuts, a patchwork of greens going gray in the rain.'
       },
       trailhead: {
+        'road, gravel road, north': 'The gravel keeps going north past the pullout, toward Dog Creek, Luck Lake and Coffman Cove.',
         'pullout, gravel pullout': "Room for three trucks. Right now there's yours, and a whole lot of tire tracks.",
         'forest, old growth, trees, woods, trail': "The old growth starts at the edge of the gravel like a wall. The trail goes in. The light doesn't.",
         'bullet holes, bullet hole, bullet pocks': 'Small caliber. Someone was bored in the most Alaskan way possible.',
@@ -1238,21 +1436,93 @@
       ford: {
         'gravel bar, bar, stones, gravel': 'Round river stones, gray and rust and green. Spawned-out salmon lie along the waterline, picked over by eagles.',
         'salmon, carcasses, carcass, dead fish': { desc: 'Spawned-out pinks and chums, gray and ragged. The circle of life is mostly smell.', take: 'Absolutely not.', smell: 'You regret this immediately.' },
-        'far bank, bank, other side, building': 'Through the spruce on the far bank: the dark shape of a small building, and that thin line of smoke.',
+        'far bank, bank, other side, building': 'Through the spruce on the far bank: the dark shape of a small cabin. No smoke, no light, no sound.',
         'trail, forest, trees': 'The trail runs back west into the dark old growth.',
         'boulder, rock': "A big mossy boulder with soft water behind it. If you had a rod, you'd swing a fly right through there. You don't, so you just look at it longingly."
       },
       cabin: {
-        'table, plank table, initials': 'A heavy plank table carved with decades of initials. On it: a coffee mug, a game of solitaire and a Craig tide table.',
-        'cards, solitaire, deck, deck of cards': 'A game of solitaire, stuck. The red seven has nowhere to go. You know the feeling.',
-        'coffee mug, mug, coffee': { desc: 'A HARBOR LIGHT LODGE mug. Not even subtle.', drink: "It's his coffee. You don't drink a man's coffee before you've decided whether to report him.", take: "'That's mine,' Dale says." },
+        'table, plank table, initials': 'A heavy plank table carved with decades of initials. On it: a coffee can and a Craig tide table.',
+        'empty cans, cans, box, cardboard box, groceries': 'Empty cans of chili and beans, rinsed out, the way a tidy man camps. Enough for a week or two of hiding.',
         'tide table, tides, tide chart': { desc: 'A tide table for Craig, folded and refolded.', text: 'OCTOBER, CRAIG AK\n  Oct 11  HIGH 9:42 PM  14.1 ft\nSomeone has circled the 11th twice and written: "slack ~10. GO."\nSlack water. The one hour a man could swim half a mile without the current fighting him.' },
-        'paperbacks, books, book, paperback, field guide': { desc: "Louis L'Amour, a Ken Follett and a well-thumbed Field Guide to Caribbean Reef Fishes. Somebody is planning a move somewhere warm.", text: 'A Field Guide to Caribbean Reef Fishes. Dog-eared at BONEFISH. Somebody has underlined "Belize."' },
-        'groceries, box, food, canned chili, chili': "Canned chili, coffee, oatmeal and a box of saltines. Enough for a few more days. Somebody's due back with more.",
         'window': 'Grimy glass. The river flashing through the trees.',
         'cabin, logs, spruce logs, walls, wall': 'Weathered spruce logs, chinked with moss and old rope. A Forest Service plaque by the door reads PUBLIC USE CABIN — RESERVE ONLINE. Nobody reserved it.',
         'door': 'Rough planks on iron hinges. The way back, west.',
-        'survival suit, suit, orange suit, immersion suit': "Hanging from a nail by the door: a bright orange survival suit, the kind that keeps you alive in cold water. Salt has dried in white lines on the sleeves. The name tag on the chest says HAUGEN."
+        'survival suit, suit, orange suit, immersion suit': "Hanging from a nail by the door: a bright orange survival suit, the kind that keeps you alive in cold water. Salt has dried in white lines on the sleeves. The name tag on the chest says HAUGEN. He left it behind when he moved. He wasn't planning on swimming again."
+      },
+      dog_creek: {
+        'creek, dog creek, water, shallows, gravel': 'Clear, quick water over clean gravel. Spawned-out pink salmon drift in the eddies, and coho fry flick away from your shadow.',
+        'bridge, timbers, one-lane bridge, plaque': 'Creosoted timbers, a one-lane deck, and a little Forest Service plaque from the logging days. It rattles when you drive over it, and it has been rattling for fifty years.',
+        'bears, bear, sow, cub, black bear, black bears': { desc: 'A glossy black bear sow, fat for winter, pinning a salmon in the shallows while her cub splashes after the leftovers. She looks up once, decides you are not interesting, and goes back to work.', touch: 'No. Absolutely not. Not even a little.' },
+        'bank, trampled bank': "Mud packed flat by paws, salmon skins and one very clear message: this is somebody else's kitchen.",
+        'tracks, tire tracks, road, gravel road': 'Fresh tire tracks cross the bridge heading north. Wide tires, aggressive tread. The same tracks as at the Thorne trailhead.'
+      },
+      luck_lake: {
+        'lake, luck lake, water, drop-off, drop off': 'Long, deep and still, with the hills folding down into it from every side. Cutthroat dimple the surface along the drop-off. Locals swear there is a thirty-inch Dolly Varden in here somewhere.',
+        'rock beach, beach, rocks, stones, stone': { desc: 'Flat gray stones, perfect for skipping.', take: 'You pick out a flat stone and skip it across the lake. Six skips. You have a feeling somebody around here could do seven.' },
+        'picnic shelter, shelter, picnic table, table, bench, carving, initials, heart': { desc: 'A covered picnic shelter with a heavy plank table, carved over the years with initials. One set is old and deep, inside a crooked heart: D.H. + M.H. 1979.', sit: 'You sit at the picnic table under the shelter. Rain ticks on the roof. Somebody carved D.H. + M.H. 1979 into the plank next to your hand.' },
+        'outhouse, crescent moon, door': { desc: 'A Forest Service outhouse with a crescent moon cut in the door. Surprisingly clean, for an outhouse.', open: 'You open the door. Somebody has left a 1997 issue of Field & Stream in there. You close the door and leave the magazine for the next guy.', enter: 'You have a case to solve. You can hold it.' },
+        'loon, common loon': { desc: 'A common loon, checkerboard black and white, riding low out in the middle of the lake. It lets out that long, wavering call that makes the whole lake sound lonely.', listen: 'That call. It goes right through you.' },
+        'hills, clouds': 'The clouds sit right down on the hills around the lake. Somewhere up there it is already snowing.'
+      },
+      sweetwater_turnoff: {
+        'sign, forest service sign, brown sign, arrow': { desc: 'A brown Forest Service sign with a white arrow pointing east.', text: 'SWEETWATER LAKE →\nPUBLIC USE CABIN\nBoat at end of trail. PFDs NOT PROVIDED.' },
+        'spur, mud, tracks, tire tracks': "Fresh tire tracks turn off the main road here and head east up the spur. Wide tires, aggressive tread. You're starting to know this tread personally.",
+        'road, coffman cove road, main road': 'The Coffman Cove road: gravel, potholes and the occasional deer, all the way north to the water.'
+      },
+      sweetwater_landing: {
+        'trail, roots, puddles, path': 'Two hundred feet of roots, puddles and slick spruce needles from the turnaround down to the water. The Forest Service calls it a trail. Your ankles call it something else.',
+        'lake, sweetwater lake, water': 'Still, dark water, a half mile across, with low green hills all around and the clouds hanging close. It looks like a place nobody would ever find you. That is the idea.',
+        'cabin, smoke, stovepipe, far shore, chimney': "A small log cabin on the far shore, with a float out front and smoke curling from the stovepipe. Somebody's home.",
+        'turnaround, truck tracks, tracks': 'Two sets of tire tracks in the mud: yours, and the wide, aggressive tread you have been following across the island.',
+        'logs, tree': 'Two logs the skiff rests on, and a spruce it is chained to. The padlock hangs open.'
+      },
+      sweetwater_lake: {
+        'water, lake, reflection, clouds': { desc: 'Dark as coffee, and so still the clouds float in it upside down.', touch: 'You trail a hand in the lake. It is cold enough to ache. You think about Dale swimming half a mile of salt water in October and feel a strange, grudging respect.' },
+        'cabin, float, smoke': 'Closer now: a cedar log cabin with a little float out front and smoke from the stovepipe. A shape moves past the window.',
+        'landing, shore': 'The landing is back to the west, your truck hidden in the trees above it.',
+        'skiff, boat, oarlocks': "The Forest Service skiff. It's sturdy, and it leaks a little. Not like the Kittiwake. Not on purpose."
+      },
+      sweetwater_cabin: {
+        'woodstove, stove, wood stove': { desc: 'A small woodstove, ticking with heat, with a kettle on top.', touch: 'Hot. You knew that. You touched it anyway.' },
+        'table, benches, bench': { desc: 'A table and benches of rough planks. On the table: a HARBOR LIGHT LODGE coffee mug and a game of solitaire.', sit: 'You sit on the bench across from Dale. Neither of you says anything for a while.' },
+        'coffee mug, mug, coffee, kettle': { desc: 'A HARBOR LIGHT LODGE mug. Not even subtle.', drink: "It's his coffee. You don't drink a man's coffee before you've decided whether to report him.", take: "'That's mine,' Dale says." },
+        'cards, solitaire, deck, deck of cards': 'A game of solitaire, stuck. The red seven has nowhere to go. You know the feeling.',
+        'paperbacks, books, book, paperback, field guide, windowsill': { desc: "Louis L'Amour, a Ken Follett and a well-thumbed Field Guide to Caribbean Reef Fishes. Somebody is planning a move somewhere warm.", text: 'A Field Guide to Caribbean Reef Fishes. Dog-eared at BONEFISH. Somebody has underlined "Belize."' },
+        'groceries, food, canned chili, chili, saltines, eggs': "Canned chili, coffee, saltines and a carton of eggs from the Coffman Cove store. Enough for a few more days. Rick's due back with more.",
+        'bunks, bunk, sleeping bag, bag': 'Wooden bunks, no mattresses. A good down sleeping bag on the bottom one, with a wool blanket folded on top. A man settling in.',
+        'forest service oars, door, oars by the door': "A pair of oars stenciled USDA FOREST SERVICE, leaning by the door. So that's where they went.",
+        'window': 'Rain on the glass, the lake beyond, and the landing too far away to see clearly. Which was the whole idea.',
+        'float': 'A little float of planks and barrels at the bottom of the path. The skiff is tied to it.',
+        'cabin, walls, logs, cedar': 'Pre-cut cedar logs, tight and fragrant, twelve by fourteen. A Forest Service plaque: SWEETWATER LAKE CABIN. RESERVE ONLINE. Nobody did.'
+      },
+      coffman_cove: {
+        'houses, trailers, house, trailer, yards': 'Houses and trailers along the shore, painted whatever color was on sale, with smoke from every stovepipe. There are skiffs in the yards, crab pots on the porches and a trampoline with a deer standing next to it.',
+        'woodpiles, woodpile, tarps, blue tarps, firewood': 'Firewood stacked under blue tarps, enough to get a family through a winter. Out here, a good woodpile is a love letter.',
+        'school': 'A small school with a playground and a basketball hoop. Somebody has painted a very good salmon on the wall by the door.',
+        'community hall, hall, bulletin board, board': { desc: 'The community hall, with a bulletin board out front under a little roof.', text: 'POTLUCK FRIDAY — bring a dish, bring a fork, bring your own chair.\nFOR SALE: firewood, $250 a cord, you haul.\nFOUND: one bear-proof garbage can lid. The bear has not claimed it.\nCHURCH SUNDAY 10 AM — coffee after, and also before.' },
+        'cove, water, strait, clarence strait, mountains': 'The cove opens out onto Clarence Strait, gray and wide, with the mountains on the far side already wearing snow up top.',
+        'deer, doe': { desc: "A Sitka black-tailed doe standing next to a trampoline in somebody's yard, eating their flowers like she pays rent.", touch: 'She lets you get closer than she should, then decides that is enough.' },
+        'road, gravel road': 'The road you came in on, heading south through the trees.'
+      },
+      cove_store: {
+        'aisles, shelves, shelf, canned goods, chainsaw chain, ammunition, candles, birthday candles': 'Everything a person might need when the nearest town is an hour away on gravel: chainsaw chain next to birthday candles, ammunition next to oatmeal. There is a system. Hazel is the system.',
+        'woodstove, stove, wood stove, barrel stove': { desc: 'A barrel stove in the middle of the floor, pumping out heat, with a coffee pot on top.', touch: 'Hot. Very hot. You warm your hands instead, like a person with sense.' },
+        'coffee, coffee pot, pot, percolator': { desc: 'A dented percolator on the woodstove, with a stack of foam cups next to it.', drink: "You pour a cup. Hazel doesn't look up. 'Free. Advice costs extra.' The coffee is excellent.", take: "You pour a cup. Hazel doesn't look up. 'Free. Advice costs extra.' The coffee is excellent." },
+        'sign, register, cash register': 'A brass cash register older than the town, and a hand-lettered sign: COFFMAN COVE. POP.: ENOUGH.',
+        'coolers, cooler, bait, milk': 'A cooler of herring next to a cooler of milk, both labeled in marker so nobody makes the mistake twice.',
+        'tackle, fishing tackle, lures, flies, fly, pegboard': { desc: 'A pegboard of spoons and spinners, and a little box of hand-tied flies: olive Woolly Buggers and egg-sucking leeches. Somebody local ties good flies.', take: "'You got a rod?' Hazel asks without looking up. You don't. You put the flies back." },
+        'rain gear, raingear': 'Rubber rain gear in two colors: orange, and also orange.',
+        'crossword, pencil, pocketknife': "Hazel's crossword, nearly done, in pencil. She sharpens the pencil with a pocketknife between clues.",
+        'porch, door': 'The porch and the door, east, back out to the road.'
+      },
+      cove_harbor: {
+        'boats, skiffs, crabbers, slips, floats': 'Skiffs and crabbers in their slips, crab pots stacked on the floats, and every boat tied up with the kind of knots that come from knowing exactly what the wind can do.',
+        'seiner, old seiner': "An old wooden seiner, its green paint gone chalky, that hasn't left the dock in a decade. Somebody still pumps its bilge every week. Somebody can't let it go.",
+        'ferry ramp, old ferry ramp, ramp, apron, kid': 'The old ferry ramp. The inter-island ferry used to run a northern route in here, years ago. Now the ramp mostly hosts gulls and a kid with a spinning rod.',
+        'breakwater, rocks': 'A breakwater of big gray rocks, with gulls standing on every one of them like it is assigned seating.',
+        'strait, clarence strait, water, mountains': 'Clarence Strait, gray and wide, with snow on the mountains on the far side. On a clear day you can see forever. This is not a clear day.',
+        'black lab, lab, dog': { desc: 'A black lab in a red bandana, trotting the floats with the air of a dog who meets every boat. He sniffs your hand, approves of the truck smell, and goes back to work.', touch: 'He leans his whole weight into your leg and closes his eyes. You have made a friend for life, or at least until the next boat comes in.' },
+        'gulls, gull': 'Gulls on the breakwater, the ramp, the pilings and the seiner. Coffman Cove has a lot of gulls, and they all have opinions.'
       },
       klawock: {
         'inlet, klawock inlet, water, tide flats, mudflats': 'A wide, sheltered inlet. At low tide the mudflats shine and herons stalk the edges like they own the place.',
@@ -1372,10 +1642,19 @@
       ferry: { listen: "The ferry's engine fading away across the water. Rain ticking on the gravel. A raven making a noise like a dripping faucet.", smell: 'Salt water, diesel and wet spruce.' },
       hwy: { listen: 'The Harris River, loud with rain, rushing under the bridge.', smell: 'Wet alder and river.', sit: 'You lean on the guardrail and watch the water for a minute. A steelhead rolls in the tailout. Of course it does.' },
       thorne_road: { listen: 'Just rain, and a varied thrush whistling one long note somewhere in the trees.', smell: 'Wet gravel and spruce.' },
-      trailhead: { listen: 'Ravens. The river, far off to the east. Something big snaps a branch, once. Then nothing.', smell: 'Spruce, mud and, very faintly, woodsmoke drifting from the east.' },
+      trailhead: { listen: 'Ravens. The river, far off to the east. Something big snaps a branch, once. Then nothing.', smell: 'Spruce and mud. No woodsmoke. Nobody is cooking anything out here.' },
       river_trail: { listen: 'Water dripping off a thousand branches. The river, closer now, to the east.', smell: 'Rot and green. The whole forest is composting itself.' },
-      ford: { listen: 'The river, loud enough to drown out your own thoughts.', smell: 'Cold water, salmon rot and woodsmoke.', sit: 'You sit on a log on the gravel bar. Across the river, the smoke keeps rising. Somebody over there is sitting too.' },
-      cabin: { listen: 'The propane heater hissing. The river outside. Dale breathing like a man trying very hard to seem relaxed.', smell: 'Propane, coffee and wool socks.' },
+      ford: { listen: 'The river, loud enough to drown out your own thoughts.', smell: 'Cold water and salmon rot.', sit: 'You sit on a log on the gravel bar and watch the cabin across the river. Nothing moves over there.' },
+      cabin: { listen: 'Nothing. The river outside, and the drip from the eaves. A cabin nobody is in anymore.', smell: 'Old propane and cold coffee.' },
+      dog_creek: { listen: 'The creek chattering over gravel. A salmon slapping in the shallows. The cub, complaining about something.', smell: 'Creek water, dead salmon and wet bear. Bear country.' },
+      luck_lake: { listen: 'The loon, long and wavering, from out in the middle of the lake. Rain on the shelter roof.', smell: 'Cold lake water and wet cedar.', sit: 'You sit at the picnic table under the shelter. Rain ticks on the roof. Somebody carved D.H. + M.H. 1979 into the plank next to your hand.' },
+      sweetwater_turnoff: { listen: 'Rain in the alders. Far off, a logging truck downshifting on a hill.', smell: 'Mud and wet alder.' },
+      sweetwater_landing: { listen: 'Water lapping at the gravel. Across the lake, very faintly, someone splitting wood.', smell: 'Lake water and, from the far shore, woodsmoke.' },
+      sweetwater_lake: { listen: 'Oar drips. Your own breathing. Somewhere far off, a loon.', smell: 'Clean cold water and woodsmoke.', sit: "You're already sitting, in a small aluminum boat, in the middle of a lake. Life comes at you fast." },
+      sweetwater_cabin: { listen: 'The woodstove ticking. The kettle starting to sing. Dale breathing like a man trying very hard to seem relaxed.', smell: 'Woodsmoke, coffee and wool socks.' },
+      coffman_cove: { listen: 'Gulls, a chainsaw somewhere up the hill, and a screen door slapping shut.', smell: 'Woodsmoke, salt water and somebody frying bacon.' },
+      cove_store: { listen: "The woodstove ticking. Hazel's pencil scratching. A radio playing the swap show out of Ketchikan.", smell: 'Woodsmoke, coffee, bait and new rubber boots.', sit: "You sit on the bench by the woodstove. Hazel looks at you over her glasses. 'Take your time.' It's the nicest thing anyone has said to you all week." },
+      cove_harbor: { listen: "Halyards, gulls, and the lab's tags jingling as he trots the floats.", smell: 'Salt, diesel and crab bait.' },
       klawock: { listen: 'Ravens arguing over a dumpster. A skiff outboard droning out on the inlet.', smell: 'Woodsmoke and low tide.' },
       totem_park: { listen: 'The adze biting cedar, steady as a heartbeat.', smell: 'Fresh-cut cedar.', sit: 'You sit on the low wall at the edge of the park and look out over the inlet. The poles look out with you. It is very peaceful.' },
       trooper: { listen: "Fluorescent hum. A police scanner muttering about a deer on the Hydaburg road.", smell: 'Burnt coffee and floor wax.' },
@@ -1400,28 +1679,36 @@
     // x grows east, y grows south, one step per exit. This is the scenery
     // drawn underneath them, in the same units.
     const mapGeo = {
-      view: { x0: -2.2, y0: -1.1, x1: 8.7, y1: 8.1 },
+      view: { x0: -2.2, y0: -4.9, x1: 8.7, y1: 8.1 },
       // Prince of Wales Island is huge; this is the middle of it, so the
       // outline runs off the top and bottom of the sheet.
       coast: [
-        [-0.3, -2.2], [3.5, -2.4], [7.6, -2.0], [8.0, -1.2], [7.85, -0.4], [8.0, 0.5],
+        [-0.7, -6.2], [2.5, -6.6], [5.4, -6.4], [6.1, -5.4], [5.9, -4.4], [6.6, -3.8],
+        [7.7, -3.6], [8.1, -2.8], [8.0, -1.2], [7.85, -0.4], [8.0, 0.5],
         [7.5, 1.2], [6.8, 1.7], [6.75, 2.4], [7.2, 3.0], [7.6, 4.0], [7.3, 5.0],
         [7.7, 6.0], [7.4, 7.0], [7.7, 8.0], [7.4, 9.2], [3.5, 9.6], [-0.4, 9.2],
         [-0.65, 8.0], [-0.45, 7.2], [-0.6, 6.4], [-0.55, 5.2], [-0.55, 4.4], [-0.55, 3.6],
-        [-0.85, 3.0], [-0.7, 2.4], [-0.9, 1.6], [-0.5, 0.8], [-0.6, 0.0], [-0.3, -0.8]
+        [-0.85, 3.0], [-0.7, 2.4], [-0.9, 1.6], [-0.5, 0.8], [-0.6, 0.0], [-0.3, -0.8],
+        [-0.55, -1.8], [-0.4, -2.9], [-0.75, -4.0], [-0.6, -5.2]
+      ],
+      lakes: [
+        { x: 5.05, y: -2.15, rx: 0.5, ry: 0.26, rotate: -12, label: 'Luck L.', lx: 5.05, ly: -1.72 },
+        { x: 6.0, y: -3.0, rx: 0.78, ry: 0.4, rotate: 0, label: 'Sweetwater L.', lx: 6.0, ly: -2.45 }
       ],
       islets: [
         { x: -1.35, y: 5.55, rx: 0.32, ry: 0.28, label: 'Fish Egg I.' }
       ],
       rivers: [
         { label: 'Thorne R.', lx: 5.55, ly: 1.05, pts: [[5.3, 1.6], [5.9, 1.25], [6.4, 0.6], [6.5, 0.0], [6.75, -0.5], [7.3, -0.6], [7.95, -0.55]] },
+        { label: 'Dog Cr.', lx: 2.95, ly: -1.12, pts: [[2.6, -1.75], [3.3, -1.3], [4.0, -1.0], [5.0, -0.8], [6.0, -0.65], [6.72, -0.45]] },
         { label: 'Harris R.', lx: 5.6, ly: 3.75, pts: [[4.8, 1.35], [4.6, 2.0], [4.75, 2.7], [5.4, 3.25], [6.3, 3.5], [7.25, 3.2]] }
       ],
       labels: [
         { text: 'PRINCE OF WALES ISLAND', x: 5.0, y: 5.95, size: 30, rotate: -8, cls: 'island' },
         { text: 'CLARENCE STRAIT', x: 8.25, y: 4.6, size: 18, rotate: 90, cls: 'water' },
         { text: 'BUCARELI BAY', x: -1.75, y: 2.4, size: 18, rotate: -90, cls: 'water' },
-        { text: 'Thorne Bay', x: 8.3, y: -0.2, size: 14, rotate: 90, cls: 'water' }
+        { text: 'Thorne Bay', x: 8.3, y: -0.2, size: 14, rotate: 90, cls: 'water' },
+        { text: 'Coffman Cove', x: 6.85, y: -4.55, size: 14, rotate: 0, cls: 'water' }
       ]
     };
 
@@ -1442,9 +1729,14 @@
       if (!g.isOwned('waders')) return 'Cal at the Riptide Tavern (east of Front Street in Craig) knows the rivers. He looks thirsty. BUY BEER, then GIVE BEER TO CAL.';
       if (!g.isOwned('flashlight')) return 'Check the glovebox of your rental truck. GET IN TRUCK, then OPEN GLOVEBOX.';
       if (!g.has('found_dale')) {
-        if (!g.itemState('flashlight').on) return 'Turn on the flashlight before you head under the old growth: TURN ON FLASHLIGHT.';
-        if (!g.isWorn('waders')) return 'You will need to WEAR WADERS to cross the Thorne.';
-        return 'From the highway, take Thorne Bay Road north to the trailhead, then go east along the trail and across the river.';
+        if (!g.has('rick_note') && !g.flag('knows_sweetwater')) {
+          if (!g.itemState('flashlight').on) return 'Turn on the flashlight before you head under the old growth: TURN ON FLASHLIGHT.';
+          if (!g.isWorn('waders')) return 'You will need to WEAR WADERS to cross the Thorne.';
+          if (g.state.loc === 'cabin') return 'Somebody left in a hurry. Read what they left on the table.';
+          return 'The cabin on the topo map is on the Thorne. From the highway, take Thorne Bay Road north to the trailhead, then go east along the trail and across the river.';
+        }
+        if (!g.inInv('oars')) return 'Rick took the oars from the Sweetwater skiff. Hazel at the general store in Coffman Cove (north past Dog Creek and Luck Lake, then west from town) might have another pair. TALK TO HAZEL.';
+        return 'Take the Sweetwater turnoff east off the Coffman Cove road, walk down to the landing, and ROW EAST across the lake to the cabin.';
       }
       if (!g.flag('dale_confessed')) return 'Talk to Dale. Show him the napkin if he stonewalls you.';
       return 'Go to the State Troopers post in Klawock and ACCUSE whoever is responsible. Maybe more than one person.';

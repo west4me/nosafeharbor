@@ -129,6 +129,11 @@
     for (const isl of geo.islets) {
       out.push(`<ellipse cx="${X(isl.x)}" cy="${Y(isl.y)}" rx="${isl.rx * SX}" ry="${isl.ry * SY}" fill="#fbf8ef"/>`);
     }
+    // Lakes: water inside the land, hatched like the sea.
+    const lakes = geo.lakes || [];
+    const lakeShape = (l, extra) => `<ellipse cx="${X(l.x)}" cy="${Y(l.y)}" rx="${l.rx * SX}" ry="${l.ry * SY}" transform="rotate(${l.rotate || 0} ${X(l.x)} ${Y(l.y)})" ${extra}/>`;
+    for (const l of lakes) out.push(lakeShape(l, 'fill="#fbf8ef"'));
+    for (const l of lakes) out.push(lakeShape(l, 'fill="url(#map-water)" opacity="0.55"'));
     out.push(`<rect width="${W}" height="${H}" fill="url(#map-grid)"/>`);
     out.push(`<rect width="${W}" height="${H}" fill="url(#map-grid-major)"/>`);
 
@@ -138,6 +143,7 @@
     for (const isl of geo.islets) {
       out.push(`<ellipse cx="${X(isl.x)}" cy="${Y(isl.y)}" rx="${isl.rx * SX}" ry="${isl.ry * SY}" stroke="#3d4a5c" stroke-width="2.5"/>`);
     }
+    for (const l of lakes) out.push(lakeShape(l, 'stroke="#3f74ad" stroke-width="2.5"'));
     for (const rv of geo.rivers) {
       out.push(`<path d="${smoothPath(rv.pts.map(P), false)}" stroke="#5b8fc7" stroke-width="3.5"/>`);
     }
@@ -149,6 +155,9 @@
     }
     for (const isl of geo.islets) {
       out.push(`<text class="map-label map-label-water" x="${X(isl.x)}" y="${Y(isl.y + isl.ry) + 18}" font-size="14" text-anchor="middle">${esc(isl.label)}</text>`);
+    }
+    for (const l of lakes) {
+      out.push(`<text class="map-label map-label-river" x="${X(l.lx)}" y="${Y(l.ly)}" font-size="14" text-anchor="middle">${esc(l.label)}</text>`);
     }
     for (const rv of geo.rivers) {
       out.push(`<text class="map-label map-label-river" x="${X(rv.lx)}" y="${Y(rv.ly)}" font-size="14" text-anchor="middle">${esc(rv.label)}</text>`);
@@ -217,7 +226,7 @@
   <text class="map-legend-text" x="${lx + 42}" y="${ly + 61}" font-size="15">not explored</text>
 </g>`);
 
-    out.push(`<text class="map-label map-title" x="${X(-2.05)}" y="${Y(-0.75)}" font-size="16">Claim NM-1187 · field map · explored ${model.rooms.length} of ${model.total}</text>`);
+    out.push(`<text class="map-label map-title" x="${X(-2.05)}" y="${Y(v.y0 + 0.35)}" font-size="16">Claim NM-1187 · field map · explored ${model.rooms.length} of ${model.total}</text>`);
     out.push('</svg>');
     return out.join('\n');
   }
