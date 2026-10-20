@@ -25,9 +25,14 @@ Type commands in plain English:
 | Move | `north` `south` `east` `west` (or `n` `s` `e` `w`), `up`, `down`, `in`, `out` |
 | Look | `look`, `examine rack` (`x rack`), `read photo`, `search barrel` |
 | Things | `take`, `drop`, `open`, `close`, `unlock`, `wear`, `remove`, `turn on`, `inventory` (`i`) |
+| Senses | `listen`, `smell`, `touch moss`, `sit on couch`, `knock on door`, `play jukebox` |
+| Driving | `get in truck`, `get out`, `drive west`, `drive to craig` (anywhere you've been) |
 | People | `talk to marnie`, `ask joe about weather`, `show napkin to rick`, `give beer to cal` |
 | The case | `notes` (your clue journal), `score`, `hint`, `accuse <name>` (at the trooper post) |
 | Game | `map`, `save`, `load`, `restart` |
+
+**Look at everything.** If a room description mentions it, you can examine it, and most
+places have their own sounds and smells. Some small details only turn up if you go poking around.
 
 **The map.** Type `map` or hit the **Map** button to unfold your graph-paper map of the island.
 Like the old Zork days, it only shows places you've actually been. Paths you've walked are

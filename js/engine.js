@@ -23,7 +23,9 @@
   };
 
   const STOP_WORDS = new Set(['the', 'a', 'an', 'some', 'my', 'your', 'that', 'this', 'of', 'at', 'his', 'her']);
-  const SAVE_KEY = 'nosafeharbor-save-v1';
+  const SAVE_KEY = 'nosafeharbor-save-v2';
+  const OLD_SAVE_KEYS = ['nosafeharbor-save-v1'];
+  const COMPASS_DIRS = new Set(['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest']);
 
   function clean(phrase) {
     return String(phrase || '').split(/\s+/).filter((w) => w && !STOP_WORDS.has(w)).join(' ');
@@ -61,6 +63,22 @@
       this.items = w.items;
       this.npcs = w.npcs;
       this.clues = w.clues;
+      // Room scenery shorthand: { 'name, alias, alias': description | { desc, text, take, <verb>: response } }.
+      // Every noun a room description mentions should be in here, so players can look at it.
+      const SCENERY_FIELDS = ['desc', 'text', 'onExamine', 'onRead'];
+      for (const [rid, r] of Object.entries(this.rooms)) {
+        for (const [key, val] of Object.entries(r.scenery || {})) {
+          const names = key.split(',').map((x) => x.trim()).filter(Boolean);
+          const spec = typeof val === 'object' ? val : { desc: val };
+          const it = { name: names[0], names, fixed: true, loc: rid, verbs: {} };
+          for (const [k, v] of Object.entries(spec)) {
+            if (SCENERY_FIELDS.includes(k)) it[k] = v;
+            else if (k === 'take') it.fixedMsg = v;
+            else it.verbs[k] = typeof v === 'function' ? v : () => v;
+          }
+          this.items[`${rid}:${names[0]}`] = it;
+        }
+      }
       const items = {};
       for (const [id, it] of Object.entries(this.items)) {
         it.id = id;
@@ -75,7 +93,7 @@
         n.names = n.names.map((x) => x.toLowerCase());
       }
       // visited = rooms you've stood in; lit = rooms you've actually seen (for the map).
-      this.state = { version: 1, loc: w.start, items, flags: {}, found: [], score: 0, turns: 0, visited: { [w.start]: true }, lit: {}, over: false };
+      this.state = { version: 2, loc: w.start, items, flags: {}, found: [], score: 0, turns: 0, visited: { [w.start]: true }, lit: {}, over: false };
     }
 
     start() {
@@ -289,6 +307,7 @@
 
     // Returns false for meta commands that shouldn't use up a turn.
     dispatch(input) {
+      this.drivingNow = false; // set by world road exits while a trip is under way
       const cmd = input.replace(/[^a-z0-9\s'-]/g, ' ').replace(/'/g, '').replace(/\s+/g, ' ').trim();
       if (!cmd) { this.print('Beg pardon?'); return false; }
       const words = cmd.split(' ');
@@ -310,17 +329,25 @@
       if (/^(xyzzy|plugh)$/.test(cmd)) { this.print('A hollow voice says, "Wrong game, investigator."'); return; }
       if (/^(diagnose|health)$/.test(cmd)) { this.print('Damp, underpaid and in excellent health.'); return false; }
 
-      // --- safe dial (before movement and "turn ...", so ENTER 1 2 3 isn't read as a direction)
-      if ((m = cmd.match(/^(?:dial|enter|set|spin|turn|try|input|open safe with|use combination|combination)\b\D*?(\d+)\D+(\d+)\D+(\d+)/))) {
-        return this.dial([+m[1], +m[2], +m[3]]);
+      // --- keypads and dials (before movement and "turn ...", so ENTER 1187 isn't read as a direction)
+      if (/^(?:dial|enter|set|spin|turn|try|input|type|punch|punch in|key in|press|code|use code|use combination|combination|open safe with)\b\D*\d/.test(cmd) || /^\d[\d\s-]*$/.test(cmd)) {
+        return this.dial(cmd.match(/\d+/g).map(Number));
       }
 
       // --- movement
       if (words.length === 1 && DIRS[words[0]]) return this.go(DIRS[words[0]]);
       if ((m = cmd.match(/^(?:go|walk|run|drive|head|travel|move|hike|climb)(?: to| toward| towards)? (\w+)$/)) && DIRS[m[1]]) return this.go(DIRS[m[1]]);
       if ((m = cmd.match(/^(?:go|walk|run|drive|head|travel|hike) (?:to |into |toward |towards |back to )?(.+)$/))) return this.goByName(m[1]);
-      if ((m = cmd.match(/^(?:enter|go in|go into|go inside|get in|get into) (.+)$/))) return this.goByName(m[1], 'in');
-      if (/^(enter|go in|get in)$/.test(cmd)) return this.go('in');
+      if (/^(get out|climb out|step out|hop out|get out of .+|climb out of .+|exit (?:truck|pickup|car|cab|vehicle)|leave (?:truck|pickup|car|cab))$/.test(cmd)) {
+        if (!this.exitsOf(this.rooms[this.state.loc]).out) { this.print("You're not in anything. You're already out here in the weather."); return false; }
+        return this.go('out');
+      }
+      if ((m = cmd.match(/^(?:enter|go in|go into|go inside|get in|get into|climb in|climb into|hop in|hop into|sit in) (.+)$/))) return this.enter(m[1]);
+      if (/^(enter|go in|get in|climb in|hop in)$/.test(cmd)) return this.go('in');
+      if (/^(drive|start (?:truck|engine|car|pickup)|start up (?:truck|car|pickup)|start it|drive (?:truck|car|pickup))$/.test(cmd)) {
+        this.print(this.t(this.world.driveHelp) || 'Drive where?');
+        return false;
+      }
       if ((m = cmd.match(/^(?:cross|ford|wade)(?: across)?(?: the)?(?: (.+))?$/))) return this.crossRiver();
 
       // --- clothing
@@ -371,18 +398,26 @@
       // --- misc
       if ((m = cmd.match(/^use (.+)$/))) return this.use(m[1]);
       if ((m = cmd.match(/^(?:drink|sip|chug) (.+)$/))) return this.itemVerb('drink', m[1], "That's not something you can drink.");
-      if ((m = cmd.match(/^(?:eat|taste|lick) (.+)$/))) { this.print('You lost your appetite somewhere around the bear scat.'); return; }
+      if ((m = cmd.match(/^(?:eat|taste|lick|bite) (.+)$/))) return this.itemVerb('eat', m[1], "You're not that hungry. Not for that.");
       if (/^(fish|cast|go fishing|fly fish|flyfish)( .*)?$/.test(cmd)) return this.fish();
       if (/^(swim|dive|jump in)( .*)?$/.test(cmd)) { this.print("The water up here is cold enough to stop your heart. Hard pass."); return; }
-      if (/^(listen|hear)( .*)?$/.test(cmd)) { this.print('Rain. Ravens. Somewhere, a boat engine, then nothing.'); return; }
-      if (/^(smell|sniff)( .*)?$/.test(cmd)) { this.print('Spruce, salt and wet everything.'); return; }
+      if ((m = cmd.match(/^(?:listen|hear)(?: to| for)?(?: (.+))?$/))) return this.sense('listen', m[1], 'Rain. Ravens. Somewhere, a boat engine, then nothing.', 'You hear nothing unusual.');
+      if ((m = cmd.match(/^(?:smell|sniff)(?: at)?(?: (.+))?$/))) return this.sense('smell', m[1], 'Spruce, salt and wet everything.', 'It smells about how you would expect.');
+      if ((m = cmd.match(/^(?:sit|sit down|have a seat|take a seat|lie down|lie|rest)(?: (?:on|in|at|down on|down in) (.+))?$/))) return this.sense('sit', m[1], "You'd rather stay on your feet. There's work to do.", "That doesn't look like it would hold you.");
+      if ((m = cmd.match(/^knock(?: on| at)?(?: (.+))?$/))) return this.sense('knock', m[1], 'Knock on what?', 'Knock knock. Nobody answers.');
+      if ((m = cmd.match(/^(?:climb|scale)(?: up| on| onto| over)? (.+)$/))) return this.itemVerb('climb', m[1], "You'd break your neck, and that's not covered either.");
+      if ((m = cmd.match(/^(?:play|press|push button on|punch button on) (.+)$/))) return this.itemVerb('push', m[1], "You can't play that.");
+      if ((m = cmd.match(/^(?:pet|pat|scratch) (.+)$/))) return this.itemVerb('touch', m[1], "It doesn't seem to want that.");
+      if (/^(time|what time is it|check time|check watch|look at watch|watch)$/.test(cmd)) { this.print(this.t(this.world.timeText) || "Late afternoon. The light goes early this time of year."); return false; }
+      if (/^(weather|check weather|forecast)$/.test(cmd)) { this.print(this.t(this.rooms[this.state.loc].weather) || 'Rain. Light, steady, eternal. A nice day, by local standards.'); return false; }
       if (/^(sleep|nap)$/.test(cmd)) { this.print("You can sleep when the claim's closed."); return; }
       if (/^(yell|shout|scream|sing|hum|make noise|clap)( .*)?$/.test(cmd)) { this.print('You make some noise. Any bears within earshot politely decide to be somewhere else.'); return; }
       if (/^(jump|dance)$/.test(cmd)) { this.print('Wheee.'); return; }
       if (/^(curse|damn|swear)( .*)?$/.test(cmd)) { this.print('Such language from an insurance professional.'); return; }
       if ((m = cmd.match(/^(?:call|phone|text|dial) (.+)$/))) { this.print('No service. Welcome to the Tongass. You will have to talk to people face to face, like it is 1952.'); return; }
       if ((m = cmd.match(/^(?:hit|kill|attack|punch|kick|break|smash|fight) (.+)$/))) { this.print('Violence is not covered under your policy.'); return; }
-      if ((m = cmd.match(/^(?:push|pull|move|shake|touch|feel|rub) (.+)$/))) return this.itemVerb('push', m[1], 'Nothing happens.');
+      if ((m = cmd.match(/^(?:touch|feel|rub|stroke|poke) (.+)$/))) return this.itemVerb('touch', m[1], 'It feels about how it looks.');
+      if ((m = cmd.match(/^(?:push|pull|move|shake|lift|tug|turn) (.+)$/))) return this.itemVerb('push', m[1], 'Nothing happens.');
 
       this.print(`I don't know how to "${cmd}". (Type HELP for a list of commands.)`);
       return false;
@@ -399,7 +434,7 @@
       this.state.lit[room.id] = true;
       this.print(room.name, 'room-title');
       if (full) this.print(this.t(room.desc));
-      const loose = this.contentsOf(room.id).filter((id) => !this.items[id].fixed);
+      const loose = this.contentsOf(room.id).filter((id) => !this.items[id].fixed || this.items[id].listed);
       for (const id of loose) {
         const it = this.items[id];
         this.print(it.roomDesc !== undefined ? this.t(it.roomDesc) : `There is ${it.short || 'a ' + it.name} here.`);
@@ -407,23 +442,38 @@
       for (const n of this.visibleNpcs()) this.print(this.t(n.here), 'npc');
     }
 
-    go(dir) {
+    // A room's exits, including computed ones (a room's exitsFn, or the world's extraExits, e.g. "in" to a parked truck).
+    exitsOf(room) {
+      const base = room.exitsFn ? room.exitsFn(this) : room.exits;
+      const extra = this.world.extraExits ? this.world.extraExits(this, room) : null;
+      return extra ? Object.assign({}, base, extra) : base;
+    }
+
+    exitTo(exit) {
+      return typeof exit === 'string' ? exit : this.t(exit.to);
+    }
+
+    go(dir, quiet) {
       const room = this.rooms[this.state.loc];
       if (this.isDark() && !(room.darkExits || []).includes(dir)) {
         this.print(room.darkMove || 'You stumble around in the dark and get nowhere.');
         return;
       }
-      const exit = room.exits[dir];
+      const exit = this.exitsOf(room)[dir];
       if (!exit) {
-        this.print(dir === 'in' || dir === 'out' ? "You're not sure where you're trying to go. Try a compass direction." : "You can't go that way.");
+        this.print(this.t(room.noExit) || (dir === 'in' || dir === 'out' ? "You're not sure where you're trying to go. Try a compass direction." : "You can't go that way."));
         return;
       }
-      const to = typeof exit === 'string' ? exit : exit.to;
+      const to = this.exitTo(exit);
       if (typeof exit === 'object' && exit.guard) {
         const block = exit.guard(this);
         if (block) { this.print(block); return; }
       }
-      this.moveTo(to);
+      this.moveTo(to, quiet);
+    }
+
+    roomByName(p) {
+      return Object.values(this.rooms).find((r) => (r.aliases || []).includes(p) || r.name.toLowerCase() === p);
     }
 
     goByName(phrase, fallbackDir) {
@@ -431,9 +481,9 @@
       if (DIRS[p]) return this.go(DIRS[p]);
       const room = this.rooms[this.state.loc];
       if (room.aliases && room.aliases.includes(p)) { this.print("You're already here."); return; }
-      for (const [dir, exit] of Object.entries(room.exits)) {
-        const to = typeof exit === 'string' ? exit : exit.to;
-        const dest = this.rooms[to];
+      const exits = this.exitsOf(room);
+      for (const [dir, exit] of Object.entries(exits)) {
+        const dest = this.rooms[this.exitTo(exit)];
         if ((dest.aliases || []).includes(p) || dest.name.toLowerCase() === p) {
           if (this.isDark() && !(room.darkExits || []).includes(dir)) {
             this.print(room.darkMove || 'You stumble around in the dark and get nowhere.');
@@ -442,9 +492,51 @@
           return this.go(dir);
         }
       }
-      if (fallbackDir && room.exits[fallbackDir]) return this.go(fallbackDir);
+      if (fallbackDir && exits[fallbackDir]) return this.go(fallbackDir);
+      // Farther away: if you've been there before, find the way.
+      const target = this.roomByName(p);
+      if (target) {
+        if (!this.state.visited[target.id]) {
+          this.print("You don't know the way there yet. Explore a little first.");
+          return false;
+        }
+        const path = this.route(target.id);
+        if (!path) { this.print("You can't find a way there from here."); return false; }
+        return this.travel(path);
+      }
       this.print("You can't get there directly from here. Use compass directions: NORTH, SOUTH, EAST, WEST (or N, S, E, W).");
       return false;
+    }
+
+    // Shortest list of compass moves to a room, through places you've already been.
+    route(targetId) {
+      const start = this.state.loc;
+      const prev = { [start]: null };
+      const queue = [start];
+      while (queue.length) {
+        const cur = queue.shift();
+        if (cur === targetId) break;
+        for (const [dir, exit] of Object.entries(this.exitsOf(this.rooms[cur]))) {
+          if (!COMPASS_DIRS.has(dir)) continue;
+          const to = this.exitTo(exit);
+          if (to in prev || !this.state.visited[to]) continue;
+          prev[to] = [cur, dir];
+          queue.push(to);
+        }
+      }
+      if (!(targetId in prev)) return null;
+      const dirs = [];
+      for (let at = targetId; prev[at]; at = prev[at][0]) dirs.unshift(prev[at][1]);
+      return dirs;
+    }
+
+    // Take several steps in one command; only the last stop gets a full description.
+    travel(dirs) {
+      for (let i = 0; i < dirs.length; i++) {
+        const before = this.state.loc;
+        this.go(dirs[i], i < dirs.length - 1);
+        if (this.state.loc === before) return;
+      }
     }
 
     crossRiver() {
@@ -454,11 +546,15 @@
       return false;
     }
 
-    moveTo(roomId) {
+    moveTo(roomId, quiet) {
       this.state.loc = roomId;
       const first = !this.state.visited[roomId];
       this.state.visited[roomId] = true;
-      this.describe(true);
+      if (quiet) {
+        if (!this.isDark()) this.state.lit[roomId] = true;
+      } else {
+        this.describe(true);
+      }
       const room = this.rooms[roomId];
       if (room.onEnter && !this.isDark()) room.onEnter(this, first);
     }
@@ -497,7 +593,9 @@
         'MOVING      NORTH, SOUTH, EAST, WEST (or N, S, E, W), UP, DOWN, IN, OUT',
         'LOOKING     LOOK (L), EXAMINE thing (X thing), READ thing, SEARCH thing',
         'THINGS      TAKE, DROP, OPEN, CLOSE, UNLOCK, WEAR, REMOVE,',
-        '            TURN ON / TURN OFF, INVENTORY (I)',
+        '            TURN ON / TURN OFF, ENTER code, INVENTORY (I)',
+        'SENSES      LISTEN, SMELL, TOUCH thing, SIT (on thing), KNOCK',
+        'DRIVING     GET IN TRUCK, GET OUT, DRIVE TO a place you\'ve been',
         'PEOPLE      TALK TO person, ASK person ABOUT topic,',
         '            SHOW thing TO person, GIVE thing TO person',
         'THE CASE    NOTES (your journal), SCORE, HINT,',
@@ -628,7 +726,9 @@
     }
 
     doVerb(verb, phraseOrId) {
-      const e = this.items[phraseOrId] || this.find(phraseOrId, { npcs: false });
+      // World code may pass an item id; players' words always go through scope.
+      const direct = this.items[phraseOrId];
+      const e = direct && this.visibleItems().includes(direct) ? direct : this.find(phraseOrId, { npcs: false });
       if (!e) return;
       if (this.runHandler(e, verb)) return true;
       const st = this.state.items[e.id];
@@ -663,7 +763,7 @@
 
     dial(nums) {
       const room = this.rooms[this.state.loc];
-      if (!room.dial) { this.print("There's nothing here with a combination dial."); return; }
+      if (!room.dial) { this.print("There's nothing here with a keypad or a dial."); return; }
       const r = room.dial(this, nums);
       if (typeof r === 'string') this.print(r);
     }
@@ -768,7 +868,29 @@
       const e = this.find(phrase);
       if (!e) return;
       if (e.kind === 'item' && this.runHandler(e, verb)) return;
+      if (e.kind === 'npc' && e[verb]) { this.print(this.t(e[verb])); return; }
       this.print(fallback);
+    }
+
+    // Senses and postures: with no object, the room answers; with one, the thing does.
+    sense(verb, phrase, roomFallback, itemFallback) {
+      const room = this.rooms[this.state.loc];
+      if (!phrase || /^(around|here|room|air|down)$/.test(clean(phrase))) {
+        this.print(this.t(room[verb]) || roomFallback);
+        return;
+      }
+      return this.itemVerb(verb, phrase, itemFallback);
+    }
+
+    // ENTER X: things you can get into (a truck) first, then places.
+    enter(phrase) {
+      const scope = [].concat(this.visibleItems(), this.visibleNpcs());
+      const e = this.match(phrase, scope);
+      if (e && !e.ambiguous && e.kind === 'item' && e.verbs && e.verbs.enter) {
+        this.runHandler(e, 'enter');
+        return;
+      }
+      return this.goByName(phrase, 'in');
     }
 
     fish() {
@@ -786,7 +908,11 @@
     load() {
       let raw = null;
       try { raw = this.storage.get(SAVE_KEY); } catch (e) { raw = null; }
-      if (!raw) { this.print('No saved game found.', 'meta'); return false; }
+      if (!raw) {
+        const old = OLD_SAVE_KEYS.some((k) => { try { return !!this.storage.get(k); } catch (e) { return false; } });
+        this.print(old ? 'Your saved game is from an older version of the island and won\'t load in this one. Sorry! Start fresh and SAVE again.' : 'No saved game found.', 'meta');
+        return false;
+      }
       let saved;
       try { saved = JSON.parse(raw); } catch (e) { this.print('That save file is corrupted.', 'meta'); return false; }
       this.newGame();

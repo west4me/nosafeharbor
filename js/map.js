@@ -54,6 +54,9 @@
     const visited = st.visited || {};
     const lit = st.lit || null;
     const rooms = Object.values(game.rooms).filter((r) => r.map && visited[r.id]);
+    // Some places (the truck cab) aren't on the map; they show up as wherever they are.
+    const cur = game.rooms[st.loc];
+    const hereId = cur.mapAs ? (typeof cur.mapAs === 'function' ? cur.mapAs(game) : cur.mapAs) : st.loc;
     const edges = [];
     const stubs = [];
     const seen = new Set();
@@ -75,7 +78,7 @@
         x: r.map.x,
         y: r.map.y,
         label: r.dark && lit && !lit[r.id] ? ['Dark!'] : (r.map.label || [r.name]),
-        here: r.id === st.loc
+        here: r.id === hereId
       })),
       edges,
       stubs,

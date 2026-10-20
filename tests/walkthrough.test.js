@@ -32,11 +32,14 @@ function runAll(g, cmds) {
   return last;
 }
 
+// Get the truck keys out of the lockbox at the ferry terminal.
+const KEYS = ['enter 1187', 'take keys'];
+
 // The optimal route through the whole game.
 const WALKTHROUGH = [
   'read case file',
-  // Hollis: grab the flashlight
-  'open glovebox', 'take flashlight',
+  // Hollis: keys, then the flashlight from the glovebox
+  ...KEYS, 'get in truck', 'open glovebox', 'take flashlight',
   // To Craig harbormaster
   'w', 'w', 's', 'w', 'n',
   'talk to joe', 'read report', 'ask joe about weather',
@@ -92,7 +95,7 @@ test('every room exit points at a real room', () => {
   const g = newGame();
   for (const [id, r] of Object.entries(g.rooms)) {
     for (const [dir, exit] of Object.entries(r.exits)) {
-      const to = typeof exit === 'string' ? exit : exit.to;
+      const to = g.exitTo(exit);
       assert.ok(g.rooms[to], `${id} --${dir}--> ${to} is not a room`);
     }
   }
@@ -109,7 +112,7 @@ test('every item starts in a valid location', () => {
 
 test('the old-growth trail is pitch dark without a light', () => {
   const g = newGame();
-  const out = runAll(g, ['w', 'n', 'n', 'e']);
+  const out = runAll(g, [...KEYS, 'w', 'n', 'n', 'e']);
   assert.match(out, /pitch dark/);
   assert.match(run(g, 'e'), /need a light/);
   assert.equal(g.state.loc, 'river_trail');
@@ -120,14 +123,14 @@ test('the old-growth trail is pitch dark without a light', () => {
 
 test('turning on the flashlight in the dark reveals the room', () => {
   const g = newGame();
-  runAll(g, ['open glovebox', 'take flashlight', 'w', 'n', 'n', 'e']);
+  runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'w', 'n', 'n', 'e']);
   const out = run(g, 'turn on flashlight');
   assert.match(out, /Old-Growth Trail/);
 });
 
 test('the Thorne cannot be forded without wearing waders', () => {
   const g = newGame();
-  runAll(g, ['open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'n', 'n', 'e', 'e']);
+  runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'n', 'n', 'e', 'e']);
   assert.equal(g.state.loc, 'ford');
   assert.match(run(g, 'e'), /You need waders/);
   assert.equal(g.state.loc, 'ford');
@@ -135,7 +138,7 @@ test('the Thorne cannot be forded without wearing waders', () => {
 
 test('the office is locked until Marnie hands over the key', () => {
   const g = newGame();
-  runAll(g, ['w', 'w', 's', 's', 's']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 's', 's']);
   assert.equal(g.state.loc, 'lodge');
   assert.match(run(g, 'w'), /locked/);
   runAll(g, ['e', 'talk to marnie', 'w']);
@@ -145,7 +148,7 @@ test('the office is locked until Marnie hands over the key', () => {
 
 test('wrong safe combination keeps it shut', () => {
   const g = newGame();
-  runAll(g, ['w', 'w', 's', 's', 's', 'e', 'talk to marnie', 'w', 'w']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 's', 's', 'e', 'talk to marnie', 'w', 'w']);
   assert.match(run(g, 'dial 1 2 3'), /stays shut/);
   assert.match(run(g, 'open safe'), /will not budge/);
   assert.match(run(g, 'turn dial to 14-3-28'), /swings open/);
@@ -153,7 +156,7 @@ test('wrong safe combination keeps it shut', () => {
 
 test('Dale stonewalls without enough evidence', () => {
   const g = newGame();
-  runAll(g, ['open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'w', 's', 'e', 'buy beer', 'give beer to cal',
+  runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'w', 's', 'e', 'buy beer', 'give beer to cal',
     'w', 'n', 'e', 'n', 'n', 'e', 'e', 'wear waders', 'e']);
   assert.equal(g.state.loc, 'cabin');
   assert.match(run(g, 'talk to dale'), /Name's Bill/);
@@ -162,7 +165,7 @@ test('Dale stonewalls without enough evidence', () => {
 
 test('accusing the wrong person does not end the game', () => {
   const g = newGame();
-  runAll(g, ['w', 'w', 'w']);
+  runAll(g, [...KEYS, 'w', 'w', 'w']);
   assert.equal(g.state.loc, 'trooper');
   assert.match(run(g, 'accuse marnie'), /Try again/);
   assert.equal(g.state.over, false);
@@ -177,7 +180,7 @@ test('accusing outside the trooper post is redirected', () => {
 
 test('warrant ending is reachable without finding Dale', () => {
   const g = newGame();
-  runAll(g, ['w', 'w', 's', 'w', 'w', 'take receipt', 'read receipt', 'e', 'e', 's', 's', 'e', 'talk to marnie', 'w', 'w',
+  runAll(g, [...KEYS, 'w', 'w', 's', 'w', 'w', 'take receipt', 'read receipt', 'e', 'e', 's', 's', 'e', 'talk to marnie', 'w', 'w',
     'dial 14 3 28', 'take napkin', 'read napkin', 'e', 'n', 'n', 'n', 'w']);
   const out = run(g, 'accuse rick and dale');
   assert.match(out, /warrant/);
@@ -187,9 +190,9 @@ test('warrant ending is reachable without finding Dale', () => {
 
 test('save and load round-trips state', () => {
   const g = newGame();
-  runAll(g, ['open glovebox', 'take flashlight', 'w']);
+  runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'w']);
   run(g, 'save');
-  runAll(g, ['w', 's']);
+  runAll(g, [...KEYS, 'w', 's']);
   assert.equal(g.state.loc, 'craig');
   assert.match(run(g, 'load'), /Game restored/);
   assert.equal(g.state.loc, 'hwy');
@@ -198,7 +201,10 @@ test('save and load round-trips state', () => {
 
 test('parser handles synonyms and multi-commands', () => {
   const g = newGame();
-  assert.match(run(g, 'x truck'), /rental pickup/);
+  assert.match(run(g, 'x truck'), /ISLAND AUTO RENTAL/);
+  assert.match(run(g, 'look at the terminal building'), /lockbox/);
+  run(g, 'punch in 1187. get keys. climb into the pickup');
+  assert.equal(g.state.loc, 'truck_cab');
   assert.match(run(g, 'look at the glovebox'), /glovebox/);
   run(g, 'open glove box. get torch');
   assert.ok(g.inInv('flashlight'));
@@ -232,6 +238,7 @@ test('every room has a unique map position', () => {
   const g = newGame();
   const seen = {};
   for (const [id, r] of Object.entries(g.rooms)) {
+    if (r.mapAs) continue; // e.g. the truck cab shows up wherever the truck is
     assert.ok(r.map, `${id} has no map position`);
     const key = `${r.map.x},${r.map.y}`;
     assert.ok(!seen[key], `${id} and ${seen[key]} share map square ${key}`);
@@ -243,6 +250,7 @@ test('map positions agree with exit directions', () => {
   const g = newGame();
   const sign = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] };
   for (const [id, r] of Object.entries(g.rooms)) {
+    if (!r.map) continue;
     for (const [dir, exit] of Object.entries(r.exits)) {
       if (!sign[dir]) continue;
       const to = g.rooms[typeof exit === 'string' ? exit : exit.to];
@@ -269,7 +277,7 @@ test('map starts with only the ferry dock, marked as you are here', () => {
 
 test('map pencils in visited places and the paths between them', () => {
   const g = newGame();
-  runAll(g, ['w', 'w', 's']);
+  runAll(g, [...KEYS, 'w', 'w', 's']);
   const m = mapModel(g);
   assert.deepEqual(m.rooms.map((r) => r.id).sort(), ['craig', 'ferry', 'hwy', 'klawock']);
   assert.equal(m.rooms.find((r) => r.here).id, 'craig');
@@ -282,10 +290,10 @@ test('map pencils in visited places and the paths between them', () => {
 
 test('a trail only ever seen in the dark is labeled Dark!', () => {
   const g = newGame();
-  runAll(g, ['w', 'n', 'n', 'e']);
+  runAll(g, [...KEYS, 'w', 'n', 'n', 'e']);
   const trail = mapModel(g).rooms.find((r) => r.id === 'river_trail');
   assert.deepEqual(trail.label, ['Dark!']);
-  runAll(g, ['w', 's', 's', 'e', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'n', 'n', 'e']);
+  runAll(g, ['w', 's', 's', 'e', 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'n', 'n', 'e']);
   assert.deepEqual(mapModel(g).rooms.find((r) => r.id === 'river_trail').label, ['Old', 'Growth']);
 });
 
@@ -305,6 +313,91 @@ test('full walkthrough plus the totem park fills in the whole map', () => {
   assert.equal(g.state.over, true);
   assert.match(renderMap(g), /explored 20 of 20/);
   assert.equal(mapModel(g).stubs.length, 0);
+});
+
+// ------------------------------------------------------------------ the truck and the details
+
+test('you cannot leave Hollis without the truck keys', () => {
+  const g = newGame();
+  assert.match(run(g, 'w'), /You just need the keys/);
+  assert.match(run(g, 'get in truck'), /truck's locked/);
+  assert.equal(g.state.loc, 'ferry');
+});
+
+test('the lockbox wants the right code', () => {
+  const g = newGame();
+  assert.match(run(g, 'open lockbox'), /four-digit keypad/);
+  assert.match(run(g, 'enter 1234'), /unhappy beep/);
+  assert.match(run(g, 'enter 1187'), /truck keys/);
+  run(g, 'take keys');
+  assert.ok(g.inInv('truck_keys'));
+});
+
+test('the glovebox is only reachable from inside the truck', () => {
+  const g = newGame();
+  assert.match(run(g, 'open glovebox'), /don't see any glovebox/);
+  runAll(g, KEYS);
+  run(g, 'get in truck');
+  assert.equal(g.state.loc, 'truck_cab');
+  assert.match(run(g, 'open glovebox'), /flashlight/);
+  run(g, 'get out');
+  assert.equal(g.state.loc, 'ferry');
+});
+
+test('the truck follows you by road and stays put when you walk', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'w', 's']);
+  assert.equal(g.itemState('truck').loc, 'craig');
+  run(g, 'w'); // walk to the harbor
+  assert.equal(g.itemState('truck').loc, 'craig');
+  assert.match(run(g, 'look'), /South Cove Harbor/);
+  assert.doesNotMatch(run(g, 'look'), /rental pickup is parked/);
+});
+
+test('DRIVE TO takes you to places you have been, by the shortest route', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'w', 's', 'w']);
+  assert.match(run(g, 'drive to lodge'), /don't know the way/);
+  const out = run(g, 'drive to hollis');
+  assert.equal(g.state.loc, 'ferry');
+  assert.equal(g.itemState('truck').loc, 'ferry');
+  assert.match(out, /climb into the pickup/);
+  assert.match(out, /Hollis Ferry Terminal/);
+  assert.doesNotMatch(out, /Klawock\n/); // passes through without a full description
+});
+
+test('the map circles the parked truck while you sit in it', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'get in truck']);
+  assert.equal(mapModel(g).rooms.find((r) => r.here).id, 'hwy');
+});
+
+test('rooms answer to the senses', () => {
+  const g = newGame();
+  assert.match(run(g, 'listen'), /ferry's engine/);
+  assert.match(run(g, 'smell'), /diesel/);
+  assert.match(run(g, 'sit on bench'), /wet soaks through/);
+  assert.match(run(g, 'look at the terminal'), /lockbox/);
+  assert.match(run(g, 'x rain'), /nice day/);
+  assert.match(run(g, 'get out'), /not in anything/);
+});
+
+test('every room has sounds and smells, and something to look at', () => {
+  const g = newGame();
+  for (const [id, r] of Object.entries(g.rooms)) {
+    assert.ok(r.listen, `${id} has no LISTEN text`);
+    assert.ok(r.smell, `${id} has no SMELL text`);
+    const scenery = Object.values(g.items).filter((it) => it.loc === id && it.fixed);
+    assert.ok(scenery.length >= 3, `${id} only has ${scenery.length} things to examine`);
+  }
+});
+
+test('the boathouse and cabin hold the survival-suit detail', () => {
+  const g = newGame();
+  g.state.loc = 'boathouse';
+  assert.match(run(g, 'x hooks'), /DALE/);
+  g.state.loc = 'cabin';
+  assert.match(run(g, 'x survival suit'), /HAUGEN/);
 });
 
 // ------------------------------------------------------------------ runner
