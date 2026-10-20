@@ -10,6 +10,7 @@
 const assert = require('node:assert/strict');
 const { buildWorld } = require('../js/world.js');
 const { Game } = require('../js/engine.js');
+const { renderMap, mapModel } = require('../js/map.js');
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
@@ -223,6 +224,87 @@ test('hint is always available and never empty', () => {
     assert.ok(h.length > 10, `empty hint before "${c}"`);
     run(g, c);
   }
+});
+
+// ------------------------------------------------------------------ map
+
+test('every room has a unique map position', () => {
+  const g = newGame();
+  const seen = {};
+  for (const [id, r] of Object.entries(g.rooms)) {
+    assert.ok(r.map, `${id} has no map position`);
+    const key = `${r.map.x},${r.map.y}`;
+    assert.ok(!seen[key], `${id} and ${seen[key]} share map square ${key}`);
+    seen[key] = id;
+  }
+});
+
+test('map positions agree with exit directions', () => {
+  const g = newGame();
+  const sign = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] };
+  for (const [id, r] of Object.entries(g.rooms)) {
+    for (const [dir, exit] of Object.entries(r.exits)) {
+      if (!sign[dir]) continue;
+      const to = g.rooms[typeof exit === 'string' ? exit : exit.to];
+      const dx = Math.sign(to.map.x - r.map.x);
+      const dy = Math.sign(to.map.y - r.map.y);
+      assert.deepEqual([dx, dy], sign[dir], `${id} --${dir}--> ${to.id} points the wrong way on the map`);
+    }
+  }
+});
+
+test('map starts with only the ferry dock, marked as you are here', () => {
+  const g = newGame();
+  const m = mapModel(g);
+  assert.deepEqual(m.rooms.map((r) => r.id), ['ferry']);
+  assert.ok(m.rooms[0].here);
+  assert.deepEqual(m.stubs, [{ from: 'ferry', dir: 'west' }]);
+  const svg = renderMap(g);
+  assert.match(svg, /^<svg/);
+  assert.match(svg, /id="map-you-are-here"/);
+  assert.match(svg, /Hollis/);
+  assert.doesNotMatch(svg, /Klawock/);
+  assert.match(svg, /explored 1 of 20/);
+});
+
+test('map pencils in visited places and the paths between them', () => {
+  const g = newGame();
+  runAll(g, ['w', 'w', 's']);
+  const m = mapModel(g);
+  assert.deepEqual(m.rooms.map((r) => r.id).sort(), ['craig', 'ferry', 'hwy', 'klawock']);
+  assert.equal(m.rooms.find((r) => r.here).id, 'craig');
+  const edges = m.edges.map((e) => e.slice().sort().join('-')).sort();
+  assert.deepEqual(edges, ['craig-klawock', 'ferry-hwy', 'hwy-klawock']);
+  // Unexplored exits from visited rooms show up as stubs.
+  assert.ok(m.stubs.some((s) => s.from === 'hwy' && s.dir === 'north'));
+  assert.ok(m.stubs.some((s) => s.from === 'craig' && s.dir === 'west'));
+});
+
+test('a trail only ever seen in the dark is labeled Dark!', () => {
+  const g = newGame();
+  runAll(g, ['w', 'n', 'n', 'e']);
+  const trail = mapModel(g).rooms.find((r) => r.id === 'river_trail');
+  assert.deepEqual(trail.label, ['Dark!']);
+  runAll(g, ['w', 's', 's', 'e', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'n', 'n', 'e']);
+  assert.deepEqual(mapModel(g).rooms.find((r) => r.id === 'river_trail').label, ['Old', 'Growth']);
+});
+
+test('MAP command signals the UI without using a turn', () => {
+  const g = newGame();
+  const blocks = g.command('map');
+  assert.deepEqual(blocks.map((b) => b.event), ['map']);
+  assert.equal(g.state.turns, 0);
+  // Reading the topo map is still a different thing.
+  assert.match(run(g, 'read map'), /don't see any map/);
+});
+
+test('full walkthrough plus the totem park fills in the whole map', () => {
+  const g = newGame();
+  // The fastest route skips the totem park, so detour there before accusing.
+  runAll(g, [...WALKTHROUGH.slice(0, -1), 'e', 'n', 's', 'w', WALKTHROUGH[WALKTHROUGH.length - 1]]);
+  assert.equal(g.state.over, true);
+  assert.match(renderMap(g), /explored 20 of 20/);
+  assert.equal(mapModel(g).stubs.length, 0);
 });
 
 // ------------------------------------------------------------------ runner

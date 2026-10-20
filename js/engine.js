@@ -74,7 +74,8 @@
         n.kind = 'npc';
         n.names = n.names.map((x) => x.toLowerCase());
       }
-      this.state = { version: 1, loc: w.start, items, flags: {}, found: [], score: 0, turns: 0, visited: {}, over: false };
+      // visited = rooms you've stood in; lit = rooms you've actually seen (for the map).
+      this.state = { version: 1, loc: w.start, items, flags: {}, found: [], score: 0, turns: 0, visited: { [w.start]: true }, lit: {}, over: false };
     }
 
     start() {
@@ -87,6 +88,11 @@
     print(text, cls = 'text') {
       if (text === null || text === undefined || text === '') return;
       this.buf.push({ text: String(text), cls });
+    }
+
+    // Signals for the UI (e.g. toggling the map). No text, so they're invisible to tests and logs.
+    emit(event) {
+      this.buf.push({ text: '', cls: 'event', event });
     }
 
     flush() {
@@ -267,7 +273,7 @@
       }
       const parts = input.toLowerCase().split(/\s*(?:\.(?!\d)|;|\bthen\b)\s*/).filter(Boolean);
       for (const part of parts) {
-        if (this.state.over && !/^(restart|load|restore|score|notes|journal|help)\b/.test(part)) {
+        if (this.state.over && !/^(restart|load|restore|score|notes|journal|help|map)\b/.test(part)) {
           this.print('The case is closed. Type RESTART to play again, or LOAD to restore a saved game.');
           break;
         }
@@ -291,6 +297,7 @@
       // --- meta
       if (/^(look|l)( around)?$/.test(cmd)) return this.describe(true);
       if (/^(i|inv|inventory|invent)$/.test(cmd)) return this.inventory();
+      if (/^(map|m|show map|open map|view map|close map|hide map|fold map|unfold map)$/.test(cmd)) { this.emit('map'); return false; }
       if (/^(score|points)$/.test(cmd)) { this.print(this.scoreLine()); return false; }
       if (/^(notes|journal|clues|evidence|notebook|case notes|read notes|read journal)$/.test(cmd)) return this.notes();
       if (/^(help|h|\?|commands|instructions)$/.test(cmd)) return this.help();
@@ -389,6 +396,7 @@
         this.print('It is pitch dark under the canopy. You can hear the river somewhere ahead and something large moving through the brush nearby. You are likely to be eaten by a brown bear.');
         return;
       }
+      this.state.lit[room.id] = true;
       this.print(room.name, 'room-title');
       if (full) this.print(this.t(room.desc));
       const loose = this.contentsOf(room.id).filter((id) => !this.items[id].fixed);
@@ -494,7 +502,7 @@
         '            SHOW thing TO person, GIVE thing TO person',
         'THE CASE    NOTES (your journal), SCORE, HINT,',
         '            ACCUSE person (at the State Troopers post)',
-        'GAME        SAVE, LOAD, RESTART',
+        'GAME        MAP (your graph-paper map), SAVE, LOAD, RESTART',
         '',
         'You can chain commands with periods: TAKE PHOTO. READ IT.',
         'Press the up and down arrow keys to recall earlier commands.'
@@ -788,6 +796,8 @@
       }
       const { items, ...rest } = saved;
       Object.assign(this.state, rest);
+      // Saves from before the map existed: treat every visited room as seen.
+      if (!saved.lit) this.state.lit = Object.assign({}, this.state.visited);
       this.print('Game restored.', 'meta');
       this.describe(true);
       return false;

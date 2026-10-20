@@ -13,6 +13,10 @@
   const statusScore = document.getElementById('status-score');
   const statusTurns = document.getElementById('status-turns');
   const themeBtn = document.getElementById('theme-toggle');
+  const mapPanel = document.getElementById('map-panel');
+  const mapScroll = document.getElementById('map-scroll');
+  const mapWhere = document.getElementById('map-where');
+  const mapToggle = document.getElementById('map-toggle');
 
   // localStorage can throw (private mode, blocked storage), so wrap it.
   const storage = {
@@ -26,6 +30,10 @@
 
   function render(blocks) {
     for (const b of blocks) {
+      if (b.cls === 'event') {
+        if (b.event === 'map') toggleMap();
+        continue;
+      }
       const p = document.createElement('p');
       p.className = b.cls + ' new';
       p.textContent = b.text;
@@ -33,7 +41,44 @@
     }
     out.scrollTop = out.scrollHeight;
     updateStatus();
+    if (!mapPanel.hidden) drawMap();
   }
+
+  // ---- graph-paper map
+  function drawMap() {
+    mapScroll.innerHTML = window.NSH.renderMap(game);
+    mapWhere.textContent = '';
+    mapWhere.append('You are here: ');
+    const strong = document.createElement('strong');
+    strong.textContent = game.status().location;
+    mapWhere.append(strong);
+    // Handwriting fonts vary by computer (Segoe Print on Windows is wide), so squeeze any label that won't fit its box.
+    for (const t of mapScroll.querySelectorAll('.map-room-label')) {
+      if (t.getComputedTextLength && t.getComputedTextLength() > 88) {
+        t.setAttribute('textLength', '88');
+        t.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+      }
+    }
+    // On narrow screens the sheet is wider than the panel; keep your room in view.
+    const here = mapScroll.querySelector('#map-you-are-here');
+    if (here && mapScroll.scrollWidth > mapScroll.clientWidth + 4) {
+      here.scrollIntoView({ block: 'nearest', inline: 'center' });
+    }
+  }
+
+  function toggleMap(force) {
+    const open = force === undefined ? mapPanel.hidden : force;
+    mapPanel.hidden = !open;
+    mapToggle.setAttribute('aria-pressed', String(open));
+    if (open) drawMap();
+    input.focus();
+  }
+
+  mapToggle.addEventListener('click', () => toggleMap());
+  document.getElementById('map-close').addEventListener('click', () => toggleMap(false));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !mapPanel.hidden) toggleMap(false);
+  });
 
   function echo(cmd) {
     const p = document.createElement('p');

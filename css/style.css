@@ -42,7 +42,7 @@ html, body {
   flex-direction: column;
   height: 100vh;
   height: 100dvh;
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
   padding: 0 16px;
   position: relative;
@@ -81,6 +81,13 @@ html, body {
   border: 0;
   padding: 2px 8px;
   cursor: pointer;
+}
+
+#stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
 }
 
 #output {
@@ -167,3 +174,67 @@ html, body {
   #output p.new { animation: appear 160ms ease-out; }
   @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
 }
+
+/* ---------- Graph-paper map (opens over the transcript; you can keep typing) */
+
+#map-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fbf8ef;
+  color: #2f2f2f;
+  border: 1px solid var(--dim);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  z-index: 2;
+}
+
+#map-panel[hidden] { display: none; }
+
+#map-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #c9d8e8;
+  font-family: "Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive;
+  font-size: 0.9rem;
+}
+
+#map-where::before { content: "◯ "; color: #c0392b; font-weight: 700; }
+#map-where strong { color: #c0392b; }
+
+#map-close {
+  font: inherit;
+  font-size: 0.8rem;
+  background: transparent;
+  color: #2f2f2f;
+  border: 1px solid #9dbbdc;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+
+#map-scroll {
+  flex: 1;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Below 720px the sheet keeps its size and you pan around it. */
+.map-svg { display: block; width: 100%; min-width: 720px; height: auto; }
+
+.map-svg text {
+  font-family: "Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive;
+  fill: #2f2f2f;
+}
+.map-svg .map-room-label { font-weight: 700; }
+.map-svg .map-here .map-room-label { fill: #a5281b; }
+.map-svg .map-label-island { fill: #9aa7b6; letter-spacing: 6px; font-weight: 700; }
+.map-svg .map-label-water { fill: #5d7fa6; letter-spacing: 3px; font-style: italic; }
+.map-svg .map-label-river { fill: #3f74ad; font-style: italic; }
+.map-svg .map-q { fill: #6b6b6b; font-weight: 700; }
+.map-svg .map-title { fill: #555; }
+
+#quick #map-toggle { color: var(--bright); border-color: var(--dim); }
+#quick #map-toggle[aria-pressed="true"] { background: var(--fg); color: var(--bg); }

@@ -27,7 +27,12 @@ Type commands in plain English:
 | Things | `take`, `drop`, `open`, `close`, `unlock`, `wear`, `remove`, `turn on`, `inventory` (`i`) |
 | People | `talk to marnie`, `ask joe about weather`, `show napkin to rick`, `give beer to cal` |
 | The case | `notes` (your clue journal), `score`, `hint`, `accuse <name>` (at the trooper post) |
-| Game | `save`, `load`, `restart` |
+| Game | `map`, `save`, `load`, `restart` |
+
+**The map.** Type `map` or hit the **Map** button to unfold your graph-paper map of the island.
+Like the old Zork days, it only shows places you've actually been. Paths you've walked are
+penciled in, exits you haven't tried get a dashed `?` stub, and a red circle marks where you are.
+Keep typing with it open and it fills in as you go. `Esc` folds it back up.
 
 Chain commands with periods (`open glovebox. take flashlight`). Up/down arrows recall
 earlier commands. The **Theme** button switches between amber and green.
@@ -63,6 +68,7 @@ index.html                  page shell
 css/style.css               CRT terminal styling (amber/green themes)
 js/world.js                 THE STORY: rooms, items, people, clues, hints, endings
 js/engine.js                parser + game engine (story-agnostic)
+js/map.js                   graph-paper map renderer (SVG)
 js/ui.js                    browser glue: input, history, status bar
 tests/walkthrough.test.js   automated playthrough + regression tests
 ```

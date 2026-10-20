@@ -19,7 +19,17 @@
       </span>
     </header>
 
-    <main id="output" role="log" aria-live="polite" aria-label="Game transcript"></main>
+    <div id="stage">
+      <main id="output" role="log" aria-live="polite" aria-label="Game transcript"></main>
+
+      <section id="map-panel" aria-label="Map" hidden>
+        <div id="map-bar">
+          <span id="map-where"></span>
+          <button id="map-close" type="button" title="Fold up the map (Esc)">Close map ✕</button>
+        </div>
+        <div id="map-scroll"></div>
+      </section>
+    </div>
 
     <form id="cmd-form" autocomplete="off">
       <label for="cmd" class="prompt">&gt;</label>
@@ -27,6 +37,7 @@
     </form>
 
     <nav id="quick" aria-label="Quick commands">
+      <button type="button" id="map-toggle" aria-pressed="false">Map</button>
       <button type="button" data-cmd="look">Look</button>
       <button type="button" data-cmd="inventory">Inventory</button>
       <button type="button" data-cmd="notes">Notes</button>
@@ -40,6 +51,7 @@
   <!-- Classic scripts (not ES modules) so the game also runs straight from a double-clicked file. -->
   <script src="js/world.js"></script>
   <script src="js/engine.js"></script>
+  <script src="js/map.js"></script>
   <script src="js/ui.js"></script>
 </body>
 </html>

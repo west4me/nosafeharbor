@@ -79,6 +79,7 @@
     // ---------------------------------------------------------------- rooms
     const rooms = {
       ferry: {
+        map: { x: 6, y: 2, label: ['Hollis', 'Ferry'] },
         name: 'Hollis Ferry Terminal',
         aliases: ['ferry', 'hollis', 'terminal', 'ferry terminal'],
         desc: "The inter-island ferry groans away from the dock behind you, back across Clarence Strait toward Ketchikan. Rain blows in sideways off the water, fine as mist and twice as wet. Spruce and hemlock crowd the hill above a gravel lot where your rental pickup sits, beaded with rain. The only road out runs west into the trees.",
@@ -86,6 +87,7 @@
       },
 
       hwy: {
+        map: { x: 4, y: 2, label: ['Harris R.', 'Bridge'] },
         name: 'Hollis–Klawock Highway',
         aliases: ['highway', 'hwy', 'road', 'bridge', 'harris river'],
         desc: "The two-lane highway winds through muskeg and second-growth forest, past old clearcuts filling back in with alder. Here it crosses the Harris River on a concrete bridge. Below, the river runs high and tea-colored from the fall rain, and you'd swear a steelhead just rolled in the tailout. East goes back to the Hollis ferry. West, the highway continues on to Klawock. A gravel road branches north at a sign: THORNE BAY.",
@@ -94,6 +96,7 @@
       },
 
       thorne_road: {
+        map: { x: 4, y: 1, label: ['Thorne', 'Bay Rd'] },
         name: 'Thorne Bay Road',
         aliases: ['thorne bay road', 'thorne road', 'gravel road', 'thorne bay'],
         desc: 'Gravel and potholes wind north through logging country, past a lake as still as poured pewter. Old spur roads branch off into the hills, most of them gated and all of them muddy. The road keeps going north toward the Thorne River. South takes you back to the highway.',
@@ -101,6 +104,7 @@
       },
 
       trailhead: {
+        map: { x: 4, y: 0, label: ['Trailhead'] },
         name: 'Thorne River Trailhead',
         aliases: ['trailhead', 'pullout'],
         desc: "A gravel pullout at the edge of serious forest. A brown Forest Service sign, bullet-pocked in one corner, marks a trail heading east into the old growth toward the Thorne River. The mud here is churned up with tire tracks, and one set is a lot fresher than the rest. Thorne Bay Road heads back south.",
@@ -108,6 +112,7 @@
       },
 
       river_trail: {
+        map: { x: 5, y: 0, label: ['Old', 'Growth'] },
         name: 'Old-Growth Trail',
         aliases: ['trail', 'old growth', 'forest'],
         dark: true,
@@ -118,6 +123,7 @@
       },
 
       ford: {
+        map: { x: 6, y: 0, label: ['River', 'Ford'] },
         name: 'Thorne River Crossing',
         aliases: ['river', 'ford', 'crossing', 'thorne river'],
         desc: "The trail ends at a gravel bar on the Thorne River. The river is big here, running high and cold and the color of strong tea, pushing hard over a riffle that crosses to the far bank. Through the trees on the other side, a thin line of woodsmoke rises. The trail runs back west into the forest.",
@@ -138,6 +144,7 @@
       },
 
       cabin: {
+        map: { x: 7, y: 0, label: ['USFS', 'Cabin'] },
         name: 'Forest Service Cabin',
         aliases: ['cabin'],
         desc: (g) => 'A one-room cabin of weathered spruce logs. The Forest Service rents it out in summer, and nobody uses it this late in the year. Somebody is using it now. A propane heater hisses in the corner next to two fresh propane cylinders, and a sleeping bag is unrolled on the plank bunk. ' +
@@ -148,6 +155,7 @@
       },
 
       klawock: {
+        map: { x: 1, y: 2, label: ['Klawock'] },
         name: 'Klawock',
         aliases: ['klawock', 'town'],
         desc: "The highway comes down out of the hills into Klawock, a small town on a wide inlet where woodsmoke mixes with the smell of low tide. Klawock is one of the oldest communities on the island. Up the hill to the north stand the carved poles of the totem park. The Alaska State Troopers post is a low building to the west. The highway runs east back toward Hollis and south to Craig.",
@@ -155,6 +163,7 @@
       },
 
       totem_park: {
+        map: { x: 1, y: 1, label: ['Totem', 'Park'] },
         name: 'Klawock Totem Park',
         aliases: ['totem park', 'park', 'totems', 'poles'],
         desc: 'Totem poles line the hillside above the town and the inlet. They are carved from red cedar, weathered to silver-gray, and their figures watch the water the way they have for generations. Next to a carving shed at the edge of the park, a fresh cedar log rests on sawhorses, halfway to becoming something with wings. The path leads south back down into town.',
@@ -162,6 +171,7 @@
       },
 
       trooper: {
+        map: { x: 0, y: 2, label: ['Troopers'] },
         name: 'Alaska State Troopers Post',
         aliases: ['troopers', 'trooper post', 'post', 'trooper', 'police'],
         desc: "A small, overheated office with a coffee maker that has seen things, a wall map of Prince of Wales Island stuck full of pins and an empty holding cell. The exit is east.",
@@ -170,6 +180,7 @@
       },
 
       craig: {
+        map: { x: 1, y: 4, label: ['Craig'] },
         name: 'Craig — Front Street',
         aliases: ['craig', 'front street', 'downtown'],
         desc: "Craig is the biggest town on the island, which means two grocery stores, three bars and a lot of boats. Front Street runs along the water past bait shops and a cannery that's seen better decades. The harbor is to the west. The neon OPEN sign of the Riptide Tavern buzzes to the east. The road climbs north back to Klawock, and a gravel road heads south along the shore toward the Harbor Light Lodge.",
@@ -177,6 +188,7 @@
       },
 
       harbor: {
+        map: { x: 0, y: 4, label: ['Harbor'] },
         name: 'South Cove Harbor',
         aliases: ['harbor', 'docks', 'floats', 'south cove'],
         desc: 'Seiners, trollers and skiffs rock gently in their slips along the floats and finger piers. Gulls argue on the pilings. North, at the head of the ramp, is a small office with HARBORMASTER painted on the door. The fuel dock is farther west along the floats. Front Street is back east.',
@@ -184,6 +196,7 @@
       },
 
       harbormaster: {
+        map: { x: 0, y: 3, label: ['Harbor-', 'master'] },
         name: "Harbormaster's Office",
         aliases: ['harbormaster', 'office', "harbormaster's office"],
         desc: 'A cramped office. A VHF radio crackles on the shelf and tide tables are taped to the window. A chart of the waters around Craig covers the desk, with a coffee ring right on Fish Egg Island. The door is south.',
@@ -191,6 +204,7 @@
       },
 
       fuel_dock: {
+        map: { x: -1, y: 4, label: ['Fuel', 'Dock'] },
         name: 'Fuel Dock',
         aliases: ['fuel dock', 'fuel', 'gas dock'],
         desc: 'A float at the end of the harbor with two fuel pumps, a caged rack of propane cylinders and a tiny shack selling ice, bait and chips. A rusty trash barrel stands next to the shack. The harbor floats lead back east.',
@@ -198,6 +212,7 @@
       },
 
       tavern: {
+        map: { x: 2, y: 4, label: ['Riptide', 'Tavern'] },
         name: 'Riptide Tavern',
         aliases: ['tavern', 'riptide', 'bar', 'riptide tavern'],
         desc: 'Dim and warm, smelling of fryer oil and wet wool. Glass fishing floats hang from the ceiling, and the bulletin board by the door is buried in flyers for skiff sales and lost dogs. Front Street is out the door to the west.',
@@ -214,6 +229,7 @@
       },
 
       lodge_road: {
+        map: { x: 1, y: 5, label: ['Lodge', 'Road'] },
         name: 'Lodge Road',
         aliases: ['lodge road', 'shore road'],
         desc: "A gravel road hugs the shore south of town. Across the water, the dark hump of Fish Egg Island sits low under the clouds, ringed with kelp. Somewhere out there, the Kittiwake was found drifting. The road leads north back to Craig and south to the Harbor Light Lodge.",
@@ -221,6 +237,7 @@
       },
 
       lodge: {
+        map: { x: 1, y: 6, label: ['Lodge'] },
         name: 'Harbor Light Lodge — Great Room',
         aliases: ['lodge', 'great room', 'harbor light lodge', 'harbor light'],
         desc: "A big timber-frame room with a river-rock fireplace, leather couches gone soft with use and a mounted king salmon over the mantel that looks surprised about the whole arrangement. A long wooden rod rack hangs on the wall near the door. Doors lead east to the kitchen and west to an office. A path runs south down to the boathouse, and the front door opens north onto the road.",
@@ -246,6 +263,7 @@
       },
 
       kitchen: {
+        map: { x: 2, y: 6, label: ['Kitchen'] },
         name: 'Lodge Kitchen',
         aliases: ['kitchen'],
         desc: 'A big working kitchen with steel counters, a six-burner range and a walk-in cooler humming in the corner. It smells like bread and coffee. The window over the sink looks out at Fish Egg Island. The great room is back west.',
@@ -253,6 +271,7 @@
       },
 
       office: {
+        map: { x: 0, y: 6, label: ["Dale's", 'Office'] },
         name: "Dale's Office",
         aliases: ['office', "dale's office", 'dales office'],
         desc: (g) => 'A small wood-paneled office with a window onto the water. A heavy oak desk sits under a green-shaded lamp' +
@@ -272,6 +291,7 @@
       },
 
       boathouse: {
+        map: { x: 1, y: 7, label: ['Boat-', 'house'] },
         name: 'Boathouse',
         aliases: ['boathouse', 'boat house'],
         desc: 'A drafty boathouse on pilings over the water, smelling of two-stroke oil and seaweed. Life jackets and crab pots hang from the rafters. An 18-foot aluminum skiff sits on a trailer in the middle of the floor, KITTIWAKE stenciled on her bow. A path leads north back up to the lodge.',
@@ -997,6 +1017,36 @@
       ].join('\n\n');
     }
 
+    // ------------------------------------------------------------- the map
+    // Room positions live on each room (map: { x, y, label }) in grid units:
+    // x grows east, y grows south, one step per exit. This is the scenery
+    // drawn underneath them, in the same units.
+    const mapGeo = {
+      view: { x0: -2.2, y0: -1.1, x1: 8.7, y1: 8.1 },
+      // Prince of Wales Island is huge; this is the middle of it, so the
+      // outline runs off the top and bottom of the sheet.
+      coast: [
+        [-0.3, -2.2], [3.5, -2.4], [7.6, -2.0], [8.0, -1.2], [7.85, -0.4], [8.0, 0.5],
+        [7.5, 1.2], [6.8, 1.7], [6.75, 2.4], [7.2, 3.0], [7.6, 4.0], [7.3, 5.0],
+        [7.7, 6.0], [7.4, 7.0], [7.7, 8.0], [7.4, 9.2], [3.5, 9.6], [-0.4, 9.2],
+        [-0.65, 8.0], [-0.45, 7.2], [-0.6, 6.4], [-0.55, 5.2], [-0.55, 4.4], [-0.55, 3.6],
+        [-0.85, 3.0], [-0.7, 2.4], [-0.9, 1.6], [-0.5, 0.8], [-0.6, 0.0], [-0.3, -0.8]
+      ],
+      islets: [
+        { x: -1.35, y: 5.55, rx: 0.32, ry: 0.28, label: 'Fish Egg I.' }
+      ],
+      rivers: [
+        { label: 'Thorne R.', lx: 5.55, ly: 1.05, pts: [[5.3, 1.6], [5.9, 1.25], [6.4, 0.6], [6.5, 0.0], [6.75, -0.5], [7.3, -0.6], [7.95, -0.55]] },
+        { label: 'Harris R.', lx: 5.6, ly: 3.75, pts: [[4.8, 1.35], [4.6, 2.0], [4.75, 2.7], [5.4, 3.25], [6.3, 3.5], [7.25, 3.2]] }
+      ],
+      labels: [
+        { text: 'PRINCE OF WALES ISLAND', x: 5.0, y: 5.95, size: 30, rotate: -8, cls: 'island' },
+        { text: 'CLARENCE STRAIT', x: 8.25, y: 4.6, size: 18, rotate: 90, cls: 'water' },
+        { text: 'BUCARELI BAY', x: -1.75, y: 2.4, size: 18, rotate: -90, cls: 'water' },
+        { text: 'Thorne Bay', x: 8.3, y: -0.2, size: 14, rotate: 90, cls: 'water' }
+      ]
+    };
+
     // ---------------------------------------------------------------- hints
     function hint(g) {
       const st = g.state;
@@ -1039,7 +1089,7 @@
       title: 'No Safe Harbor',
       start: 'ferry',
       maxScore: Object.values(clues).reduce((s, c) => s + c.points, 0),
-      intro, clues, rooms, items, npcs, hint,
+      intro, clues, rooms, items, npcs, hint, mapGeo,
       ranks: [
         [100, 'Master Investigator of the Tongass'],
         [80, 'Special Investigations Ace'],
