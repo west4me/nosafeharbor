@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No Safe Harbor</title>
+  <meta name="description" content="A Zork-style text adventure mystery set on Prince of Wales Island, Alaska.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app" class="crt">
+    <header id="status" aria-label="Game status">
+      <span id="status-loc">Hollis Ferry Terminal</span>
+      <span id="status-right">
+        <span id="status-score">Score: 0/100</span>
+        <span class="sep">·</span>
+        <span id="status-turns">Turns: 0</span>
+        <button id="theme-toggle" type="button" title="Switch color theme">Theme</button>
+      </span>
+    </header>
+
+    <main id="output" role="log" aria-live="polite" aria-label="Game transcript"></main>
+
+    <form id="cmd-form" autocomplete="off">
+      <label for="cmd" class="prompt">&gt;</label>
+      <input id="cmd" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="send" aria-label="Type a command" autofocus>
+    </form>
+
+    <nav id="quick" aria-label="Quick commands">
+      <button type="button" data-cmd="look">Look</button>
+      <button type="button" data-cmd="inventory">Inventory</button>
+      <button type="button" data-cmd="notes">Notes</button>
+      <button type="button" data-cmd="hint">Hint</button>
+      <button type="button" data-cmd="help">Help</button>
+      <button type="button" data-cmd="save">Save</button>
+      <button type="button" data-cmd="load">Load</button>
+    </nav>
+  </div>
+
+  <!-- Classic scripts (not ES modules) so the game also runs straight from a double-clicked file. -->
+  <script src="js/world.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>

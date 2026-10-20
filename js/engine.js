@@ -1,0 +1,808 @@
+/*
+ * No Safe Harbor — text adventure engine.
+ *
+ * A small Zork-style engine: a plain-English parser, rooms/items/NPCs,
+ * containers, light and darkness, wearables, a clue/score journal and
+ * save/load. Story content comes from buildWorld() in world.js.
+ *
+ * Usage:
+ *   const game = new NSH.Game(NSH.buildWorld, { storage });
+ *   game.start();              // -> [{ text, cls }, ...]
+ *   game.command('look');      // -> [{ text, cls }, ...]
+ */
+(function (root) {
+  'use strict';
+
+  const DIRS = {
+    n: 'north', north: 'north', s: 'south', south: 'south',
+    e: 'east', east: 'east', w: 'west', west: 'west',
+    ne: 'northeast', northeast: 'northeast', nw: 'northwest', northwest: 'northwest',
+    se: 'southeast', southeast: 'southeast', sw: 'southwest', southwest: 'southwest',
+    u: 'up', up: 'up', d: 'down', down: 'down',
+    in: 'in', inside: 'in', out: 'out', outside: 'out', exit: 'out', leave: 'out'
+  };
+
+  const STOP_WORDS = new Set(['the', 'a', 'an', 'some', 'my', 'your', 'that', 'this', 'of', 'at', 'his', 'her']);
+  const SAVE_KEY = 'nosafeharbor-save-v1';
+
+  function clean(phrase) {
+    return String(phrase || '').split(/\s+/).filter((w) => w && !STOP_WORDS.has(w)).join(' ');
+  }
+
+  function capitalize(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  function listJoin(arr) {
+    if (arr.length <= 1) return arr.join('');
+    if (arr.length === 2) return arr[0] + ' and ' + arr[1];
+    return arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1];
+  }
+
+  function memoryStorage() {
+    const data = {};
+    return { get: (k) => (k in data ? data[k] : null), set: (k, v) => { data[k] = v; return true; } };
+  }
+
+  class Game {
+    constructor(buildWorld, opts = {}) {
+      this.buildWorld = buildWorld;
+      this.storage = opts.storage || memoryStorage();
+      this.buf = [];
+      this.pending = [];
+      this.newGame();
+    }
+
+    // ------------------------------------------------------------ lifecycle
+    newGame() {
+      const w = this.buildWorld();
+      this.world = w;
+      this.rooms = w.rooms;
+      this.items = w.items;
+      this.npcs = w.npcs;
+      this.clues = w.clues;
+      const items = {};
+      for (const [id, it] of Object.entries(this.items)) {
+        it.id = id;
+        it.kind = 'item';
+        it.names = (it.names || [it.name]).map((n) => n.toLowerCase());
+        items[id] = { loc: it.loc === undefined ? null : it.loc, open: !!it.open, locked: !!it.locked, on: !!it.on, worn: false };
+      }
+      for (const [id, r] of Object.entries(this.rooms)) r.id = id;
+      for (const [id, n] of Object.entries(this.npcs)) {
+        n.id = id;
+        n.kind = 'npc';
+        n.names = n.names.map((x) => x.toLowerCase());
+      }
+      this.state = { version: 1, loc: w.start, items, flags: {}, found: [], score: 0, turns: 0, visited: {}, over: false };
+    }
+
+    start() {
+      this.print(this.world.intro, 'intro');
+      this.describe(true);
+      return this.flush();
+    }
+
+    // ------------------------------------------------------------ output
+    print(text, cls = 'text') {
+      if (text === null || text === undefined || text === '') return;
+      this.buf.push({ text: String(text), cls });
+    }
+
+    flush() {
+      const out = this.buf;
+      this.buf = [];
+      return out;
+    }
+
+    t(x) {
+      return typeof x === 'function' ? x(this) : x;
+    }
+
+    status() {
+      const room = this.rooms[this.state.loc];
+      const name = this.isDark() ? 'Darkness' : room.name;
+      return { location: name, score: this.state.score, maxScore: this.world.maxScore, turns: this.state.turns, over: this.state.over };
+    }
+
+    // ------------------------------------------------------------ state helpers (used by world.js)
+    flag(key, value) {
+      if (value === undefined) return !!this.state.flags[key];
+      this.state.flags[key] = value;
+      return value;
+    }
+
+    has(clueId) {
+      return this.state.found.includes(clueId);
+    }
+
+    clue(clueId) {
+      if (this.has(clueId)) return false;
+      const c = this.clues[clueId];
+      if (!c) throw new Error('Unknown clue: ' + clueId);
+      this.state.found.push(clueId);
+      this.state.score += c.points;
+      this.pending.push(`[Journal updated: ${c.title}. +${c.points} points]`);
+      return true;
+    }
+
+    itemState(id) {
+      return this.state.items[id];
+    }
+
+    itemAt(id, loc) {
+      return this.state.items[id].loc === loc;
+    }
+
+    inInv(id) {
+      return this.state.items[id].loc === 'inv';
+    }
+
+    // Owned = carried, or worn (worn items stay in inventory).
+    isOwned(id) {
+      return this.inInv(id);
+    }
+
+    isWorn(id) {
+      const st = this.state.items[id];
+      return st.loc === 'inv' && st.worn;
+    }
+
+    moveItem(id, loc) {
+      const st = this.state.items[id];
+      st.loc = loc;
+      if (loc !== 'inv') st.worn = false;
+    }
+
+    npcHere(id) {
+      return this.npcs[id].loc === this.state.loc;
+    }
+
+    hasLight() {
+      const st = this.state.items.flashlight;
+      return !!(st && st.loc === 'inv' && st.on);
+    }
+
+    isDark() {
+      return !!this.rooms[this.state.loc].dark && !this.hasLight();
+    }
+
+    contentsOf(containerId) {
+      return Object.keys(this.state.items).filter((id) => this.state.items[id].loc === containerId);
+    }
+
+    contentsLine(containerId) {
+      const ids = this.contentsOf(containerId);
+      const c = this.items[containerId];
+      if (!ids.length) return `The ${c.name} is empty.`;
+      return `Inside the ${c.name} you see ${listJoin(ids.map((id) => this.items[id].short || this.items[id].name))}.`;
+    }
+
+    end(text) {
+      this.print(text, 'ending');
+      this.state.over = true;
+      this.print(this.scoreLine(), 'meta');
+      this.print('Type RESTART to play again.', 'meta');
+    }
+
+    rank() {
+      for (const [min, title] of this.world.ranks) if (this.state.score >= min) return title;
+      return '';
+    }
+
+    scoreLine() {
+      return `Your score is ${this.state.score} of a possible ${this.world.maxScore}, in ${this.state.turns} turn${this.state.turns === 1 ? '' : 's'}. That gives you the rank of ${this.rank()}.`;
+    }
+
+    // ------------------------------------------------------------ scope / matching
+    visibleItems() {
+      const loc = this.state.loc;
+      const lit = !this.isDark();
+      const ids = Object.keys(this.state.items).filter((id) => {
+        const l = this.state.items[id].loc;
+        return l === 'inv' || (lit && l === loc);
+      });
+      // Contents of open containers that are in scope (one level deep is all this world needs).
+      for (const cid of [...ids]) {
+        const c = this.items[cid];
+        if (c.container && this.state.items[cid].open) ids.push(...this.contentsOf(cid));
+      }
+      return ids.map((id) => this.items[id]);
+    }
+
+    visibleNpcs() {
+      if (this.isDark()) return [];
+      return Object.values(this.npcs).filter((n) => n.loc === this.state.loc);
+    }
+
+    match(phrase, ents) {
+      const p = clean(phrase);
+      if (!p) return null;
+      const pw = p.split(' ');
+      const exact = [];
+      const partial = [];
+      for (const e of ents) {
+        let hit = null;
+        for (const n of e.names) {
+          if (n === p) { hit = 'exact'; break; }
+          const nw = n.split(' ');
+          if (pw.every((x) => nw.includes(x)) || nw.every((x) => pw.includes(x))) hit = hit || 'partial';
+        }
+        if (hit === 'exact') exact.push(e);
+        else if (hit === 'partial') partial.push(e);
+      }
+      const pick = exact.length ? exact : partial;
+      if (pick.length === 1) return pick[0];
+      if (pick.length > 1) {
+        // Prefer things you're carrying, then portable things.
+        const carried = pick.filter((e) => e.kind === 'item' && this.inInv(e.id));
+        if (carried.length === 1) return carried[0];
+        return { ambiguous: pick };
+      }
+      return null;
+    }
+
+    // Resolve a noun phrase to something in scope; prints an error and returns null on failure.
+    find(phrase, { npcs = true, items = true } = {}) {
+      const scope = [].concat(items ? this.visibleItems() : [], npcs ? this.visibleNpcs() : []);
+      const m = this.match(phrase, scope);
+      if (m && m.ambiguous) {
+        this.print(`Which do you mean: ${listJoin(m.ambiguous.map((e) => 'the ' + e.name))}?`);
+        return null;
+      }
+      if (!m) {
+        if (this.isDark()) this.print("It's too dark to see anything like that.");
+        else this.print(`You don't see any ${clean(phrase) || 'such thing'} here.`);
+        return null;
+      }
+      return m;
+    }
+
+    // ------------------------------------------------------------ commands
+    command(raw) {
+      const input = String(raw || '').trim();
+      if (!input) {
+        this.print('Beg pardon?');
+        return this.flush();
+      }
+      const parts = input.toLowerCase().split(/\s*(?:\.(?!\d)|;|\bthen\b)\s*/).filter(Boolean);
+      for (const part of parts) {
+        if (this.state.over && !/^(restart|load|restore|score|notes|journal|help)\b/.test(part)) {
+          this.print('The case is closed. Type RESTART to play again, or LOAD to restore a saved game.');
+          break;
+        }
+        const counted = this.dispatch(part);
+        if (counted !== false) this.state.turns++;
+        if (this.pending.length) {
+          for (const p of this.pending) this.print(p, 'clue');
+          this.pending = [];
+        }
+      }
+      return this.flush();
+    }
+
+    // Returns false for meta commands that shouldn't use up a turn.
+    dispatch(input) {
+      const cmd = input.replace(/[^a-z0-9\s'-]/g, ' ').replace(/'/g, '').replace(/\s+/g, ' ').trim();
+      if (!cmd) { this.print('Beg pardon?'); return false; }
+      const words = cmd.split(' ');
+      let m;
+
+      // --- meta
+      if (/^(look|l)( around)?$/.test(cmd)) return this.describe(true);
+      if (/^(i|inv|inventory|invent)$/.test(cmd)) return this.inventory();
+      if (/^(score|points)$/.test(cmd)) { this.print(this.scoreLine()); return false; }
+      if (/^(notes|journal|clues|evidence|notebook|case notes|read notes|read journal)$/.test(cmd)) return this.notes();
+      if (/^(help|h|\?|commands|instructions)$/.test(cmd)) return this.help();
+      if (/^(hint|hints|clue)$/.test(cmd)) { this.print(this.world.hint(this), 'hint'); return false; }
+      if (/^save( game)?$/.test(cmd)) return this.save();
+      if (/^(load|restore)( game)?$/.test(cmd)) return this.load();
+      if (/^(restart|new game|reset)$/.test(cmd)) return this.restart();
+      if (/^(wait|z|rest)$/.test(cmd)) { this.print('Time passes. Somewhere, it rains harder.'); return; }
+      if (/^(quit|q|exit game)$/.test(cmd)) { this.print("There's no quitting on the job. (Close the tab whenever you like. Type SAVE first if you want to keep your progress.)"); return false; }
+      if (/^(xyzzy|plugh)$/.test(cmd)) { this.print('A hollow voice says, "Wrong game, investigator."'); return; }
+      if (/^(diagnose|health)$/.test(cmd)) { this.print('Damp, underpaid and in excellent health.'); return false; }
+
+      // --- safe dial (before movement and "turn ...", so ENTER 1 2 3 isn't read as a direction)
+      if ((m = cmd.match(/^(?:dial|enter|set|spin|turn|try|input|open safe with|use combination|combination)\b\D*?(\d+)\D+(\d+)\D+(\d+)/))) {
+        return this.dial([+m[1], +m[2], +m[3]]);
+      }
+
+      // --- movement
+      if (words.length === 1 && DIRS[words[0]]) return this.go(DIRS[words[0]]);
+      if ((m = cmd.match(/^(?:go|walk|run|drive|head|travel|move|hike|climb)(?: to| toward| towards)? (\w+)$/)) && DIRS[m[1]]) return this.go(DIRS[m[1]]);
+      if ((m = cmd.match(/^(?:go|walk|run|drive|head|travel|hike) (?:to |into |toward |towards |back to )?(.+)$/))) return this.goByName(m[1]);
+      if ((m = cmd.match(/^(?:enter|go in|go into|go inside|get in|get into) (.+)$/))) return this.goByName(m[1], 'in');
+      if (/^(enter|go in|get in)$/.test(cmd)) return this.go('in');
+      if ((m = cmd.match(/^(?:cross|ford|wade)(?: across)?(?: the)?(?: (.+))?$/))) return this.crossRiver();
+
+      // --- clothing
+      if ((m = cmd.match(/^(?:take off|remove|unwear|doff) (.+)$/)) || (m = cmd.match(/^take (.+) off$/))) return this.remove(m[1]);
+      if ((m = cmd.match(/^(?:put on|wear|don|pull on) (.+)$/)) || (m = cmd.match(/^put (.+) on$/))) return this.wear(m[1]);
+
+      // --- switches
+      if ((m = cmd.match(/^(?:turn on|switch on|light|activate|power on|click on) (.+)$/)) || (m = cmd.match(/^(?:turn|switch|click) (.+) on$/))) return this.switchItem(m[1], true);
+      if ((m = cmd.match(/^(?:turn off|switch off|extinguish|deactivate|power off|click off) (.+)$/)) || (m = cmd.match(/^(?:turn|switch|click) (.+) off$/))) return this.switchItem(m[1], false);
+
+      // --- inventory manipulation
+      if (/^(take|get|grab) (all|everything)$/.test(cmd)) return this.takeAll();
+      if ((m = cmd.match(/^(?:take|get|grab|pick up|collect|steal|snag|pocket) (.+?)(?: (?:from|out of|off) .+)?$/)) || (m = cmd.match(/^pick (.+) up$/))) return this.take(m[1]);
+      if ((m = cmd.match(/^(?:drop|discard|put down|leave|toss|throw away) (.+)$/)) || (m = cmd.match(/^put (.+) down$/))) return this.drop(m[1]);
+
+      // --- looking
+      if ((m = cmd.match(/^(?:read back of|look at back of|flip|flip over|turn over|look on back of) (.+)$/)) || (m = cmd.match(/^(?:flip|turn) (.+) over$/))) return this.read(m[1]);
+      if ((m = cmd.match(/^(?:look|l) (?:at|in|inside|into|under|behind|on|through) (.+)$/)) ||
+          (m = cmd.match(/^(?:x|examine|inspect|check|study|search|investigate|describe|look over|check out|exam|ex) (.+)$/))) return this.examine(m[1]);
+      if ((m = cmd.match(/^(?:look|l) (.+)$/))) {
+        if (DIRS[m[1]]) { this.print('You see nothing special in that direction. Try going there.'); return; }
+        return this.examine(m[1]);
+      }
+      if (/^search$/.test(cmd)) return this.describe(true);
+      if ((m = cmd.match(/^(?:read|skim|peruse) (.+)$/))) return this.read(m[1]);
+
+      // --- open / close / lock
+      if ((m = cmd.match(/^(?:unlock) (.+?)(?: with (.+))?$/))) return this.unlock(m[1]);
+      if ((m = cmd.match(/^(?:open|pry open) (.+)$/))) return this.doVerb('open', m[1]);
+      if ((m = cmd.match(/^(?:close|shut) (.+)$/))) return this.doVerb('close', m[1]);
+      if ((m = cmd.match(/^lock (.+)$/))) { this.print("You'd rather leave things the way you found them."); return; }
+
+      // --- people
+      if ((m = cmd.match(/^(?:ask|question|quiz) (.+?) (?:about|regarding|re) (.+)$/))) return this.ask(m[1], m[2]);
+      if ((m = cmd.match(/^(?:tell) (.+?) about (.+)$/))) return this.ask(m[1], m[2]);
+      if ((m = cmd.match(/^(?:talk|speak|chat|converse)(?: to| with)? (.+?)(?: about (.+))?$/))) return m[2] ? this.ask(m[1], m[2]) : this.talk(m[1]);
+      if ((m = cmd.match(/^(?:greet|hi|hello|hey|interview|question|ask|interrogate|wave to|wave at) (.+)$/))) return this.talk(m[1]);
+      if (/^(talk|speak|chat|hello|hi|hey)$/.test(cmd)) return this.talkToOnly();
+      if ((m = cmd.match(/^(show|give|hand|offer|present) (.+)$/))) return this.showGive(m[1] === 'show' || m[1] === 'present' ? 'show' : 'give', m[2]);
+
+      // --- case
+      if ((m = cmd.match(/^(?:accuse|arrest|blame|report|name|charge) (.+)$/))) return this.accuse(m[1]);
+      if (/^(accuse|arrest|blame|solve)$/.test(cmd)) { this.print('Accuse whom? (Example: ACCUSE RICK)'); return false; }
+
+      // --- shopping
+      if ((m = cmd.match(/^(?:buy|order|purchase|get me) (.+)$/))) return this.buy(m[1]);
+
+      // --- misc
+      if ((m = cmd.match(/^use (.+)$/))) return this.use(m[1]);
+      if ((m = cmd.match(/^(?:drink|sip|chug) (.+)$/))) return this.itemVerb('drink', m[1], "That's not something you can drink.");
+      if ((m = cmd.match(/^(?:eat|taste|lick) (.+)$/))) { this.print('You lost your appetite somewhere around the bear scat.'); return; }
+      if (/^(fish|cast|go fishing|fly fish|flyfish)( .*)?$/.test(cmd)) return this.fish();
+      if (/^(swim|dive|jump in)( .*)?$/.test(cmd)) { this.print("The water up here is cold enough to stop your heart. Hard pass."); return; }
+      if (/^(listen|hear)( .*)?$/.test(cmd)) { this.print('Rain. Ravens. Somewhere, a boat engine, then nothing.'); return; }
+      if (/^(smell|sniff)( .*)?$/.test(cmd)) { this.print('Spruce, salt and wet everything.'); return; }
+      if (/^(sleep|nap)$/.test(cmd)) { this.print("You can sleep when the claim's closed."); return; }
+      if (/^(yell|shout|scream|sing|hum|make noise|clap)( .*)?$/.test(cmd)) { this.print('You make some noise. Any bears within earshot politely decide to be somewhere else.'); return; }
+      if (/^(jump|dance)$/.test(cmd)) { this.print('Wheee.'); return; }
+      if (/^(curse|damn|swear)( .*)?$/.test(cmd)) { this.print('Such language from an insurance professional.'); return; }
+      if ((m = cmd.match(/^(?:call|phone|text|dial) (.+)$/))) { this.print('No service. Welcome to the Tongass. You will have to talk to people face to face, like it is 1952.'); return; }
+      if ((m = cmd.match(/^(?:hit|kill|attack|punch|kick|break|smash|fight) (.+)$/))) { this.print('Violence is not covered under your policy.'); return; }
+      if ((m = cmd.match(/^(?:push|pull|move|shake|touch|feel|rub) (.+)$/))) return this.itemVerb('push', m[1], 'Nothing happens.');
+
+      this.print(`I don't know how to "${cmd}". (Type HELP for a list of commands.)`);
+      return false;
+    }
+
+    // ------------------------------------------------------------ verbs
+    describe(full) {
+      const room = this.rooms[this.state.loc];
+      if (this.isDark()) {
+        this.print('Darkness', 'room-title');
+        this.print('It is pitch dark under the canopy. You can hear the river somewhere ahead and something large moving through the brush nearby. You are likely to be eaten by a brown bear.');
+        return;
+      }
+      this.print(room.name, 'room-title');
+      if (full) this.print(this.t(room.desc));
+      const loose = this.contentsOf(room.id).filter((id) => !this.items[id].fixed);
+      for (const id of loose) {
+        const it = this.items[id];
+        this.print(it.roomDesc !== undefined ? this.t(it.roomDesc) : `There is ${it.short || 'a ' + it.name} here.`);
+      }
+      for (const n of this.visibleNpcs()) this.print(this.t(n.here), 'npc');
+    }
+
+    go(dir) {
+      const room = this.rooms[this.state.loc];
+      if (this.isDark() && !(room.darkExits || []).includes(dir)) {
+        this.print(room.darkMove || 'You stumble around in the dark and get nowhere.');
+        return;
+      }
+      const exit = room.exits[dir];
+      if (!exit) {
+        this.print(dir === 'in' || dir === 'out' ? "You're not sure where you're trying to go. Try a compass direction." : "You can't go that way.");
+        return;
+      }
+      const to = typeof exit === 'string' ? exit : exit.to;
+      if (typeof exit === 'object' && exit.guard) {
+        const block = exit.guard(this);
+        if (block) { this.print(block); return; }
+      }
+      this.moveTo(to);
+    }
+
+    goByName(phrase, fallbackDir) {
+      const p = clean(phrase);
+      if (DIRS[p]) return this.go(DIRS[p]);
+      const room = this.rooms[this.state.loc];
+      if (room.aliases && room.aliases.includes(p)) { this.print("You're already here."); return; }
+      for (const [dir, exit] of Object.entries(room.exits)) {
+        const to = typeof exit === 'string' ? exit : exit.to;
+        const dest = this.rooms[to];
+        if ((dest.aliases || []).includes(p) || dest.name.toLowerCase() === p) {
+          if (this.isDark() && !(room.darkExits || []).includes(dir)) {
+            this.print(room.darkMove || 'You stumble around in the dark and get nowhere.');
+            return;
+          }
+          return this.go(dir);
+        }
+      }
+      if (fallbackDir && room.exits[fallbackDir]) return this.go(fallbackDir);
+      this.print("You can't get there directly from here. Use compass directions: NORTH, SOUTH, EAST, WEST (or N, S, E, W).");
+      return false;
+    }
+
+    crossRiver() {
+      if (this.state.loc === 'ford') return this.go('east');
+      if (this.state.loc === 'cabin') return this.go('west');
+      this.print("There's nothing here to cross.");
+      return false;
+    }
+
+    moveTo(roomId) {
+      this.state.loc = roomId;
+      const first = !this.state.visited[roomId];
+      this.state.visited[roomId] = true;
+      this.describe(true);
+      const room = this.rooms[roomId];
+      if (room.onEnter && !this.isDark()) room.onEnter(this, first);
+    }
+
+    inventory() {
+      const ids = this.contentsOf('inv');
+      if (!ids.length) { this.print('You are empty-handed.'); return false; }
+      const lines = ids.map((id) => {
+        const it = this.items[id];
+        const st = this.state.items[id];
+        let s = '  ' + (it.short || it.name);
+        if (st.worn) s += ' (being worn)';
+        if (it.switchable && st.on) s += ' (on)';
+        return s;
+      });
+      this.print('You are carrying:\n' + lines.join('\n'));
+      return false;
+    }
+
+    notes() {
+      if (!this.state.found.length) {
+        this.print('Your journal is empty. Get to work.');
+        return false;
+      }
+      const lines = this.state.found
+        .filter((id) => id !== 'solved')
+        .map((id, i) => `${i + 1}. ${this.clues[id].title}\n   ${this.clues[id].note}`);
+      this.print('CASE JOURNAL — Claim #NM-1187\n\n' + lines.join('\n\n'), 'journal');
+      return false;
+    }
+
+    help() {
+      this.print([
+        "You're an insurance investigator on Prince of Wales Island, Alaska. Type commands in plain English, the old-school way.",
+        '',
+        'MOVING      NORTH, SOUTH, EAST, WEST (or N, S, E, W), UP, DOWN, IN, OUT',
+        'LOOKING     LOOK (L), EXAMINE thing (X thing), READ thing, SEARCH thing',
+        'THINGS      TAKE, DROP, OPEN, CLOSE, UNLOCK, WEAR, REMOVE,',
+        '            TURN ON / TURN OFF, INVENTORY (I)',
+        'PEOPLE      TALK TO person, ASK person ABOUT topic,',
+        '            SHOW thing TO person, GIVE thing TO person',
+        'THE CASE    NOTES (your journal), SCORE, HINT,',
+        '            ACCUSE person (at the State Troopers post)',
+        'GAME        SAVE, LOAD, RESTART',
+        '',
+        'You can chain commands with periods: TAKE PHOTO. READ IT.',
+        'Press the up and down arrow keys to recall earlier commands.'
+      ].join('\n'), 'help');
+      return false;
+    }
+
+    // Shared logic: if an item defines a custom handler for this verb, run it.
+    runHandler(it, verb, ...args) {
+      const h = it.verbs && it.verbs[verb];
+      if (!h) return false;
+      const r = h(this, ...args);
+      if (typeof r === 'string') { this.print(r); return true; }
+      return r === true;
+    }
+
+    examine(phrase) {
+      if (/^(around|room|here|area)$/.test(clean(phrase))) return this.describe(true);
+      if (/^(me|myself|self)$/.test(clean(phrase))) {
+        this.print(this.isWorn('waders') ? 'Damp investigator, chest waders, a look of grim purpose.' : 'Damp investigator. Sensible shoes, for a city.');
+        return;
+      }
+      const e = this.find(phrase);
+      if (!e) return;
+      if (e.kind === 'npc') { this.print(this.t(e.desc)); return; }
+      if (this.runHandler(e, 'examine')) return;
+      this.print(this.t(e.desc) || `You see nothing special about the ${e.name}.`);
+      const st = this.state.items[e.id];
+      if (e.container && st.open) this.print(this.contentsLine(e.id));
+      if (e.onExamine) e.onExamine(this);
+    }
+
+    read(phrase) {
+      const p = clean(phrase);
+      if (p === 'it' && this.lastItem) phrase = this.lastItem;
+      const e = this.find(phrase);
+      if (!e) return;
+      if (e.kind === 'npc') { this.print(`${e.name} is hard to read.`); return; }
+      if (this.runHandler(e, 'read')) return;
+      if (!e.text) {
+        this.print(`There's nothing to read on the ${e.name}.`);
+        return;
+      }
+      this.print(this.t(e.text), 'document');
+      if (e.onRead) e.onRead(this);
+      if (e.onExamine) e.onExamine(this);
+    }
+
+    take(phrase) {
+      const e = this.find(phrase);
+      if (!e) return;
+      if (e.kind === 'npc') { this.print(`I don't think ${e.name} would appreciate that.`); return; }
+      if (this.runHandler(e, 'take')) return;
+      if (this.inInv(e.id)) { this.print('You already have that.'); return; }
+      if (e.fixed) { this.print(this.t(e.fixedMsg) || "That's not going anywhere."); return; }
+      this.moveItem(e.id, 'inv');
+      this.lastItem = e.names[0];
+      this.print('Taken.');
+      if (e.onTake) e.onTake(this);
+    }
+
+    takeAll() {
+      const loose = this.visibleItems().filter((it) => !it.fixed && !this.inInv(it.id));
+      if (!loose.length) { this.print("There's nothing here you can take."); return; }
+      for (const it of loose) {
+        this.moveItem(it.id, 'inv');
+        this.print(`${capitalize(it.name)}: Taken.`);
+        if (it.onTake) it.onTake(this);
+      }
+    }
+
+    drop(phrase) {
+      const e = this.find(phrase, { npcs: false });
+      if (!e) return;
+      if (!this.inInv(e.id)) { this.print("You're not carrying that."); return; }
+      if (this.runHandler(e, 'drop')) return;
+      if (this.state.items[e.id].worn) { this.print("You'll have to take them off first."); return; }
+      if (e.id === 'case_file' || e.id === 'badge') { this.print("Your supervisor would have words. You hang on to it."); return; }
+      this.moveItem(e.id, this.state.loc);
+      this.print('Dropped.');
+    }
+
+    wear(phrase) {
+      const e = this.find(phrase, { npcs: false });
+      if (!e) return;
+      if (!e.wearable) { this.print("That's not something you can wear."); return; }
+      const st = this.state.items[e.id];
+      if (st.worn) { this.print("You're already wearing them."); return; }
+      if (!this.inInv(e.id)) {
+        if (e.fixed) { this.print("You can't."); return; }
+        this.moveItem(e.id, 'inv');
+        this.print(`(first taking the ${e.name})`);
+      }
+      st.worn = true;
+      this.print(`You wrestle your way into the ${e.name} and cinch the belt. You are now dressed for the river and nowhere else.`);
+    }
+
+    remove(phrase) {
+      const e = this.find(phrase, { npcs: false });
+      if (!e) return;
+      const st = this.state.items[e.id];
+      if (!st.worn) { this.print("You're not wearing that."); return; }
+      st.worn = false;
+      this.print(`You peel off the ${e.name}.`);
+    }
+
+    switchItem(phrase, on) {
+      const e = this.find(phrase, { npcs: false });
+      if (!e) return;
+      if (this.runHandler(e, on ? 'turnon' : 'turnoff')) return;
+      if (!e.switchable) { this.print("That's not something you can switch on or off."); return; }
+      const st = this.state.items[e.id];
+      if (st.on === on) { this.print(`It's already ${on ? 'on' : 'off'}.`); return; }
+      if (!this.inInv(e.id)) {
+        this.moveItem(e.id, 'inv');
+        this.print(`(first taking the ${e.name})`);
+      }
+      const wasDark = this.isDark();
+      st.on = on;
+      this.print(on ? `The ${e.name} is now on. A good strong beam.` : `The ${e.name} is now off.`);
+      if (wasDark && !this.isDark()) this.describe(true);
+      else if (!wasDark && this.isDark()) this.describe(true);
+    }
+
+    doVerb(verb, phraseOrId) {
+      const e = this.items[phraseOrId] || this.find(phraseOrId, { npcs: false });
+      if (!e) return;
+      if (this.runHandler(e, verb)) return true;
+      const st = this.state.items[e.id];
+      if (verb === 'open') {
+        if (!e.openable) { this.print(`The ${e.name} isn't something you can open.`); return true; }
+        if (st.open) { this.print("It's already open."); return true; }
+        if (st.locked) { this.print(this.t(e.lockedMsg) || "It's locked."); return true; }
+        st.open = true;
+        const inside = this.contentsOf(e.id);
+        this.print(inside.length
+          ? `You open the ${e.name}. Inside you find ${listJoin(inside.map((id) => this.items[id].short || this.items[id].name))}.`
+          : `You open the ${e.name}. It's empty.`);
+        return true;
+      }
+      if (verb === 'close') {
+        if (!e.openable) { this.print(`The ${e.name} isn't something you can close.`); return true; }
+        if (!st.open) { this.print("It's already closed."); return true; }
+        st.open = false;
+        this.print('Closed.');
+        return true;
+      }
+      return true;
+    }
+
+    unlock(phrase) {
+      const e = this.find(phrase, { npcs: false });
+      if (!e) return;
+      if (this.runHandler(e, 'unlock')) return;
+      if (!this.state.items[e.id].locked) { this.print("It isn't locked."); return; }
+      this.print("You don't have anything that would unlock it.");
+    }
+
+    dial(nums) {
+      const room = this.rooms[this.state.loc];
+      if (!room.dial) { this.print("There's nothing here with a combination dial."); return; }
+      const r = room.dial(this, nums);
+      if (typeof r === 'string') this.print(r);
+    }
+
+    talk(phrase) {
+      const p = clean(phrase);
+      if (/^(me|myself|self)$/.test(p)) { this.print('You mutter to yourself. Your self agrees this case stinks.'); return; }
+      const e = this.find(phrase);
+      if (!e) return;
+      if (e.kind !== 'npc') { this.print(`You talk to the ${e.name}. It's a good listener.`); return; }
+      this.print(this.t(e.talk), 'speech');
+    }
+
+    talkToOnly() {
+      const here = this.visibleNpcs();
+      if (here.length === 1) return this.talk(here[0].names[0]);
+      if (!here.length) { this.print("There's no one here to talk to."); return false; }
+      this.print(`Talk to whom? ${listJoin(here.map((n) => n.name))} ${here.length > 1 ? 'are' : 'is'} here.`);
+      return false;
+    }
+
+    ask(personPhrase, topicPhrase) {
+      const npc = this.find(personPhrase, { items: false });
+      if (!npc) return;
+      const topic = clean(topicPhrase);
+      const tw = topic.split(' ');
+      for (const entry of npc.topics || []) {
+        if (entry.k.some((k) => tw.includes(k) || topic === k)) {
+          this.print(this.t(entry.r), 'speech');
+          return;
+        }
+      }
+      this.print(this.t(npc.askDefault) || `${npc.name} doesn't have much to say about that.`, 'speech');
+    }
+
+    showGive(verb, rest) {
+      let itemPhrase;
+      let npcPhrase;
+      const m = rest.match(/^(.+?) to (.+)$/);
+      if (m) {
+        itemPhrase = m[1];
+        npcPhrase = m[2];
+      } else {
+        // "show reyes the napkin" / "give cal beer"
+        const here = this.visibleNpcs();
+        const words = rest.split(' ');
+        for (let i = 1; i < words.length; i++) {
+          const head = words.slice(0, i).join(' ');
+          const npc = this.match(head, here);
+          if (npc && !npc.ambiguous) { npcPhrase = head; itemPhrase = words.slice(i).join(' '); break; }
+        }
+        if (!npcPhrase) {
+          const people = this.visibleNpcs();
+          if (people.length === 1) { npcPhrase = people[0].names[0]; itemPhrase = rest; }
+          else { this.print(`${capitalize(verb)} it to whom?`); return false; }
+        }
+      }
+      const it = this.find(itemPhrase, { npcs: false });
+      if (!it) return;
+      if (!this.inInv(it.id)) { this.print(`You'd need to be holding the ${it.name} first.`); return; }
+      const npc = this.find(npcPhrase, { items: false });
+      if (!npc) return;
+      if (npc.kind !== 'npc') { this.print("That isn't a person."); return; }
+      if (verb === 'give' && npc.give && npc.give[it.id]) { this.print(this.t(npc.give[it.id]), 'speech'); return; }
+      const resp = npc.show && npc.show[it.id];
+      if (resp) {
+        this.print(this.t(resp), 'speech');
+        if (verb === 'give') this.print('You take it back.');
+        return;
+      }
+      this.print(`${npc.name} glances at the ${it.name}${verb === 'give' ? ' and hands it back' : ''}. ${['No reaction.', 'Nothing.', 'A shrug.'][this.state.turns % 3]}`);
+    }
+
+    accuse(phrase) {
+      const room = this.rooms[this.state.loc];
+      if (!room.accuse) {
+        this.print("You can't arrest anyone yourself. You're an insurance investigator, not a cop. Take it to Sgt. Reyes at the State Troopers post in Klawock and ACCUSE there.");
+        return false;
+      }
+      const r = room.accuse(this, clean(phrase));
+      if (typeof r === 'string') this.print(r, 'speech');
+    }
+
+    buy(phrase) {
+      const room = this.rooms[this.state.loc];
+      if (!room.buy) { this.print("There's nothing for sale here."); return; }
+      this.print(this.t(room.buy(this, clean(phrase))));
+    }
+
+    use(phrase) {
+      const e = this.find(phrase, { npcs: false });
+      if (!e) return;
+      if (this.runHandler(e, 'use')) return;
+      if (e.switchable) return this.switchItem(phrase, !this.state.items[e.id].on);
+      if (e.wearable) return this.wear(phrase);
+      if (e.id === 'office_key' && this.state.loc === 'lodge') return this.unlock('door');
+      if (e.text) return this.read(phrase);
+      this.print(`You'll need to be more specific about how you want to use the ${e.name}.`);
+    }
+
+    itemVerb(verb, phrase, fallback) {
+      const e = this.find(phrase);
+      if (!e) return;
+      if (e.kind === 'item' && this.runHandler(e, verb)) return;
+      this.print(fallback);
+    }
+
+    fish() {
+      const room = this.rooms[this.state.loc];
+      this.print(room.fish ? this.t(room.fish) : "You don't have a rod, and you're on the clock. Two good reasons, and you hate both of them.");
+    }
+
+    // ------------------------------------------------------------ save / load
+    save() {
+      const ok = this.storage.set(SAVE_KEY, JSON.stringify(this.state));
+      this.print(ok === false ? "Couldn't save. Your browser may be blocking storage." : 'Game saved.', 'meta');
+      return false;
+    }
+
+    load() {
+      let raw = null;
+      try { raw = this.storage.get(SAVE_KEY); } catch (e) { raw = null; }
+      if (!raw) { this.print('No saved game found.', 'meta'); return false; }
+      let saved;
+      try { saved = JSON.parse(raw); } catch (e) { this.print('That save file is corrupted.', 'meta'); return false; }
+      this.newGame();
+      // Merge so saves keep working if new items get added to the world later.
+      for (const id of Object.keys(saved.items || {})) {
+        if (this.state.items[id]) this.state.items[id] = saved.items[id];
+      }
+      const { items, ...rest } = saved;
+      Object.assign(this.state, rest);
+      this.print('Game restored.', 'meta');
+      this.describe(true);
+      return false;
+    }
+
+    restart() {
+      this.newGame();
+      this.print('You start the case over from the ferry dock.', 'meta');
+      this.print(this.world.intro, 'intro');
+      this.describe(true);
+      return false;
+    }
+  }
+
+  root.NSH = root.NSH || {};
+  root.NSH.Game = Game;
+  if (typeof module === 'object' && module.exports) module.exports = { Game };
+})(typeof window !== 'undefined' ? window : globalThis);

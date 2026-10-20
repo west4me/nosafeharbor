@@ -1,0 +1,10 @@
+{
+  "name": "nosafeharbor",
+  "version": "0.1.0",
+  "description": "No Safe Harbor: a Zork-style text adventure mystery set on Prince of Wales Island, Alaska.",
+  "private": true,
+  "scripts": {
+    "test": "node tests/walkthrough.test.js"
+  },
+  "license": "UNLICENSED"
+}
