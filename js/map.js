@@ -1,232 +1,308 @@
 /*
- * No Safe Harbor: graph-paper map.
+ * No Safe Harbor: the field map.
  *
- * renderMap(game) returns an SVG string drawn the way you'd map Zork on
- * graph paper: the island outline is printed on the sheet, and only the
- * places you've actually been are penciled in. Paths you've walked are
- * drawn as lines, exits you haven't tried get a short "?" stub, and a red
- * circle marks where you are.
+ * renderMap(game) returns an SVG string: a true-scale map of Prince of Wales
+ * Island on graph paper (one square = one kilometer), built from USGS data in
+ * js/geodata.js. The coastline, lakes, rivers and roads are printed on the
+ * sheet. Your own pencil work goes on top: a pin for every place you've been
+ * (towns list the spots inside them), the real road routes you've driven, the
+ * trails you've walked and rowed, a "?" for every way you haven't tried, and a
+ * red circle where you are now.
  *
  * Pure string-building with no DOM, so it also runs under Node for tests.
  */
 (function (root) {
   'use strict';
 
-  const SX = 120;            // px per grid step, east-west
-  const SY = 100;            // px per grid step, north-south
-  const GRID = 20;           // graph-paper square size (divides SX and SY)
-  const BOX_W = 96;
-  const BOX_H = 52;
-  const STUB = 16;
-  const COMPASS = {
-    north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0],
-    northeast: [1, -1], northwest: [-1, -1], southeast: [1, 1], southwest: [-1, 1]
-  };
+  const geo = root.NSH && root.NSH.geo ? root.NSH.geo
+    : (typeof require === 'function' ? require('./geodata.js').geo : null);
+
+  const STUB_PX = 70; // how far a "?" stub runs along an unexplored road
 
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  const r1 = (n) => Math.round(n * 10) / 10;
+  // Longitude/latitude to map pixels (the same projection tools/build_geodata.py used).
+  function project(at) {
+    const v = geo.view;
+    return [
+      Math.round((at[0] - v.lon0) * v.kmX * v.pxPerKm * 10) / 10,
+      Math.round((v.lat1 - at[1]) * v.kmY * v.pxPerKm * 10) / 10
+    ];
+  }
 
-  // Catmull-Rom spline through points -> smooth cubic Bezier path.
-  function smoothPath(pts, closed) {
-    const n = pts.length;
-    const at = (i) => (closed ? pts[(i + n) % n] : pts[Math.max(0, Math.min(n - 1, i))]);
-    let d = `M${r1(pts[0][0])},${r1(pts[0][1])}`;
-    const last = closed ? n : n - 1;
-    for (let i = 0; i < last; i++) {
-      const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
-      const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
-      const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
-      d += ` C${r1(c1[0])},${r1(c1[1])} ${r1(c2[0])},${r1(c2[1])} ${r1(p2[0])},${r1(p2[1])}`;
+  // Flat [x0, y0, x1, y1, ...] to an SVG path.
+  function pathOf(flat, closed) {
+    let d = 'M' + flat[0] + ',' + flat[1];
+    for (let i = 2; i < flat.length; i += 2) d += 'L' + flat[i] + ',' + flat[i + 1];
+    return closed ? d + 'Z' : d;
+  }
+
+  function polyPath(polys) {
+    return polys.map((rings) => rings.map((r) => pathOf(r, true)).join('')).join('');
+  }
+
+  // The first `len` pixels of a polyline, starting from whichever end is nearer `from`.
+  function lead(flat, from, len) {
+    const pts = [];
+    for (let i = 0; i < flat.length; i += 2) pts.push([flat[i], flat[i + 1]]);
+    const d0 = Math.hypot(pts[0][0] - from[0], pts[0][1] - from[1]);
+    const d1 = Math.hypot(pts[pts.length - 1][0] - from[0], pts[pts.length - 1][1] - from[1]);
+    if (d1 < d0) pts.reverse();
+    const out = [pts[0]];
+    let left = len;
+    for (let i = 1; i < pts.length && left > 0; i++) {
+      const [ax, ay] = out[out.length - 1];
+      const [bx, by] = pts[i];
+      const seg = Math.hypot(bx - ax, by - ay);
+      if (seg >= left) {
+        out.push([ax + (bx - ax) * (left / seg), ay + (by - ay) * (left / seg)]);
+        left = 0;
+      } else {
+        out.push(pts[i]);
+        left -= seg;
+      }
     }
-    return closed ? d + ' Z' : d;
+    return out.map((p) => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]);
   }
 
   function exitTarget(exit) {
     return typeof exit === 'string' ? exit : exit.to;
   }
 
-  // Everything the map needs to know, separate from drawing so tests can check it.
+  function hereRoomId(game) {
+    const cur = game.rooms[game.state.loc];
+    if (!cur.mapAs) return game.state.loc;
+    return typeof cur.mapAs === 'function' ? cur.mapAs(game) : cur.mapAs;
+  }
+
+  // Everything the map shows, separate from drawing so tests can check it.
   function mapModel(game) {
     const st = game.state;
     const visited = st.visited || {};
     const lit = st.lit || null;
-    const rooms = Object.values(game.rooms).filter((r) => r.map && visited[r.id]);
-    // Some places (the truck cab) aren't on the map; they show up as wherever they are.
-    const cur = game.rooms[st.loc];
-    const hereId = cur.mapAs ? (typeof cur.mapAs === 'function' ? cur.mapAs(game) : cur.mapAs) : st.loc;
+    const hereId = hereRoomId(game);
+    const onMap = Object.values(game.rooms).filter((r) => r.map && r.map.at);
+    const rooms = onMap.filter((r) => visited[r.id]);
     const edges = [];
     const stubs = [];
     const seen = new Set();
     for (const r of rooms) {
       for (const [dir, exit] of Object.entries(r.exits)) {
-        if (!COMPASS[dir]) continue; // up/down/in/out duplicate a compass exit in this world
-        const to = exitTarget(exit);
-        if (visited[to] && game.rooms[to].map) {
-          const key = [r.id, to].sort().join('|');
-          if (!seen.has(key)) { seen.add(key); edges.push([r.id, to]); }
+        if (typeof exit === 'object' && typeof exit.to === 'function') continue;
+        const to = game.rooms[exitTarget(exit)];
+        if (!to || !to.map || !to.map.at) continue;
+        const sameSpot = to.map.at[0] === r.map.at[0] && to.map.at[1] === r.map.at[1];
+        if (sameSpot) continue; // rooms inside one town: listed under its pin, not drawn
+        const road = typeof exit === 'object' && !!exit.drive;
+        if (visited[to.id]) {
+          const key = [r.id, to.id].sort().join('|');
+          if (!seen.has(key)) { seen.add(key); edges.push({ a: r.id, b: to.id, road, key }); }
         } else {
-          stubs.push({ from: r.id, dir });
+          stubs.push({ from: r.id, dir, to: to.id, road, key: [r.id, to.id].sort().join('|') });
         }
       }
+    }
+    const sites = {};
+    for (const r of rooms) {
+      const s = sites[r.map.site] || (sites[r.map.site] = { id: r.map.site, rooms: [] });
+      s.rooms.push(r.id);
     }
     return {
       rooms: rooms.map((r) => ({
         id: r.id,
-        x: r.map.x,
-        y: r.map.y,
-        label: r.dark && lit && !lit[r.id] ? ['Dark!'] : (r.map.label || [r.name]),
+        at: r.map.at,
+        site: r.map.site,
+        label: r.dark && lit && !lit[r.id] ? 'Dark!' : (r.map.label || r.name),
         here: r.id === hereId
       })),
+      sites: Object.values(sites),
       edges,
       stubs,
-      total: Object.values(game.rooms).filter((r) => r.map).length
+      hereId,
+      total: onMap.length
     };
   }
 
-  function renderMap(game) {
-    const geo = game.world.mapGeo;
-    const v = geo.view;
-    const W = Math.round((v.x1 - v.x0) * SX);
-    const H = Math.round((v.y1 - v.y0) * SY);
-    // Snap so grid lines land on room centers.
-    const ox = Math.round(-v.x0 * SX / GRID) * GRID;
-    const oy = Math.round(-v.y0 * SY / GRID) * GRID;
-    const X = (x) => ox + x * SX;
-    const Y = (y) => oy + y * SY;
-    const P = (p) => [X(p[0]), Y(p[1])];
+  // The printed layers (water, lakes, rivers, roads, names) are the same every turn; build them once.
+  let baseCache = null;
+  function printedSheet(game) {
+    if (baseCache && baseCache.labels === game.world.mapLabels) return baseCache.svg;
+    const W = geo.width;
+    const H = geo.height;
+    const out = [];
+    const sea = polyPath(geo.sea);
+    const lakes = polyPath(geo.lakes);
+    out.push(`<rect width="${W}" height="${H}" fill="#fbf8ef"/>`);
+    out.push(`<path d="${sea}" fill="#e3edf7" fill-rule="evenodd"/>`);
+    out.push(`<path d="${sea}" fill="url(#map-water)" fill-rule="evenodd" opacity="0.55"/>`);
+    out.push(`<path d="${lakes}" fill="#e3edf7" fill-rule="evenodd"/>`);
+    out.push(`<path d="${lakes}" fill="url(#map-water)" fill-rule="evenodd" opacity="0.5"/>`);
+    out.push(`<rect width="${W}" height="${H}" fill="url(#map-grid)"/>`);
+    out.push(`<rect width="${W}" height="${H}" fill="url(#map-grid-major)"/>`);
+    out.push(`<path d="${sea}" fill="none" stroke="#3d4a5c" stroke-width="1.6" stroke-linejoin="round" fill-rule="evenodd"/>`);
+    out.push(`<path d="${lakes}" fill="none" stroke="#3f74ad" stroke-width="1.2" stroke-linejoin="round"/>`);
+    out.push(`<g fill="none" stroke-linecap="round" stroke-linejoin="round">`);
+    for (const s of geo.streams) out.push(`<path d="${pathOf(s)}" stroke="#9ec0e4" stroke-width="0.9"/>`);
+    for (const rv of geo.rivers) for (const l of rv.lines) out.push(`<path d="${pathOf(l)}" stroke="#4f86c2" stroke-width="2.2"/>`);
+    for (const l of geo.roads.forest) out.push(`<path d="${pathOf(l)}" stroke="#c9c2b4" stroke-width="0.8" stroke-dasharray="3 3"/>`);
+    for (const l of geo.roads.road) out.push(`<path d="${pathOf(l)}" stroke="#b9b1a2" stroke-width="1.4"/>`);
+    for (const l of geo.roads.highway) out.push(`<path d="${pathOf(l)}" stroke="#a89f8e" stroke-width="2.6"/>`);
+    out.push('</g>');
+    for (const l of game.world.mapLabels || []) {
+      const [x, y] = project(l.at);
+      out.push(`<text class="map-label map-label-${esc(l.cls)}" x="${x}" y="${y}" font-size="${l.size}" text-anchor="middle" transform="rotate(${l.rotate || 0} ${x} ${y})">${esc(l.text)}</text>`);
+    }
+    for (const l of geo.labels) {
+      out.push(`<text class="map-label map-label-${l.cls === 'lake' ? 'lake' : 'river'}" x="${l.at[0]}" y="${l.at[1]}" font-size="12" text-anchor="middle">${esc(l.text)}</text>`);
+    }
+    baseCache = { labels: game.world.mapLabels, svg: out.join('\n') };
+    return baseCache.svg;
+  }
 
+  function renderMap(game) {
+    const W = geo.width;
+    const H = geo.height;
+    const G = geo.view.pxPerKm; // one graph-paper square = 1 km
     const model = mapModel(game);
-    const pos = {};
-    for (const r of model.rooms) pos[r.id] = [X(r.x), Y(r.y)];
-    const here = model.rooms.find((r) => r.here);
-    const hereName = here ? game.status().location : '';
+    const byId = {};
+    for (const r of model.rooms) byId[r.id] = r;
+    const P = (id) => project(game.rooms[id].map.at);
+    const hereName = game.status().location;
 
     const out = [];
     out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" class="map-svg" role="img" aria-label="${esc('Map of Prince of Wales Island. You are at ' + hereName + '.')}">`);
     out.push(`<defs>
-  <pattern id="map-grid" width="${GRID}" height="${GRID}" patternUnits="userSpaceOnUse" x="${ox % GRID}" y="${oy % GRID}">
-    <path d="M${GRID},0 L0,0 0,${GRID}" fill="none" stroke="#bcd3ea" stroke-width="1"/>
+  <pattern id="map-grid" width="${G}" height="${G}" patternUnits="userSpaceOnUse">
+    <path d="M${G},0 L0,0 0,${G}" fill="none" stroke="#c4d7ec" stroke-width="0.8"/>
   </pattern>
-  <pattern id="map-grid-major" width="${GRID * 5}" height="${GRID * 5}" patternUnits="userSpaceOnUse" x="${ox % (GRID * 5)}" y="${oy % (GRID * 5)}">
-    <path d="M${GRID * 5},0 L0,0 0,${GRID * 5}" fill="none" stroke="#9dbbdc" stroke-width="1.4"/>
+  <pattern id="map-grid-major" width="${G * 5}" height="${G * 5}" patternUnits="userSpaceOnUse">
+    <path d="M${G * 5},0 L0,0 0,${G * 5}" fill="none" stroke="#9dbbdc" stroke-width="1.3"/>
   </pattern>
-  <pattern id="map-water" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
-    <line x1="0" y1="0" x2="0" y2="10" stroke="#8fb0d4" stroke-width="1.6"/>
+  <pattern id="map-water" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+    <line x1="0" y1="0" x2="0" y2="9" stroke="#8fb0d4" stroke-width="1.4"/>
   </pattern>
   <filter id="map-pencil" x="-5%" y="-5%" width="110%" height="110%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7"/>
-    <feDisplacementMap in="SourceGraphic" scale="3.2"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="7"/>
+    <feDisplacementMap in="SourceGraphic" scale="2.4"/>
   </filter>
 </defs>`);
 
-    // Paper, water hatching, the island, then graph lines over everything.
-    out.push(`<rect width="${W}" height="${H}" fill="#fbf8ef"/>`);
-    out.push(`<rect width="${W}" height="${H}" fill="url(#map-water)" opacity="0.55"/>`);
-    out.push(`<path d="${smoothPath(geo.coast.map(P), true)}" fill="#fbf8ef"/>`);
-    for (const isl of geo.islets) {
-      out.push(`<ellipse cx="${X(isl.x)}" cy="${Y(isl.y)}" rx="${isl.rx * SX}" ry="${isl.ry * SY}" fill="#fbf8ef"/>`);
-    }
-    // Lakes: water inside the land, hatched like the sea.
-    const lakes = geo.lakes || [];
-    const lakeShape = (l, extra) => `<ellipse cx="${X(l.x)}" cy="${Y(l.y)}" rx="${l.rx * SX}" ry="${l.ry * SY}" transform="rotate(${l.rotate || 0} ${X(l.x)} ${Y(l.y)})" ${extra}/>`;
-    for (const l of lakes) out.push(lakeShape(l, 'fill="#fbf8ef"'));
-    for (const l of lakes) out.push(lakeShape(l, 'fill="url(#map-water)" opacity="0.55"'));
-    out.push(`<rect width="${W}" height="${H}" fill="url(#map-grid)"/>`);
-    out.push(`<rect width="${W}" height="${H}" fill="url(#map-grid-major)"/>`);
+    // The printed sheet, then your pencil on top.
+    out.push(printedSheet(game));
 
-    // Coastline and rivers, in pencil.
-    out.push(`<g filter="url(#map-pencil)" fill="none" stroke-linecap="round" stroke-linejoin="round">`);
-    out.push(`<path d="${smoothPath(geo.coast.map(P), true)}" stroke="#3d4a5c" stroke-width="3"/>`);
-    for (const isl of geo.islets) {
-      out.push(`<ellipse cx="${X(isl.x)}" cy="${Y(isl.y)}" rx="${isl.rx * SX}" ry="${isl.ry * SY}" stroke="#3d4a5c" stroke-width="2.5"/>`);
+    // Your pencil: roads you've driven, trails you've walked, water you've rowed.
+    out.push(`<g filter="url(#map-pencil)" fill="none" stroke="#2f2f2f" stroke-linecap="round" stroke-linejoin="round">`);
+    for (const e of model.edges) {
+      const route = e.road && geo.routes[e.key];
+      if (route) out.push(`<path d="${pathOf(route.line)}" stroke-width="3.4"/>`);
+      else {
+        const [ax, ay] = P(e.a);
+        const [bx, by] = P(e.b);
+        out.push(`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke-width="2.4" stroke-dasharray="1 5"/>`);
+      }
     }
-    for (const l of lakes) out.push(lakeShape(l, 'stroke="#3f74ad" stroke-width="2.5"'));
-    for (const rv of geo.rivers) {
-      out.push(`<path d="${smoothPath(rv.pts.map(P), false)}" stroke="#5b8fc7" stroke-width="3.5"/>`);
+    // Ways you haven't tried: a dashed start down the road, and a question mark.
+    const marks = [];
+    for (const s of model.stubs) {
+      const from = P(s.from);
+      let pts;
+      const route = s.road && geo.routes[s.key];
+      if (route) pts = lead(route.line, from, STUB_PX);
+      else {
+        const to = P(s.to);
+        const len = Math.hypot(to[0] - from[0], to[1] - from[1]);
+        const f = Math.min(1, Math.min(STUB_PX * 0.6, len * 0.6) / (len || 1));
+        pts = [from, [from[0] + (to[0] - from[0]) * f, from[1] + (to[1] - from[1]) * f]];
+      }
+      out.push(`<path d="${pathOf(pts.flat())}" stroke-width="2.2" stroke-dasharray="5 5"/>`);
+      marks.push(pts[pts.length - 1]);
     }
     out.push('</g>');
-
-    // Scenery labels.
-    for (const l of geo.labels) {
-      out.push(`<text class="map-label map-label-${esc(l.cls)}" x="${X(l.x)}" y="${Y(l.y)}" font-size="${l.size}" text-anchor="middle" transform="rotate(${l.rotate || 0} ${X(l.x)} ${Y(l.y)})">${esc(l.text)}</text>`);
-    }
-    for (const isl of geo.islets) {
-      out.push(`<text class="map-label map-label-water" x="${X(isl.x)}" y="${Y(isl.y + isl.ry) + 18}" font-size="14" text-anchor="middle">${esc(isl.label)}</text>`);
-    }
-    for (const l of lakes) {
-      out.push(`<text class="map-label map-label-river" x="${X(l.lx)}" y="${Y(l.ly)}" font-size="14" text-anchor="middle">${esc(l.label)}</text>`);
-    }
-    for (const rv of geo.rivers) {
-      out.push(`<text class="map-label map-label-river" x="${X(rv.lx)}" y="${Y(rv.ly)}" font-size="14" text-anchor="middle">${esc(rv.label)}</text>`);
+    for (const [x, y] of marks) {
+      out.push(`<circle cx="${x}" cy="${y}" r="9" fill="#fbf8ef" opacity="0.85"/><text class="map-q" x="${x}" y="${y + 6}" font-size="17" text-anchor="middle">?</text>`);
     }
 
-    // Paths between places you've been, then "?" stubs for untried exits.
-    out.push(`<g filter="url(#map-pencil)" stroke="#2f2f2f" stroke-width="2.6" stroke-linecap="round" fill="none">`);
-    for (const [a, b] of model.edges) {
-      out.push(`<line x1="${pos[a][0]}" y1="${pos[a][1]}" x2="${pos[b][0]}" y2="${pos[b][1]}"/>`);
-    }
-    for (const s of model.stubs) {
-      const [dx, dy] = COMPASS[s.dir];
-      const [cx, cy] = pos[s.from];
-      const sx = cx + dx * BOX_W / 2, sy = cy + dy * BOX_H / 2;
-      out.push(`<line x1="${sx}" y1="${sy}" x2="${sx + dx * STUB}" y2="${sy + dy * STUB}" stroke-dasharray="4 4"/>`);
-    }
-    out.push('</g>');
-    for (const s of model.stubs) {
-      const [dx, dy] = COMPASS[s.dir];
-      const [cx, cy] = pos[s.from];
-      const qx = cx + dx * (BOX_W / 2 + STUB + 7);
-      const qy = cy + dy * (BOX_H / 2 + STUB + 7) + 5;
-      out.push(`<text class="map-q" x="${qx}" y="${qy}" font-size="16" text-anchor="middle">?</text>`);
-    }
-
-    // Room boxes.
+    // Pins: one pencil dot per spot you've stood, then a label block per site.
+    const dots = new Set();
     for (const r of model.rooms) {
-      const [cx, cy] = pos[r.id];
-      out.push(`<g class="map-room${r.here ? ' map-here' : ''}"${r.here ? ' id="map-you-are-here"' : ''}>`);
-      out.push(`<rect x="${cx - BOX_W / 2}" y="${cy - BOX_H / 2}" width="${BOX_W}" height="${BOX_H}" rx="4" fill="#fffdf6" stroke="#2f2f2f" stroke-width="2.2" filter="url(#map-pencil)"/>`);
-      const lines = r.label;
-      const lh = 18;
-      const top = cy - ((lines.length - 1) * lh) / 2 + 6;
-      lines.forEach((line, i) => {
-        out.push(`<text class="map-room-label" x="${cx}" y="${top + i * lh}" font-size="17" text-anchor="middle">${esc(line)}</text>`);
+      const [x, y] = project(r.at);
+      const k = x + ',' + y;
+      if (dots.has(k)) continue;
+      dots.add(k);
+      out.push(`<circle cx="${x}" cy="${y}" r="5" fill="#2f2f2f" filter="url(#map-pencil)"/>`);
+    }
+    const sitesInfo = game.world.mapSites || {};
+    for (const site of model.sites) {
+      const info = sitesInfo[site.id] || { name: site.id, label: [10, 4, 'start'] };
+      const all = Object.values(game.rooms).filter((r) => r.map && r.map.site === site.id);
+      const [ax, ay] = project(all[0].map.at);
+      const [dx, dy, anchor] = info.label || [10, 4, 'start'];
+      const lines = [{ text: info.name, cls: 'map-site-name', here: false }];
+      if (all.length > 1) {
+        for (const r of all) {
+          if (!byId[r.id]) continue;
+          lines.push({ text: byId[r.id].label, cls: 'map-site-room', here: byId[r.id].here });
+        }
+        const unseen = all.filter((r) => !byId[r.id]).length;
+        if (unseen) lines.push({ text: '?', cls: 'map-q', here: false });
+      } else if (byId[all[0].id].label === 'Dark!') {
+        lines.push({ text: 'Dark!', cls: 'map-site-room', here: false });
+      }
+      const lh = 17;
+      const wMax = Math.max(...lines.map((l, i) => l.text.length * (i === 0 ? 9.2 : 7.6))) + 14;
+      const x0 = anchor === 'end' ? ax + dx - wMax : anchor === 'middle' ? ax + dx - wMax / 2 : ax + dx;
+      out.push(`<rect x="${x0 - 2}" y="${ay + dy - 16}" width="${wMax}" height="${lines.length * lh + 6}" rx="4" fill="#fbf8ef" opacity="0.88"/>`);
+      lines.forEach((l, i) => {
+        const tx = anchor === 'end' ? ax + dx - 6 : anchor === 'middle' ? ax + dx : ax + dx + 4;
+        const prefix = i === 0 ? '' : (l.here ? '◉ ' : '· ');
+        out.push(`<text class="${l.cls}${l.here ? ' map-here-text' : ''}" x="${tx}" y="${ay + dy + i * lh}" font-size="${i === 0 ? 16 : 13.5}" text-anchor="${anchor}">${esc(prefix + l.text)}</text>`);
       });
-      out.push('</g>');
     }
 
-    // You are here: a red pencil circle and an X.
-    if (here) {
-      const [cx, cy] = pos[here.id];
-      out.push(`<g filter="url(#map-pencil)" fill="none" stroke="#c0392b" stroke-linecap="round">`);
-      out.push(`<ellipse cx="${cx}" cy="${cy}" rx="${BOX_W / 2 + 12}" ry="${BOX_H / 2 + 11}" stroke-width="3.2"/>`);
-      out.push(`<path d="M${cx + BOX_W / 2 - 4},${cy - BOX_H / 2 - 16} l12,12 m0,-12 l-12,12" stroke-width="3"/>`);
-      out.push('</g>');
+    // You are here.
+    if (model.hereId && byId[model.hereId]) {
+      const [x, y] = P(model.hereId);
+      out.push(`<g id="map-you-are-here" filter="url(#map-pencil)" fill="none" stroke="#c0392b" stroke-linecap="round">
+  <circle cx="${x}" cy="${y}" r="17" stroke-width="3.2"/>
+  <path d="M${x + 12},${y - 25} l10,10 m0,-10 l-10,10" stroke-width="3"/>
+</g>`);
     }
 
-    // Compass rose and legend.
-    const kx = X(5.6), ky = Y(7.1);
-    out.push(`<g class="map-compass" stroke="#2f2f2f" stroke-width="2.2" fill="none" filter="url(#map-pencil)">
-  <line x1="${kx}" y1="${ky + 34}" x2="${kx}" y2="${ky - 34}"/><line x1="${kx - 26}" y1="${ky}" x2="${kx + 26}" y2="${ky}"/>
+    // Compass, scale bar, legend and title.
+    // Legend, compass and scale sit in the empty country east of Thorne Lake, clear of every town.
+    const kx = W - 60;
+    const ky = 930;
+    out.push(`<g stroke="#2f2f2f" stroke-width="2" fill="none" filter="url(#map-pencil)">
+  <line x1="${kx}" y1="${ky + 34}" x2="${kx}" y2="${ky - 34}"/><line x1="${kx - 24}" y1="${ky}" x2="${kx + 24}" y2="${ky}"/>
   <path d="M${kx - 8},${ky - 22} L${kx},${ky - 36} L${kx + 8},${ky - 22}"/>
 </g>
 <text class="map-label" x="${kx}" y="${ky - 42}" font-size="18" text-anchor="middle">N</text>`);
-
-    const lx = X(-2.05), ly = Y(6.55);
+    const sx = W - 236;
+    const sy = 862;
+    out.push(`<g stroke="#2f2f2f" stroke-width="2" fill="none">
+  <path d="M${sx},${sy - 6} V${sy} H${sx + G * 5} V${sy - 6} M${sx + G * 2.5},${sy} v-4"/>
+</g>
+<text class="map-legend-text" x="${sx}" y="${sy - 12}" font-size="13">0</text>
+<text class="map-legend-text" x="${sx + G * 5}" y="${sy - 12}" font-size="13" text-anchor="middle">5 km (3 mi)</text>`);
+    const lx = W - 236;
+    const ly = 700;
     out.push(`<g class="map-legend">
-  <rect x="${lx - 6}" y="${ly - 22}" width="218" height="104" fill="#fffdf6" stroke="#2f2f2f" stroke-width="1.5" filter="url(#map-pencil)"/>
-  <ellipse cx="${lx + 18}" cy="${ly}" rx="14" ry="9" fill="none" stroke="#c0392b" stroke-width="2.6"/>
-  <text class="map-legend-text" x="${lx + 42}" y="${ly + 5}" font-size="15">you are here</text>
-  <rect x="${lx + 6}" y="${ly + 20}" width="24" height="16" rx="2" fill="none" stroke="#2f2f2f" stroke-width="2"/>
-  <text class="map-legend-text" x="${lx + 42}" y="${ly + 33}" font-size="15">been there</text>
-  <line x1="${lx + 6}" y1="${ly + 56}" x2="${lx + 22}" y2="${ly + 56}" stroke="#2f2f2f" stroke-width="2" stroke-dasharray="4 4"/>
-  <text class="map-q" x="${lx + 28}" y="${ly + 61}" font-size="15">?</text>
-  <text class="map-legend-text" x="${lx + 42}" y="${ly + 61}" font-size="15">not explored</text>
+  <rect x="${lx - 6}" y="${ly - 24}" width="236" height="140" rx="4" fill="#fffdf6" stroke="#2f2f2f" stroke-width="1.3"/>
+  <circle cx="${lx + 16}" cy="${ly}" r="9" fill="none" stroke="#c0392b" stroke-width="2.6"/>
+  <text class="map-legend-text" x="${lx + 40}" y="${ly + 5}" font-size="14">you are here</text>
+  <circle cx="${lx + 16}" cy="${ly + 26}" r="5" fill="#2f2f2f"/>
+  <text class="map-legend-text" x="${lx + 40}" y="${ly + 31}" font-size="14">been there</text>
+  <line x1="${lx + 2}" y1="${ly + 52}" x2="${lx + 30}" y2="${ly + 52}" stroke="#2f2f2f" stroke-width="3.2"/>
+  <text class="map-legend-text" x="${lx + 40}" y="${ly + 57}" font-size="14">driven</text>
+  <line x1="${lx + 2}" y1="${ly + 78}" x2="${lx + 30}" y2="${ly + 78}" stroke="#2f2f2f" stroke-width="2.2" stroke-dasharray="5 5"/>
+  <text class="map-q" x="${lx + 40}" y="${ly + 83}" font-size="14">?</text>
+  <text class="map-legend-text" x="${lx + 54}" y="${ly + 83}" font-size="14">not explored yet</text>
+  <text class="map-legend-text" x="${lx + 2}" y="${ly + 106}" font-size="11.5">1 square = 1 km · USGS map data</text>
 </g>`);
-
-    out.push(`<text class="map-label map-title" x="${X(-2.05)}" y="${Y(v.y0 + 0.35)}" font-size="16">Claim NM-1187 · field map · explored ${model.rooms.length} of ${model.total}</text>`);
+    out.push(`<rect x="10" y="10" width="420" height="30" rx="4" fill="#fbf8ef" opacity="0.88"/>`);
+    out.push(`<text class="map-label map-title" x="18" y="31" font-size="16">Claim NM-1187 · field map · explored ${model.rooms.length} of ${model.total}</text>`);
     out.push('</svg>');
     return out.join('\n');
   }
@@ -234,5 +310,6 @@
   root.NSH = root.NSH || {};
   root.NSH.renderMap = renderMap;
   root.NSH.mapModel = mapModel;
-  if (typeof module === 'object' && module.exports) module.exports = { renderMap, mapModel };
+  root.NSH.project = project;
+  if (typeof module === 'object' && module.exports) module.exports = { renderMap, mapModel, project };
 })(typeof window !== 'undefined' ? window : globalThis);

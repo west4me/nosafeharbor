@@ -235,6 +235,10 @@ html, body {
 .map-svg .map-label-river { fill: #3f74ad; font-style: italic; }
 .map-svg .map-q { fill: #6b6b6b; font-weight: 700; }
 .map-svg .map-title { fill: #555; }
+.map-svg .map-label-lake { fill: #3f74ad; font-style: italic; }
+.map-svg .map-site-name { font-weight: 700; fill: #2f2f2f; }
+.map-svg .map-site-room { fill: #3b3b3b; }
+.map-svg .map-here-text { fill: #a5281b; font-weight: 700; }
 
 #quick #map-toggle { color: var(--bright); border-color: var(--dim); }
 #quick #map-toggle[aria-pressed="true"] { background: var(--fg); color: var(--bg); }

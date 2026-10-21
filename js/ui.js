@@ -52,13 +52,6 @@
     const strong = document.createElement('strong');
     strong.textContent = game.status().location;
     mapWhere.append(strong);
-    // Handwriting fonts vary by computer (Segoe Print on Windows is wide), so squeeze any label that won't fit its box.
-    for (const t of mapScroll.querySelectorAll('.map-room-label')) {
-      if (t.getComputedTextLength && t.getComputedTextLength() > 88) {
-        t.setAttribute('textLength', '88');
-        t.setAttribute('lengthAdjust', 'spacingAndGlyphs');
-      }
-    }
     const here = mapScroll.querySelector('#map-you-are-here');
     // The sheet can be taller (and on phones wider) than the panel; keep your room in view.
     if (here && (mapScroll.scrollWidth > mapScroll.clientWidth + 4 || mapScroll.scrollHeight > mapScroll.clientHeight + 4)) {

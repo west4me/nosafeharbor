@@ -1,0 +1,177 @@
+"""Build js/geodata.js: the real Prince of Wales Island under the game's map.
+
+Sources (all public domain, from the USGS National Map, https://apps.nationalmap.gov/downloader/):
+  - National Hydrography Dataset, HU8 19010103 (Prince of Wales Island), GeoPackage:
+      https://prd-tnm.s3.amazonaws.com/StagedProducts/Hydrography/NHD/HU8/GPKG/NHD_H_19010103_HU8_GPKG.zip
+  - National Transportation Dataset, Alaska, GeoPackage:
+      https://prd-tnm.s3.amazonaws.com/StagedProducts/Tran/GPKG/TRAN_Alaska_State_GPKG.zip
+  - Place coordinates in js/world.js come from GNIS (DomesticNames_AK) and the two datasets above.
+
+Usage:
+  pip install pyogrio shapely networkx
+  python3 tools/build_geodata.py path/to/NHD_H_19010103_HU8_GPKG.gpkg path/to/TRAN_Alaska_State_GPKG.gpkg
+
+Everything is projected to map pixels (PX_PER_KM pixels per kilometer, north up) and
+simplified, so the browser only has to draw it.
+"""
+import json
+import math
+import subprocess
+import sys
+from pathlib import Path
+
+import networkx as nx
+import pyogrio.raw as raw
+import shapely
+
+ROOT = Path(__file__).resolve().parent.parent
+NHD, TRAN = sys.argv[1], sys.argv[2]
+
+# The part of the island the game covers: Craig and Hollis up to Coffman Cove.
+LON0, LON1, LAT0, LAT1 = -133.25, -132.56, 55.425, 56.045
+MID_LAT = (LAT0 + LAT1) / 2
+KM_X = 111.32 * math.cos(math.radians(MID_LAT))  # km per degree of longitude here
+KM_Y = 110.57                                     # km per degree of latitude
+PX_PER_KM = 26
+WIDTH = round((LON1 - LON0) * KM_X * PX_PER_KM)
+HEIGHT = round((LAT1 - LAT0) * KM_Y * PX_PER_KM)
+VIEW = shapely.box(LON0 - 0.03, LAT0 - 0.02, LON1 + 0.03, LAT1 + 0.02)
+BBOX = VIEW.bounds
+
+
+def px(lon, lat):
+    return [round((lon - LON0) * KM_X * PX_PER_KM, 1), round((LAT1 - lat) * KM_Y * PX_PER_KM, 1)]
+
+
+def km(a, b):
+    return math.hypot((a[0] - b[0]) * KM_X, (a[1] - b[1]) * KM_Y)
+
+
+def read(path, layer, cols):
+    meta, _, geoms, fields = raw.read(path, layer=layer, columns=cols, bbox=BBOX, return_fids=True)
+    names = list(meta['fields'])
+    return [dict(zip(names, [f[i] for f in fields]), geom=shapely.force_2d(shapely.from_wkb(geoms[i])))
+            for i in range(len(geoms))]
+
+
+def parts(g):
+    return [] if g.is_empty else list(getattr(g, 'geoms', [g]))
+
+
+def flat(coords, step=1):
+    """[[x, y], ...] in pixels, rounded; drops consecutive duplicates."""
+    out = []
+    for lon, lat in coords:
+        p = [round(v) for v in px(lon, lat)]
+        if not out or p != out[-1]:
+            out.append(p)
+    return [v for p in out for v in p]
+
+
+def lines(geoms, tol):
+    merged = shapely.line_merge(shapely.union_all(geoms)) if geoms else shapely.GeometryCollection()
+    out = []
+    for ln in parts(shapely.simplify(merged.intersection(VIEW), tol)):
+        if ln.geom_type == 'LineString' and len(ln.coords) > 1:
+            out.append(flat(ln.coords))
+    return out
+
+
+def polys(geom, tol, min_km2):
+    out = []
+    for poly in parts(shapely.simplify(geom.intersection(VIEW), tol, preserve_topology=True)):
+        if poly.geom_type != 'Polygon':
+            continue
+        rings = [flat(poly.exterior.coords)]
+        for hole in poly.interiors:
+            if shapely.Polygon(hole).area * KM_X * KM_Y >= min_km2:
+                rings.append(flat(hole.coords))
+        out.append(rings)
+    return out
+
+
+# ------------------------------------------------------------------ water
+area = read(NHD, 'NHDArea', ['ftype'])
+sea = shapely.union_all([a['geom'] for a in area if a['ftype'] == 445])  # FType 445 = Sea/Ocean
+sea_out = polys(sea, 0.00035, 0.02)
+
+lakes_out, labels = [], []
+for w in read(NHD, 'NHDWaterbody', ['gnis_name', 'areasqkm']):
+    if (w['areasqkm'] or 0) < 0.08 or not w['geom'].intersects(VIEW):
+        continue
+    lakes_out += polys(w['geom'], 0.0002, 0.05)
+    if w['gnis_name'] and w['areasqkm'] > 0.3:
+        p = w['geom'].representative_point()
+        if VIEW.contains(p):
+            labels.append({'text': w['gnis_name'], 'at': px(p.x, p.y), 'cls': 'lake'})
+
+RIVERS = ['Thorne River', 'Harris River', 'Klawock River', 'Dog Creek', 'Eagle Creek', 'Coffman Creek']
+flows = read(NHD, 'NHDFlowline', ['gnis_name'])
+rivers_out = []
+for name in RIVERS:
+    geoms = [f['geom'] for f in flows if f['gnis_name'] == name]
+    segs = lines(geoms, 0.0002)
+    if segs:
+        rivers_out.append({'name': name, 'lines': segs})
+        longest = max(parts(shapely.line_merge(shapely.union_all(geoms)).intersection(VIEW)), key=lambda g: g.length)
+        mid = longest.interpolate(0.5, normalized=True)
+        labels.append({'text': name.replace('River', 'R.').replace('Creek', 'Cr.'), 'at': px(mid.x, mid.y), 'cls': 'river'})
+streams_out = lines([f['geom'] for f in flows if f['gnis_name'] and f['gnis_name'] not in RIVERS], 0.0004)
+
+# ------------------------------------------------------------------ roads
+roads = read(TRAN, 'Trans_RoadSegment', ['mtfcc_code', 'name'])
+roads_out = {
+    'highway': lines([r['geom'] for r in roads if r['mtfcc_code'] in ('S1100', 'S1200')], 0.0003),
+    'road': lines([r['geom'] for r in roads if r['mtfcc_code'] == 'S1400'], 0.0003),
+    'forest': lines([r['geom'] for r in roads if r['mtfcc_code'] == 'S1500'], 0.0006),
+}
+
+# The road network, to trace the real route of every drive in the game.
+G = nx.Graph()
+for r in roads:
+    for ln in parts(r['geom']):
+        c = [(round(x, 5), round(y, 5)) for x, y in ln.coords]
+        for a, b in zip(c, c[1:]):
+            G.add_edge(a, b, w=km(a, b))
+G = G.subgraph(max(nx.connected_components(G), key=len)).copy()
+nodes = list(G.nodes)
+
+
+def snap(p):
+    return min(nodes, key=lambda n: km(n, p))
+
+
+places = json.loads(subprocess.check_output(['node', str(ROOT / 'tools' / 'dump_places.js')]))
+routes = {}
+for rid, room in places['rooms'].items():
+    for ex in room['exits']:
+        if not ex['road']:
+            continue
+        key = '|'.join(sorted([rid, ex['to']]))
+        if key in routes:
+            continue
+        a, b = room['at'], places['rooms'][ex['to']]['at']
+        path = nx.shortest_path(G, snap(tuple(a)), snap(tuple(b)), weight='w')
+        length = sum(G[u][v]['w'] for u, v in zip(path, path[1:]))
+        line = shapely.simplify(shapely.LineString([tuple(a)] + path + [tuple(b)]), 0.0002)
+        routes[key] = {'km': round(length, 1), 'line': flat(line.coords)}
+        print(f'  route {key:34s} {length:5.1f} km', file=sys.stderr)
+
+geo = {
+    'source': 'USGS National Map: NHD HU8 19010103, National Transportation Dataset (Alaska), GNIS.',
+    'view': {'lon0': LON0, 'lon1': LON1, 'lat0': LAT0, 'lat1': LAT1, 'kmX': round(KM_X, 4), 'kmY': KM_Y, 'pxPerKm': PX_PER_KM},
+    'width': WIDTH, 'height': HEIGHT,
+    'sea': sea_out, 'lakes': lakes_out, 'rivers': rivers_out, 'streams': streams_out,
+    'roads': roads_out, 'routes': routes, 'labels': labels,
+}
+body = json.dumps(geo, separators=(',', ':'))
+js = ("/*\n * No Safe Harbor: the real island, for the map. GENERATED by tools/build_geodata.py; don't edit by hand.\n"
+      " * " + geo['source'] + "\n */\n"
+      "(function (root) {\n  'use strict';\n  const geo = " + body + ";\n"
+      "  root.NSH = root.NSH || {};\n  root.NSH.geo = geo;\n"
+      "  if (typeof module === 'object' && module.exports) module.exports = { geo };\n"
+      "})(typeof window !== 'undefined' ? window : globalThis);\n")
+(ROOT / 'js' / 'geodata.js').write_text(js)
+count = lambda rings: sum(len(r) // 2 for poly in rings for r in poly)
+print(f'wrote js/geodata.js: {len(js) / 1024:.0f} KB, {WIDTH}x{HEIGHT}px, sea {count(sea_out)} pts, '
+      f'lakes {count(lakes_out)} pts, {len(routes)} routes', file=sys.stderr)

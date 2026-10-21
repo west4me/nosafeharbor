@@ -54,16 +54,16 @@ const WALKTHROUGH = [
   'w', 'take photo', 'read photo', 'dial 14 3 28',
   'take all', 'read notice', 'read napkin',
   'open drawer', 'take map', 'read map',
-  // Back to the highway, up Thorne Bay Road
-  'e', 'n', 'n', 'n', 'e', 'n', 'n',
-  'turn on flashlight', 'e', 'e', 'wear waders', 'e',
+  // Back up through Craig to Klawock, Big Salt Road to Control Lake, then east to the Thorne trailhead
+  'e', 'n', 'n', 'n', 'ne', 'e',
+  'turn on flashlight', 'ne', 'ne', 'wear waders', 'ne',
   // The Thorne cabin is empty, but Rick left a note
   'read note',
-  // North to Coffman Cove: Luck Lake, Dog Creek, town, and Hazel's store
-  'w', 'w', 'w', 'n', 'n', 'n',
+  // Back to Control Lake, then the long road north past Sweetwater to Coffman Cove and Hazel's store
+  'sw', 'sw', 'sw', 'w', 'n', 'ne',
   'n', 'talk to hazel', 's',
-  // Sweetwater: west out of town to the turnoff, down to the landing, row across to the cabin
-  'w', 's', 'w', 'w',
+  // Sweetwater: back southwest to the pullout, down the trail to the landing, row north to the cabin
+  'sw', 'w', 'n', 'n',
   'talk to dale',
   // Over to the troopers in Klawock
   'drive to klawock', 'w',
@@ -119,27 +119,27 @@ test('every item starts in a valid location', () => {
 
 test('the old-growth trail is pitch dark without a light', () => {
   const g = newGame();
-  const out = runAll(g, [...KEYS, 'w', 'n', 'n', 'e']);
+  const out = runAll(g, [...KEYS, 'w', 'w', 'ne', 'e', 'ne']);
   assert.match(out, /pitch dark/);
-  assert.match(run(g, 'e'), /need a light/);
+  assert.match(run(g, 'ne'), /need a light/);
   assert.equal(g.state.loc, 'river_trail');
-  // Retreating west is always allowed.
-  run(g, 'w');
+  // Retreating back the way you came is always allowed.
+  run(g, 'sw');
   assert.equal(g.state.loc, 'trailhead');
 });
 
 test('turning on the flashlight in the dark reveals the room', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'w', 'n', 'n', 'e']);
+  runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'w', 'w', 'ne', 'e', 'ne']);
   const out = run(g, 'turn on flashlight');
   assert.match(out, /Old-Growth Trail/);
 });
 
 test('the Thorne cannot be forded without wearing waders', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'n', 'n', 'e', 'e']);
+  runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'w', 'ne', 'e', 'ne', 'ne']);
   assert.equal(g.state.loc, 'ford');
-  assert.match(run(g, 'e'), /You need waders/);
+  assert.match(run(g, 'ne'), /You need waders/);
   assert.equal(g.state.loc, 'ford');
 });
 
@@ -164,7 +164,7 @@ test('wrong safe combination keeps it shut', () => {
 test('Dale stonewalls without enough evidence', () => {
   const g = newGame();
   runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'w', 's', 'e', 'buy beer', 'give beer to cal',
-    'w', 'n', 'e', 'drive to hwy', 'n', 'n', 'n', 'n', 'n', 'n', 'talk to hazel', 's', 'w', 's', 'w', 'w']);
+    'w', 'n', 'ne', 'n', 'ne', 'n', 'talk to hazel', 's', 'sw', 'w', 'n', 'n']);
   assert.equal(g.state.loc, 'sweetwater_cabin');
   assert.match(run(g, 'talk to dale'), /Name's Bill/);
   assert.equal(g.flag('dale_confessed'), false);
@@ -241,31 +241,73 @@ test('hint is always available and never empty', () => {
 
 // ------------------------------------------------------------------ map
 
-test('every room has a unique map position', () => {
+const { geo } = require('../js/geodata.js');
+const { project } = require('../js/map.js');
+
+// Even-odd point-in-polygon over the map's sea rings (in map pixels).
+function inSea([x, y]) {
+  let inside = false;
+  for (const poly of geo.sea) {
+    for (const r of poly) {
+      for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
+        const [xi, yi, xj, yj] = [r[i], r[i + 1], r[j], r[j + 1]];
+        if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+      }
+    }
+  }
+  return inside;
+}
+
+test('every room is pinned at real coordinates on the map', () => {
   const g = newGame();
-  const seen = {};
   for (const [id, r] of Object.entries(g.rooms)) {
-    if (r.mapAs) continue; // e.g. the truck cab shows up wherever the truck is
-    assert.ok(r.map, `${id} has no map position`);
-    const key = `${r.map.x},${r.map.y}`;
-    assert.ok(!seen[key], `${id} and ${seen[key]} share map square ${key}`);
-    seen[key] = id;
+    if (r.mapAs) continue; // the truck cab shows up wherever the truck is parked
+    assert.ok(r.map && r.map.at, `${id} has no coordinates`);
+    const [x, y] = project(r.map.at);
+    assert.ok(x > 0 && x < geo.width && y > 0 && y < geo.height, `${id} is off the map`);
+    assert.ok(g.world.mapSites[r.map.site], `${id} is in unknown site ${r.map.site}`);
   }
 });
 
-test('map positions agree with exit directions', () => {
+test('every place is on land, not out in the ocean', () => {
   const g = newGame();
-  const sign = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] };
   for (const [id, r] of Object.entries(g.rooms)) {
-    if (!r.map) continue;
+    if (!r.map || !r.map.at) continue;
+    assert.equal(inSea(project(r.map.at)), false, `${id} is in the sea`);
+  }
+});
+
+test('exit directions agree with real geography', () => {
+  const g = newGame();
+  const BEARING = { north: 0, northeast: 45, east: 90, southeast: 135, south: 180, southwest: 225, west: 270, northwest: 315 };
+  for (const [id, r] of Object.entries(g.rooms)) {
+    if (!r.map || !r.map.at) continue;
     for (const [dir, exit] of Object.entries(r.exits)) {
-      if (!sign[dir]) continue;
-      const to = g.rooms[typeof exit === 'string' ? exit : exit.to];
-      const dx = Math.sign(to.map.x - r.map.x);
-      const dy = Math.sign(to.map.y - r.map.y);
-      assert.deepEqual([dx, dy], sign[dir], `${id} --${dir}--> ${to.id} points the wrong way on the map`);
+      if (!(dir in BEARING)) continue;
+      const to = g.rooms[g.exitTo(exit)];
+      const [ax, ay] = project(r.map.at);
+      const [bx, by] = project(to.map.at);
+      if (ax === bx && ay === by) continue; // rooms inside the same town
+      const real = (Math.atan2(bx - ax, ay - by) * 180 / Math.PI + 360) % 360;
+      const off = Math.abs(((real - BEARING[dir]) + 540) % 360 - 180);
+      assert.ok(off <= 67.5, `${id} --${dir}--> ${to.id} really lies at bearing ${Math.round(real)}°`);
     }
   }
+});
+
+test('every road in the game follows a real route on the road network', () => {
+  const g = newGame();
+  for (const [id, r] of Object.entries(g.rooms)) {
+    for (const exit of Object.values(r.exits)) {
+      if (typeof exit !== 'object' || !exit.drive) continue;
+      const key = [id, exit.to].sort().join('|');
+      assert.ok(geo.routes[key], `no real route for ${key}`);
+      assert.ok(geo.routes[key].line.length >= 4, `route ${key} is empty`);
+    }
+  }
+  // Sanity-check a couple of real distances (km) against the driving text.
+  assert.ok(Math.abs(geo.routes['klawock|thorne_road'].km - 26.6) < 2, 'Big Salt Road should be about 16 miles');
+  assert.ok(Math.abs(geo.routes['sweetwater_turnoff|thorne_road'].km - 45.5) < 3, 'Control Lake to Sweetwater should be about 28 miles');
 });
 
 test('map starts with only the ferry dock, marked as you are here', () => {
@@ -273,35 +315,42 @@ test('map starts with only the ferry dock, marked as you are here', () => {
   const m = mapModel(g);
   assert.deepEqual(m.rooms.map((r) => r.id), ['ferry']);
   assert.ok(m.rooms[0].here);
-  assert.deepEqual(m.stubs, [{ from: 'ferry', dir: 'west' }]);
+  assert.deepEqual(m.stubs.map((s) => `${s.from}>${s.dir}>${s.to}`), ['ferry>west>hwy']);
+  assert.deepEqual(m.sites.map((s) => s.id), ['hollis']);
   const svg = renderMap(g);
   assert.match(svg, /^<svg/);
   assert.match(svg, /id="map-you-are-here"/);
-  assert.match(svg, /Hollis/);
-  assert.doesNotMatch(svg, /Klawock/);
+  assert.match(svg, /Hollis Ferry/);
+  assert.doesNotMatch(svg, /Harris River Bridge|Coffman Cove<\/text>\n<text class="map-site/);
   assert.match(svg, /explored 1 of 29/);
 });
 
-test('map pencils in visited places and the paths between them', () => {
+test('map pencils in visited places and the real roads between them', () => {
   const g = newGame();
   runAll(g, [...KEYS, 'w', 'w', 's']);
   const m = mapModel(g);
   assert.deepEqual(m.rooms.map((r) => r.id).sort(), ['craig', 'ferry', 'hwy', 'klawock']);
   assert.equal(m.rooms.find((r) => r.here).id, 'craig');
-  const edges = m.edges.map((e) => e.slice().sort().join('-')).sort();
-  assert.deepEqual(edges, ['craig-klawock', 'ferry-hwy', 'hwy-klawock']);
-  // Unexplored exits from visited rooms show up as stubs.
-  assert.ok(m.stubs.some((s) => s.from === 'hwy' && s.dir === 'north'));
-  assert.ok(m.stubs.some((s) => s.from === 'craig' && s.dir === 'west'));
+  assert.deepEqual(m.edges.map((e) => e.key).sort(), ['craig|klawock', 'ferry|hwy', 'hwy|klawock']);
+  assert.ok(m.edges.every((e) => e.road));
+  // Unexplored roads out of places you've been show up as stubs; rooms inside a town don't.
+  assert.ok(m.stubs.some((s) => s.from === 'klawock' && s.dir === 'northeast'));
+  assert.ok(m.stubs.some((s) => s.from === 'craig' && s.dir === 'south'));
+  assert.ok(!m.stubs.some((s) => s.to === 'harbor' || s.to === 'totem_park'));
+  // A town lists the spots inside it you've seen, with a "?" for the rest.
+  const svg = renderMap(g);
+  assert.match(svg, /Front Street/);
+  assert.doesNotMatch(svg, /Riptide Tavern/);
 });
 
 test('a trail only ever seen in the dark is labeled Dark!', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'n', 'n', 'e']);
+  runAll(g, [...KEYS, 'w', 'w', 'ne', 'e', 'ne']);
   const trail = mapModel(g).rooms.find((r) => r.id === 'river_trail');
-  assert.deepEqual(trail.label, ['Dark!']);
-  runAll(g, ['w', 's', 's', 'e', 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'n', 'n', 'e']);
-  assert.deepEqual(mapModel(g).rooms.find((r) => r.id === 'river_trail').label, ['Old', 'Growth']);
+  assert.equal(trail.label, 'Dark!');
+  // Back out to the truck and all the way to Hollis for the flashlight, then return.
+  runAll(g, ['sw', 'w', 'sw', 'e', 'e', 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'w', 'ne', 'e', 'ne']);
+  assert.equal(mapModel(g).rooms.find((r) => r.id === 'river_trail').label, 'Old-Growth Trail');
 });
 
 test('MAP command signals the UI without using a turn', () => {
@@ -315,8 +364,8 @@ test('MAP command signals the UI without using a turn', () => {
 
 test('full walkthrough plus a few detours fills in the whole map', () => {
   const g = newGame();
-  // The fastest route skips the totem park and the Coffman Cove harbor, so detour before accusing.
-  runAll(g, [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'e', 'drive to klawock', 'n', 's', 'w', WALKTHROUGH[WALKTHROUGH.length - 1]]);
+  // The fastest route skips the totem park, the Coffman Cove harbor, Dog Creek and Luck Lake, so detour before accusing.
+  runAll(g, [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'e', 'w', 's', 's', 'drive to klawock', 'n', 's', 'w', WALKTHROUGH[WALKTHROUGH.length - 1]]);
   assert.equal(g.state.over, true);
   assert.match(renderMap(g), /explored 29 of 29/);
   assert.equal(mapModel(g).stubs.length, 0);
@@ -409,13 +458,13 @@ test('the boathouse and cabin hold the survival-suit detail', () => {
 
 // ------------------------------------------------------------------ Coffman Cove country
 
-// Keys, flashlight and waders, then up to the Thorne trailhead.
+// Keys, flashlight and waders (from Cal in Craig), then Big Salt Road to Control Lake and east to the Thorne trailhead.
 const TO_TRAILHEAD = [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight',
-  'w', 'w', 's', 'e', 'buy beer', 'give beer to cal', 'w', 'drive to hollis', 'w', 'n', 'n'];
+  'w', 'w', 's', 'e', 'buy beer', 'give beer to cal', 'w', 'n', 'ne', 'e'];
 
 test('the Thorne cabin is empty, with a note pointing to Sweetwater', () => {
   const g = newGame();
-  runAll(g, [...TO_TRAILHEAD, 'e', 'e', 'wear waders', 'e']);
+  runAll(g, [...TO_TRAILHEAD, 'ne', 'ne', 'wear waders', 'ne']);
   assert.equal(g.state.loc, 'cabin');
   const look = run(g, 'look');
   assert.match(look, /left in a hurry/);
@@ -425,32 +474,42 @@ test('the Thorne cabin is empty, with a note pointing to Sweetwater', () => {
   assert.ok(g.has('rick_note'));
 });
 
-test('the road runs north to Coffman Cove, and Sweetwater is west of town', () => {
+test('the real road north: Control Lake to Sweetwater to Coffman Cove, then Dog Creek and Luck Lake', () => {
   const g = newGame();
   runAll(g, TO_TRAILHEAD);
-  assert.match(run(g, 'n'), /Luck Lake/);
-  assert.match(run(g, 'n'), /Dog Creek/);
-  assert.match(run(g, 'n'), /Dog Creek runs out through the middle of town/);
-  assert.match(run(g, 'w'), /SWEETWATER LAKE/);
-  assert.equal(g.itemState('truck').loc, 'sweetwater_turnoff');
+  assert.match(run(g, 'n'), /can't go that way/); // the road north starts back at the junction
+  assert.match(run(g, 'w'), /The North Prince of Wales Road heads north/);
+  assert.match(run(g, 'n'), /twenty-eight miles/);
+  assert.match(run(g, 'ne'), /Dog Creek runs out through the middle of town/);
+  assert.match(run(g, 's'), /Dog Creek/);
+  assert.match(run(g, 's'), /Luck Lake/);
+  assert.equal(g.itemState('truck').loc, 'luck_lake');
+});
+
+test('real roads that are not part of the case get a real answer', () => {
+  const g = newGame();
+  g.state.loc = 'hwy';
+  assert.match(run(g, 's'), /Hydaburg/);
+  g.state.loc = 'thorne_road';
+  assert.match(run(g, 'nw'), /Naukati and Whale Pass/);
 });
 
 test('no rowing to Sweetwater without oars, and Hazel has a spare pair', () => {
   const g = newGame();
-  runAll(g, [...TO_TRAILHEAD, 'n', 'n', 'n', 'w', 's']);
+  runAll(g, [...TO_TRAILHEAD, 'w', 'n', 'w']);
   assert.equal(g.state.loc, 'sweetwater_landing');
   assert.match(run(g, 'row'), /taken the oars/);
   assert.equal(g.state.loc, 'sweetwater_landing');
-  runAll(g, ['n', 'e', 'n']);
+  runAll(g, ['e', 'ne', 'n']);
   assert.match(run(g, 'talk to hazel'), /two of everything/);
   assert.ok(g.inInv('oars'));
   assert.ok(g.has('hazel_tip'));
   // You've seen the turnoff, so you can drive to the landing by name even before visiting it.
   runAll(g, ['s', 'drive to sweetwater landing']);
   assert.equal(g.state.loc, 'sweetwater_landing');
-  assert.match(run(g, 'row west'), /push off/);
+  assert.match(run(g, 'row north'), /push off/);
   assert.equal(g.state.loc, 'sweetwater_lake');
-  assert.match(run(g, 'w'), /Dale Haugen/);
+  assert.match(run(g, 'n'), /Dale Haugen/);
   assert.ok(g.has('found_dale'));
 });
 
@@ -535,11 +594,11 @@ test('oars: no dropping them mid-lake, a spare pair at the cabin, and Hazel gets
   assert.ok(g.inInv('oars'));
   g.state.loc = 'sweetwater_lake';
   assert.match(run(g, 'drop oars'), /not letting go/);
-  run(g, 'w');
+  run(g, 'n');
   assert.equal(g.state.loc, 'sweetwater_cabin');
   run(g, 'drop oars');
   assert.match(run(g, 'look'), /oars leans by the door/);
-  assert.match(run(g, 'e'), /Forest Service pair/);
+  assert.match(run(g, 's'), /Forest Service pair/);
   g.state.loc = 'sweetwater_cabin';
   assert.doesNotMatch(run(g, 'look'), /oars leans by the door/);
   run(g, 'take oars');
@@ -551,7 +610,7 @@ test('oars: no dropping them mid-lake, a spare pair at the cabin, and Hazel gets
 test('the ending only recaps evidence you actually found', () => {
   const g = newGame();
   // Skip the Thorne trail entirely: Hazel, Sweetwater, then Reyes.
-  runAll(g, [...KEYS, 'w', 'n', 'n', 'n', 'n', 'n', 'n', 'talk to hazel', 's', 'w', 's', 'w', 'w', 'drive to klawock', 'w']);
+  runAll(g, [...KEYS, 'w', 'w', 'ne', 'n', 'ne', 'n', 'talk to hazel', 's', 'sw', 'w', 'n', 'n', 'drive to klawock', 'w']);
   const out = run(g, 'accuse dale and rick');
   assert.match(out, /THE CASE IS CLOSED/);
   assert.match(out, /Hazel's borrowed oars/);

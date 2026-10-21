@@ -465,6 +465,11 @@
         return;
       }
       const exit = this.exitsOf(room)[dir];
+      if (!exit && room.exitNotes && room.exitNotes[dir]) {
+        // A real road or place that exists but isn't part of the case.
+        this.print(this.t(room.exitNotes[dir]));
+        return;
+      }
       if (!exit) {
         this.print(this.t(room.noExit) || (dir === 'in' || dir === 'out' ? "You're not sure where you're trying to go. Try a compass direction." : "You can't go that way."));
         return;
