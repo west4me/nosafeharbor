@@ -1991,6 +1991,33 @@
     for (const [id, label] of Object.entries(mapSubLabels)) rooms[id].map.label = label;
 
     // Names printed on the map, at real positions.
+    // Towns printed on the map (GNIS coordinates), so you can see where everything is before you go.
+    const mapTowns = [
+      { name: 'Hollis', at: [-132.645, 55.484] },
+      { name: 'Klawock', at: [-133.0958, 55.5522], label: [12, -6, 'start'] },
+      { name: 'Craig', at: [-133.1483, 55.4764], label: [-12, -6, 'end'] },
+      { name: 'Thorne Bay', at: [-132.5222, 55.6878] },
+      { name: 'Kasaan', at: [-132.4008, 55.5389] },
+      { name: 'Hydaburg', at: [-132.8267, 55.2081] },
+      { name: 'Coffman Cove', at: [-132.8278, 56.0139], label: [12, -10, 'start'] },
+      { name: 'Naukati Bay', at: [-133.1847, 55.8736] },
+      { name: 'Whale Pass', at: [-133.1208, 56.1153] }
+    ];
+    // Road names, placed along the real road (a story route and how far along it, or a spot to snap to).
+    const mapRoads = [
+      { text: 'Hollis–Klawock Hwy', route: 'ferry|hwy', t: 0.55 },
+      { text: 'Hollis–Klawock Hwy', route: 'hwy|klawock', t: 0.5 },
+      { text: 'Craig–Klawock Hwy', route: 'craig|klawock', t: 0.45 },
+      { text: 'Big Salt Rd', route: 'klawock|thorne_road', t: 0.6 },
+      { text: 'Thorne Bay Rd', route: 'thorne_road|trailhead', t: 0.5 },
+      { text: 'N. Prince of Wales Rd', route: 'sweetwater_turnoff|thorne_road', t: 0.25 },
+      { text: 'Coffman Cove Rd', route: 'coffman_cove|sweetwater_turnoff', t: 0.5 },
+      { text: 'Coffman Cove Loop', route: 'dog_creek|luck_lake', t: 0.5 },
+      { text: 'Hydaburg Hwy', at: [-132.859, 55.326] },
+      { text: 'Kasaan Hwy', at: [-132.501, 55.632] },
+      { text: 'N. Prince of Wales Rd', at: [-133.06, 55.80] }
+    ];
+
     const mapLabels = [
       { text: 'PRINCE OF WALES ISLAND', at: [-132.98, 55.76], size: 34, rotate: -62, cls: 'island' },
       { text: 'CLARENCE STRAIT', at: [-132.60, 55.86], size: 22, rotate: -58, cls: 'water' },
@@ -2103,7 +2130,7 @@
       title: 'No Safe Harbor',
       start: 'ferry',
       maxScore: Object.values(clues).reduce((s, c) => s + c.points, 0),
-      intro, clues, rooms, items, npcs, hint, mapSites, mapLabels, leads, theory, summary,
+      intro, clues, rooms, items, npcs, hint, mapSites, mapLabels, mapTowns, mapRoads, leads, theory, summary,
       // "in" from wherever your truck is parked.
       // IN gets you into your truck, wherever it's parked, unless the place has a building you'd walk into.
       extraExits: (g, room) => {

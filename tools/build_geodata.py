@@ -27,8 +27,8 @@ import shapely
 ROOT = Path(__file__).resolve().parent.parent
 NHD, TRAN = sys.argv[1], sys.argv[2]
 
-# The part of the island the game covers: Craig and Hollis up to Coffman Cove.
-LON0, LON1, LAT0, LAT1 = -133.25, -132.56, 55.425, 56.045
+# The middle of the island: Craig, Hollis, Kasaan and Hydaburg up to Coffman Cove and Whale Pass.
+LON0, LON1, LAT0, LAT1 = -133.25, -132.34, 55.18, 56.14
 MID_LAT = (LAT0 + LAT1) / 2
 KM_X = 111.32 * math.cos(math.radians(MID_LAT))  # km per degree of longitude here
 KM_Y = 110.57                                     # km per degree of latitude
@@ -120,9 +120,14 @@ streams_out = lines([f['geom'] for f in flows if f['gnis_name'] and f['gnis_name
 
 # ------------------------------------------------------------------ roads
 roads = read(TRAN, 'Trans_RoadSegment', ['mtfcc_code', 'name'])
+# The island's main roads: the paved highways, plus the big gravel roads everyone drives between towns.
+MAIN_NAMES = {'Kasaan Highway', 'KASAAN ROAD', 'COFFMAN COVE LOOP', 'Coffman Cove Road', 'COFFMAN TIE',
+              'NORTH PRINCE OF WALES ROAD', 'North Prince of Wales Road', 'NORTH PRINCE OF WALES', 'Thorne Bay Road',
+              'Naukati Road', 'South Whale Pass Road', 'NFD 3030 ROAD', 'Sandy Beach Road'}
+is_main = lambda r: r['mtfcc_code'] in ('S1100', 'S1200') or r['name'] in MAIN_NAMES
 roads_out = {
-    'highway': lines([r['geom'] for r in roads if r['mtfcc_code'] in ('S1100', 'S1200')], 0.0003),
-    'road': lines([r['geom'] for r in roads if r['mtfcc_code'] == 'S1400'], 0.0003),
+    'highway': lines([r['geom'] for r in roads if is_main(r)], 0.0003),
+    'road': lines([r['geom'] for r in roads if r['mtfcc_code'] == 'S1400' and not is_main(r)], 0.0003),
     'forest': lines([r['geom'] for r in roads if r['mtfcc_code'] == 'S1500'], 0.0006),
 }
 

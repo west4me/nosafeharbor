@@ -78,8 +78,40 @@
 
   function applyView() {
     const svg = mapScroll.querySelector('svg');
-    if (svg && mapViewBox) svg.setAttribute('viewBox', mapViewBox.join(' '));
+    if (svg && mapViewBox) {
+      svg.setAttribute('viewBox', mapViewBox.join(' '));
+      // Zoomed out, names and the pin grow so they stay readable, and the small print steps aside.
+      const s = Math.max(mapViewBox[2] / (mapScroll.clientWidth || 1), mapViewBox[3] / (mapScroll.clientHeight || 1));
+      svg.style.setProperty('--k', Math.min(4, Math.max(1, s / 1.4)).toFixed(2));
+      svg.classList.toggle('far', s > 2.2);
+    }
+    updateScale();
   }
+
+  // The scale bar follows the zoom: pick a round distance that draws 60 to 150 pixels long.
+  const scaleBar = document.getElementById('map-scale-bar');
+  const scaleText = document.getElementById('map-scale-text');
+  function updateScale() {
+    if (!mapViewBox || !mapScroll.clientWidth) return;
+    const s = Math.max(mapViewBox[2] / mapScroll.clientWidth, mapViewBox[3] / mapScroll.clientHeight);
+    const pxPerKm = window.NSH.geo.view.pxPerKm / s;
+    const km = [0.5, 1, 2, 5, 10, 20, 50].find((k) => k * pxPerKm >= 60) || 50;
+    scaleBar.style.width = Math.round(km * pxPerKm) + 'px';
+    scaleText.textContent = `${km} km (${(km * 0.621).toFixed(km < 2 ? 1 : 0)} mi)`;
+  }
+
+  const legendToggle = document.getElementById('map-legend-toggle');
+  const legendBody = document.getElementById('map-legend-body');
+  function setLegend(open) {
+    legendBody.hidden = !open;
+    legendToggle.setAttribute('aria-expanded', String(open));
+    legendToggle.textContent = open ? 'Key ▾' : 'Key ▸';
+    storage.set('nosafeharbor-map-key', open ? 'open' : 'closed');
+  }
+  // Open by default on a big screen; folded up on a phone, where it would cover too much map.
+  const keyPref = storage.get('nosafeharbor-map-key');
+  setLegend(keyPref ? keyPref === 'open' : window.innerWidth >= 700);
+  legendToggle.addEventListener('click', () => { setLegend(legendBody.hidden); input.focus(); });
 
   function drawMap() {
     mapScroll.innerHTML = window.NSH.renderMap(game);
@@ -88,6 +120,8 @@
     const strong = document.createElement('strong');
     strong.textContent = game.status().location;
     mapWhere.append(strong);
+    const svg = mapScroll.querySelector('svg');
+    if (svg && svg.dataset.explored) mapWhere.append(` · ${svg.dataset.explored}`);
     if (followMe || !mapViewBox) mapViewBox = window.NSH.mapView(game, panelAspect());
     applyView();
   }

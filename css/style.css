@@ -262,7 +262,41 @@ html, body {
 .map-svg .map-site-name { font-weight: 700; fill: #1f1f1f; }
 .map-svg .map-site-room { fill: #2a2a2a; }
 .map-svg .map-here-text { fill: #a5281b; font-weight: 700; }
-.map-svg .map-you-text { fill: #a5281b; font-weight: 700; letter-spacing: 1px; stroke-width: 5px; }
+.map-svg .map-you-text { font-weight: 700; letter-spacing: 1px; }
+.map-svg .map-label-town { font-family: Georgia, "Times New Roman", serif; font-weight: 700; fill: #1f1f1f; font-size: calc(18px * var(--k, 1)); }
+.map-svg .map-site-name { font-size: calc(18px * var(--k, 1)); }
+.map-svg .map-you-text { fill: #fffdf6; stroke: none; }
+.map-svg .map-pin { transform-box: fill-box; transform-origin: 50% 100%; transform: scale(var(--k, 1)); }
+/* Zoomed way out: keep towns, roads you've driven and your pin; hide the small print. */
+.map-svg.far .map-site-room, .map-svg.far .map-site-card, .map-svg.far .map-label-road,
+.map-svg.far .map-label-lake, .map-svg.far .map-label-river, .map-svg.far .map-you-tag { display: none; }
+.map-svg .map-label-road { font-family: Georgia, "Times New Roman", serif; font-style: italic; fill: #6b4a17; stroke-width: 3.5px; }
+@media (prefers-reduced-motion: no-preference) {
+  .map-svg .map-you-ring { transform-box: fill-box; transform-origin: center; animation: map-pulse 1.8s ease-out infinite; }
+  @keyframes map-pulse { from { transform: scale(0.6); opacity: 0.9; } to { transform: scale(2.4); opacity: 0; } }
+}
+
+/* The key sits over the map's corner, so it's on screen however you pan and zoom. */
+#map-legend {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 1;
+  background: rgba(255, 253, 246, 0.94);
+  border: 1px solid #2f2f2f;
+  border-radius: 4px;
+  padding: 4px 8px 6px;
+  font-family: "Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive;
+  font-size: 0.78rem;
+  color: #222;
+  max-width: calc(100% - 16px);
+}
+#map-legend-toggle { font: inherit; font-weight: 700; background: none; border: 0; padding: 0; color: #222; cursor: pointer; }
+#map-legend-body > div { display: flex; align-items: center; gap: 6px; line-height: 1.5; }
+#map-legend-body svg { flex: none; }
+#map-scale { margin-top: 4px; }
+#map-scale-bar { display: inline-block; height: 6px; border: 2px solid #2f2f2f; border-top: 0; }
+.map-legend-note { font-size: 0.7rem; color: #555; }
 .map-svg .map-legend-text { fill: #222; }
 
 #quick #map-toggle { color: var(--bright); border-color: var(--dim); }

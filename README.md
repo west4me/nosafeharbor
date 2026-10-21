@@ -63,6 +63,15 @@ leads right in the transcript.
 
 ## Map
 
+Click **Map** (or type MAP) for a true-scale field map built from USGS data. It's printed like a
+road map: every town, the island's main roads and every road the story uses are always on it and
+named, so you can see where Craig is and which way to turn before you ever drive there. Your own
+pencil goes on top: pins where you've been, the roads you've driven, and a "?" down every road you
+haven't tried. A red pin marks where you are. The key and a scale bar that follows your zoom stay in
+the corner (tap **Key** to fold it away). Drag to move, scroll or +/− to zoom, **Fit** to frame
+your travels, **Whole island** for the full sheet.
+
+
 The game follows the island's real roads:
 
 ```

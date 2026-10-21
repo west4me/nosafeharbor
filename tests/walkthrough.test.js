@@ -741,6 +741,30 @@ test('START TRUCK next to the truck gets you in and starts it; DRIVE to a footpa
   assert.equal(g.state.loc, 'lodge');
 });
 
+test('the map always shows the towns and main roads, named, with one clear pin', () => {
+  const g = newGame();
+  const svg = renderMap(g);
+  // Every town is printed from the start, including Craig, before you've been there.
+  for (const t of ['Craig', 'Klawock', 'Thorne Bay', 'Coffman Cove', 'Kasaan', 'Hydaburg', 'Naukati Bay', 'Whale Pass']) {
+    assert.match(svg, new RegExp(`map-label-town[^>]*>${t}<`), t);
+  }
+  for (const r of ['Hollis–Klawock Hwy', 'Craig–Klawock Hwy', 'Big Salt Rd', 'Thorne Bay Rd', 'N. Prince of Wales Rd', 'Coffman Cove Rd', 'Hydaburg Hwy', 'Kasaan Hwy']) {
+    assert.match(svg, new RegExp(`map-label-road[^>]*>${r}<`), r);
+  }
+  // Every road in the story is on the sheet, and lies inside it.
+  for (const [key, route] of Object.entries(geo.routes)) {
+    for (let i = 0; i < route.line.length; i += 2) {
+      assert.ok(route.line[i] >= 0 && route.line[i] <= geo.width && route.line[i + 1] >= 0 && route.line[i + 1] <= geo.height, key);
+    }
+  }
+  // One pin, no old circle-and-X, and the key lives in the page instead of the sheet.
+  assert.equal((svg.match(/class="map-pin"/g) || []).length, 1);
+  assert.doesNotMatch(svg, /map-legend/);
+  // Once you've pinned a town yourself, the printed name steps aside for yours.
+  runAll(g, [...KEYS, 'w', 'w']);
+  assert.doesNotMatch(renderMap(g), /map-label-town[^>]*>Klawock</);
+});
+
 test('no rowing to Sweetwater without oars, and Hazel has a spare pair', () => {
   const g = newGame();
   runAll(g, [...TO_TRAILHEAD, 'w', 'n', 'w']);

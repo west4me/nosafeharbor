@@ -3,11 +3,13 @@
  *
  * renderMap(game) returns an SVG string: a true-scale map of Prince of Wales
  * Island on graph paper (one square = one kilometer), built from USGS data in
- * js/geodata.js. The coastline, lakes, rivers and roads are printed on the
- * sheet. Your own pencil work goes on top: a pin for every place you've been
- * (towns list the spots inside them), the real road routes you've driven, the
- * trails you've walked and rowed, a "?" for every way you haven't tried, and a
- * red circle where you are now.
+ * js/geodata.js. The coastline, lakes, rivers, towns and roads are printed on
+ * the sheet, with the main roads and every road in the story drawn like a road
+ * map and named. Your own pencil work goes on top: a pin for every place you've
+ * been (towns list the spots inside them), the real road routes you've driven,
+ * the trails you've walked and rowed, a "?" for every way you haven't tried, and
+ * a red pin where you are now. The key and scale bar live in the page, so they
+ * stay on screen however you pan and zoom.
  *
  * Pure string-building with no DOM, so it also runs under Node for tests.
  */
@@ -146,16 +148,85 @@
     out.push(`<g fill="none" stroke-linecap="round" stroke-linejoin="round">`);
     for (const s of geo.streams) out.push(`<path d="${pathOf(s)}" stroke="#9ec0e4" stroke-width="0.9"/>`);
     for (const rv of geo.rivers) for (const l of rv.lines) out.push(`<path d="${pathOf(l)}" stroke="#4f86c2" stroke-width="2.2"/>`);
-    for (const l of geo.roads.forest) out.push(`<path d="${pathOf(l)}" stroke="#c9c2b4" stroke-width="0.8" stroke-dasharray="3 3"/>`);
-    for (const l of geo.roads.road) out.push(`<path d="${pathOf(l)}" stroke="#b9b1a2" stroke-width="1.4"/>`);
-    for (const l of geo.roads.highway) out.push(`<path d="${pathOf(l)}" stroke="#a89f8e" stroke-width="2.6"/>`);
+    out.push(`<path d="${geo.roads.forest.map((l) => pathOf(l)).join('')}" stroke="#cfc8ba" stroke-width="0.8" stroke-dasharray="3 3"/>`);
+    out.push(`<path d="${geo.roads.road.map((l) => pathOf(l)).join('')}" stroke="#b9b1a2" stroke-width="1.3"/>`);
+    // Main roads, and every road the story drives, printed like a road map: a dark casing with a yellow fill.
+    const main = geo.roads.highway.concat(Object.values(geo.routes).map((r) => r.line));
+    const mainPath = main.map((l) => pathOf(l)).join('');
+    out.push(`<path d="${mainPath}" stroke="#7a5a2b" stroke-width="5.6"/>`);
+    out.push(`<path d="${mainPath}" stroke="#f3cf6b" stroke-width="3.2"/>`);
     out.push('</g>');
+    out.push(roadNames(game, main));
     for (const l of game.world.mapLabels || []) {
       const [x, y] = project(l.at);
       out.push(`<text class="map-label map-label-${esc(l.cls)}" x="${x}" y="${y}" font-size="${l.size}" text-anchor="middle" transform="rotate(${l.rotate || 0} ${x} ${y})">${esc(l.text)}</text>`);
     }
     baseCache = { labels: game.world.mapLabels, svg: out.join('\n') };
     return baseCache.svg;
+  }
+
+  // Road names along the printed roads, turned to run with the road.
+  function roadNames(game, main) {
+    const out = [];
+    for (const r of game.world.mapRoads || []) {
+      let pts = null;
+      if (r.route && geo.routes[r.route]) pts = alongLine(geo.routes[r.route].line, r.t === undefined ? 0.5 : r.t);
+      else if (r.at) pts = nearestOnLines(main, project(r.at));
+      if (!pts) continue;
+      const [[x, y], [x2, y2]] = pts;
+      let angle = Math.atan2(y2 - y, x2 - x) * 180 / Math.PI;
+      if (angle > 90) angle -= 180;
+      if (angle < -90) angle += 180;
+      const rx = Math.round(x);
+      const ry = Math.round(y);
+      out.push(`<text class="map-label map-label-road" x="${rx}" y="${ry - 7}" font-size="13" text-anchor="middle" transform="rotate(${Math.round(angle)} ${rx} ${ry})">${esc(r.text)}</text>`);
+    }
+    return out.join('\n');
+  }
+
+  // The point a fraction t of the way along a polyline, and the next vertex after it (for direction).
+  function alongLine(flat, t) {
+    const pts = [];
+    for (let i = 0; i < flat.length; i += 2) pts.push([flat[i], flat[i + 1]]);
+    let total = 0;
+    for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    let goal = total * t;
+    for (let i = 1; i < pts.length; i++) {
+      const seg = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+      if (seg >= goal && seg > 0) {
+        const f = goal / seg;
+        return [[pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f], pts[i]];
+      }
+      goal -= seg;
+    }
+    return null;
+  }
+
+  // The nearest stretch of road to a point (within a couple of km).
+  function nearestOnLines(lines, p) {
+    let best = null;
+    for (const l of lines) {
+      for (let i = 0; i + 3 < l.length; i += 2) {
+        const d = Math.hypot(l[i] - p[0], l[i + 1] - p[1]);
+        if (!best || d < best.d) best = { d, pts: [[l[i], l[i + 1]], [l[i + 2], l[i + 3]]] };
+      }
+    }
+    return best && best.d < 60 ? best.pts : null;
+  }
+
+  // Printed town names, except where your own pin already names the place.
+  function townNames(game, model) {
+    const sitesInfo = game.world.mapSites || {};
+    const pinned = model.sites.map((s) => (sitesInfo[s.id] || {}).name || '');
+    const out = [];
+    for (const t of game.world.mapTowns || []) {
+      if (pinned.some((n) => n.startsWith(t.name))) continue;
+      const [x, y] = project(t.at);
+      const [dx, dy, anchor] = t.label || [10, 6, 'start'];
+      out.push(`<rect x="${x - 4.5}" y="${y - 4.5}" width="9" height="9" fill="#2f2f2f" stroke="#fbf8ef" stroke-width="1.5"/>`);
+      out.push(`<text class="map-label map-label-town" x="${x + dx}" y="${y + dy}" font-size="18" text-anchor="${anchor}">${esc(t.name)}</text>`);
+    }
+    return out.join('\n');
   }
 
   // The pencil line for each unexplored exit: a stretch of the real road, or a short dash toward the place.
@@ -242,7 +313,8 @@
     const hereName = game.status().location;
 
     const out = [];
-    out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" class="map-svg" role="img" aria-label="${esc('Map of Prince of Wales Island. You are at ' + hereName + '.')}">`);
+    const explored = `explored ${model.rooms.length} of ${model.total}`;
+    out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" class="map-svg" role="img" data-explored="${explored}" aria-label="${esc('Map of Prince of Wales Island. You are at ' + hereName + '. You have ' + explored + ' places.')}">`);
     out.push(`<defs>
   <pattern id="map-grid" width="${G}" height="${G}" patternUnits="userSpaceOnUse">
     <path d="M${G},0 L0,0 0,${G}" fill="none" stroke="#c4d7ec" stroke-width="0.8"/>
@@ -262,6 +334,7 @@
     // The printed sheet, then your pencil on top.
     out.push(printedSheet(game));
     out.push(featureNames(game, model));
+    out.push(townNames(game, model));
 
     // Your pencil: roads you've driven, trails you've walked, water you've rowed.
     out.push(`<g filter="url(#map-pencil)" fill="none" stroke="#2f2f2f" stroke-linecap="round" stroke-linejoin="round">`);
@@ -315,7 +388,7 @@
       // Handwriting fonts run wide (Segoe Print on Windows especially), so size the note card generously.
       const wMax = Math.max(...lines.map((l, i) => l.text.length * (i === 0 ? 11 : 9))) + 16;
       const x0 = anchor === 'end' ? ax + dx - wMax : anchor === 'middle' ? ax + dx - wMax / 2 : ax + dx;
-      out.push(`<rect x="${x0 - 2}" y="${ay + dy - 18}" width="${wMax}" height="${lines.length * lh + 6}" rx="4" fill="#fbf8ef" opacity="0.92"/>`);
+      out.push(`<rect class="map-site-card" x="${x0 - 2}" y="${ay + dy - 18}" width="${wMax}" height="${lines.length * lh + 6}" rx="4" fill="#fbf8ef" opacity="0.92"/>`);
       lines.forEach((l, i) => {
         const tx = anchor === 'end' ? ax + dx - 6 : anchor === 'middle' ? ax + dx : ax + dx + 4;
         const prefix = i === 0 ? '' : (l.here ? '◉ ' : '· ');
@@ -326,48 +399,21 @@
     // You are here.
     if (model.hereId && byId[model.hereId]) {
       const [x, y] = P(model.hereId);
+      // A red pin with its point on the spot and a tag above it, plus a ring that pulses so you can
+      // find it at any zoom. The pin group grows when you zoom out (see ui.js), anchored at its point.
       out.push(`<g id="map-you-are-here">
-  <g filter="url(#map-pencil)" fill="none" stroke="#c0392b" stroke-linecap="round">
-    <circle cx="${x}" cy="${y}" r="17" stroke-width="3.4"/>
-    <path d="M${x + 12},${y - 25} l10,10 m0,-10 l-10,10" stroke-width="3"/>
+  <circle class="map-you-ring" cx="${x}" cy="${y}" r="16" fill="none" stroke="#c0392b" stroke-width="3"/>
+  <g class="map-pin">
+    <g class="map-you-tag">
+      <rect x="${x - 58}" y="${y - 70}" width="116" height="22" rx="4" fill="#c0392b"/>
+      <text class="map-you-text" x="${x}" y="${y - 54}" font-size="14" text-anchor="middle">YOU ARE HERE</text>
+    </g>
+    <path d="M${x},${y} C${x - 5},${y - 9} ${x - 14},${y - 17} ${x - 14},${y - 27} A14,14 0 1 1 ${x + 14},${y - 27} C${x + 14},${y - 17} ${x + 5},${y - 9} ${x},${y} Z" fill="#c0392b" stroke="#fffdf6" stroke-width="2"/>
+    <circle cx="${x}" cy="${y - 27}" r="5.5" fill="#fffdf6"/>
   </g>
-  <text class="map-you-text" x="${x}" y="${y + 40}" font-size="16" text-anchor="middle">YOU ARE HERE</text>
 </g>`);
     }
 
-    // Compass, scale bar, legend and title.
-    // Legend, compass and scale sit in the empty country east of Thorne Lake, clear of every town.
-    const kx = W - 60;
-    const ky = 930;
-    out.push(`<g stroke="#2f2f2f" stroke-width="2" fill="none" filter="url(#map-pencil)">
-  <line x1="${kx}" y1="${ky + 34}" x2="${kx}" y2="${ky - 34}"/><line x1="${kx - 24}" y1="${ky}" x2="${kx + 24}" y2="${ky}"/>
-  <path d="M${kx - 8},${ky - 22} L${kx},${ky - 36} L${kx + 8},${ky - 22}"/>
-</g>
-<text class="map-label" x="${kx}" y="${ky - 42}" font-size="18" text-anchor="middle">N</text>`);
-    const sx = W - 236;
-    const sy = 862;
-    out.push(`<g stroke="#2f2f2f" stroke-width="2" fill="none">
-  <path d="M${sx},${sy - 6} V${sy} H${sx + G * 5} V${sy - 6} M${sx + G * 2.5},${sy} v-4"/>
-</g>
-<text class="map-legend-text" x="${sx}" y="${sy - 12}" font-size="13">0</text>
-<text class="map-legend-text" x="${sx + G * 5}" y="${sy - 12}" font-size="13" text-anchor="middle">5 km (3 mi)</text>`);
-    const lx = W - 236;
-    const ly = 700;
-    out.push(`<g class="map-legend">
-  <rect x="${lx - 6}" y="${ly - 24}" width="236" height="140" rx="4" fill="#fffdf6" stroke="#2f2f2f" stroke-width="1.3"/>
-  <circle cx="${lx + 16}" cy="${ly}" r="9" fill="none" stroke="#c0392b" stroke-width="2.6"/>
-  <text class="map-legend-text" x="${lx + 40}" y="${ly + 5}" font-size="14">you are here</text>
-  <circle cx="${lx + 16}" cy="${ly + 26}" r="5" fill="#2f2f2f"/>
-  <text class="map-legend-text" x="${lx + 40}" y="${ly + 31}" font-size="14">been there</text>
-  <line x1="${lx + 2}" y1="${ly + 52}" x2="${lx + 30}" y2="${ly + 52}" stroke="#2f2f2f" stroke-width="3.2"/>
-  <text class="map-legend-text" x="${lx + 40}" y="${ly + 57}" font-size="14">driven</text>
-  <line x1="${lx + 2}" y1="${ly + 78}" x2="${lx + 30}" y2="${ly + 78}" stroke="#2f2f2f" stroke-width="2.2" stroke-dasharray="5 5"/>
-  <text class="map-q" x="${lx + 40}" y="${ly + 83}" font-size="14">?</text>
-  <text class="map-legend-text" x="${lx + 54}" y="${ly + 83}" font-size="14">not explored yet</text>
-  <text class="map-legend-text" x="${lx + 2}" y="${ly + 106}" font-size="11.5">1 square = 1 km · USGS map data</text>
-</g>`);
-    out.push(`<rect x="10" y="10" width="420" height="30" rx="4" fill="#fbf8ef" opacity="0.88"/>`);
-    out.push(`<text class="map-label map-title" x="18" y="31" font-size="17">Claim NM-1187 · field map · explored ${model.rooms.length} of ${model.total}</text>`);
     out.push('</svg>');
     return out.join('\n');
   }
