@@ -225,8 +225,15 @@
         aliases: ['ferry', 'hollis', 'ferry terminal', 'hollis ferry'],
         dial: (g, nums) => {
           const st = g.itemState('lockbox');
-          if (!st.locked) return 'The lockbox is already open.';
           const code = nums.join('');
+          if (!g.flag('seen_keypad')) {
+            if (!g.flag('read_case_file')) return "Enter it into what? You haven't seen anything around here with a keypad.";
+            // The case file told you where to look.
+            g.flag('seen_keypad', true);
+            g.print("(The case file said the keys are in a lockbox on the terminal wall. There it is: a gray steel box by the door, with a four-digit keypad.)");
+          }
+          if (!st.locked) return 'The lockbox is already open.';
+          if (!g.flag('read_case_file')) return `You punch in ${code}. The keypad gives an unhappy beep and blinks red. You're only guessing; the code must be written down somewhere. Maybe in your paperwork.`;
           if (code === '1187') {
             st.locked = false;
             st.open = true;
@@ -248,7 +255,7 @@
         name: 'In Your Rental Pickup',
         aliases: ['truck', 'pickup', 'cab', 'car', 'rental truck', 'rental'],
         mapAs: (g) => truckLoc(g),
-        desc: (g) => "You're in the driver's seat of your rental pickup: cracked vinyl, a windshield with a star-shaped crack, and a salmon-shaped air freshener that smells like neither pine nor salmon. The glovebox is in front of the passenger seat. Rain drums on the roof. Through the windshield: " + g.rooms[truckLoc(g)].name + ".\n\nYou can DRIVE any direction the road goes, DRIVE TO a place you've been, or get OUT.",
+        desc: (g) => "You're in the driver's seat of your rental pickup: cracked vinyl, a windshield with a star-shaped crack, and a salmon-shaped air freshener that smells like neither pine nor salmon. The glovebox is in front of the passenger seat, and an AM/FM radio with one working knob sits in the dash. Rain drums on the roof. Through the windshield: " + g.rooms[truckLoc(g)].name + ".\n\nYou can DRIVE any direction the road goes, DRIVE TO a place you've been, or get OUT.",
         // From the cab you can drive (or step out and walk) anywhere the parking spot leads.
         exitsFn: (g) => {
           const ex = {};
@@ -375,7 +382,7 @@
         map: { at: [-132.6795, 55.6968], site: 'thorne' },
         name: 'Thorne River Cabin',
         aliases: ['thorne cabin', 'thorne river cabin', 'cabin'],
-        desc: 'A one-room cabin of weathered spruce logs. The Forest Service rents it out in summer, and nobody uses it this late in the year. Somebody did, though, and not long ago. Two propane cylinders stand next to a cold propane heater, a cardboard box is full of empty cans, and the bunk has been stripped to bare planks. Whoever was here left in a hurry, maybe a few days back. The door leads southwest, back across the river.',
+        desc: 'A one-room cabin of weathered spruce logs. The Forest Service rents it out in summer, and nobody uses it this late in the year. Somebody did, though, and not long ago. Two propane cylinders stand next to a cold propane heater, a cardboard box is full of empty cans, and the bunk has been stripped to bare planks. A bright orange survival suit hangs from a nail by the door. Whoever was here left in a hurry, maybe a few days back. The door leads southwest, back across the river.',
         exits: { southwest: 'ford', out: 'ford' }
       },
 
@@ -572,7 +579,7 @@
         map: { at: [-133.1483, 55.4764], site: 'craig' },
         name: 'South Cove Harbor',
         aliases: ['harbor', 'docks', 'floats', 'south cove'],
-        desc: 'Seiners, trollers and skiffs rock gently in their slips along the floats and finger piers. Gulls argue on the pilings. North, at the head of the ramp, is a small office with HARBORMASTER painted on the door. The fuel dock is farther west along the floats. Front Street is back east.',
+        desc: 'Seiners, trollers and skiffs rock gently in their slips along the floats and finger piers. One slip near the ramp sits empty. Gulls argue on the pilings. North, at the head of the ramp, is a small office with HARBORMASTER painted on the door. The fuel dock is farther west along the floats. Front Street is back east.',
         exits: { east: 'craig', north: 'harbormaster', west: 'fuel_dock' }
       },
 
@@ -596,7 +603,7 @@
         map: { at: [-133.1483, 55.4764], site: 'craig' },
         name: 'Riptide Tavern',
         aliases: ['tavern', 'riptide', 'bar', 'riptide tavern'],
-        desc: 'Dim and warm, smelling of fryer oil and wet wool. Glass fishing floats hang from the ceiling, and the bulletin board by the door is buried in flyers for skiff sales and lost dogs. Front Street is out the door to the west.',
+        desc: 'Dim and warm, smelling of fryer oil and wet wool. Glass fishing floats hang from the ceiling, stools line a long cedar bar, a jukebox glows in the corner under a muted TV, and the bulletin board by the door is buried in flyers for skiff sales and lost dogs. Front Street is out the door to the west.',
         exits: { west: 'craig', out: 'craig' },
         buy: (g, what) => {
           if (!/beer|ale|drink|round|bottle|amber|pint/.test(what)) {
@@ -668,6 +675,7 @@
         dial: (g, nums) => {
           const st = g.itemState('safe');
           if (!st.locked) return 'The safe is already unlocked.';
+          if (!g.has('photo')) return `You spin the dial to ${nums.join('-')} and pull the handle. Nothing. You're only guessing; the combination has to be written down somewhere.`;
           if (nums[0] === 14 && nums[1] === 3 && nums[2] === 28) {
             st.locked = false;
             st.open = true;
@@ -681,7 +689,7 @@
         map: { at: [-133.1220, 55.4660], site: 'lodge' },
         name: 'Boathouse',
         aliases: ['boathouse', 'boat house'],
-        desc: 'A drafty boathouse on pilings over the water, smelling of two-stroke oil and seaweed. Life jackets and crab pots hang from the rafters. An 18-foot aluminum skiff sits on a trailer in the middle of the floor, KITTIWAKE stenciled on her bow. A path leads north back up to the lodge.',
+        desc: 'A drafty boathouse on pilings over the water, smelling of two-stroke oil and seaweed. Life jackets and crab pots hang from the rafters, and survival suits hang on a row of pegs by the door. An 18-foot aluminum skiff sits on a trailer in the middle of the floor, KITTIWAKE stenciled on her bow. A path leads north back up to the lodge.',
         exits: { north: 'lodge', up: 'lodge' }
       }
     };
@@ -782,11 +790,11 @@
         name: 'lockbox', short: 'a lockbox', loc: 'ferry', fixed: true,
         names: ['lockbox', 'lock box', 'key box', 'keybox', 'keypad', 'gray box', 'box'],
         container: true, openable: true, open: false, locked: true,
-        desc: (g) => 'A gray steel lockbox screwed to the terminal wall, with ISLAND AUTO RENTAL stenciled on it and a four-digit keypad on the front. ' + (g.itemState('lockbox').open ? 'Its little door is open.' : "It's shut tight."),
-        lockedMsg: "It's locked. There's a four-digit keypad on the front. (Type ENTER and the code, like ENTER 1234.)",
+        desc: (g) => { g.flag('seen_keypad', true); return 'A gray steel lockbox screwed to the terminal wall, with ISLAND AUTO RENTAL stenciled on it and a four-digit keypad on the front. ' + (g.itemState('lockbox').open ? 'Its little door is open.' : "It's shut tight."); },
+        lockedMsg: (g) => { g.flag('seen_keypad', true); return "It's locked. There's a four-digit keypad on the front. (Type ENTER and the code, like ENTER 1234.)"; },
         verbs: {
           unlock: () => 'It has a keypad, not a keyhole. (Type ENTER and the code.)',
-          push: 'You press a few keys at random. The keypad beeps unhappily.'
+          push: (g) => { g.flag('seen_keypad', true); return 'You press a few keys at random. The keypad beeps unhappily.'; }
         }
       },
       glovebox: {
@@ -1153,12 +1161,14 @@
       },
       lanyard: {
         name: 'kill-switch lanyard', loc: 'boathouse', fixed: true,
+        hiddenUntil: (g) => g.has('lanyard'),
         names: ['lanyard', 'kill switch', 'kill-switch', 'killswitch', 'console', 'kill-switch lanyard', 'cord'],
         desc: "A coiled red cord clipped to the console's kill switch. If someone's wearing it and goes overboard, the engine stops. It's clipped to the boat, not to a person.",
         onExamine: (g) => { g.clue('lanyard'); }
       },
       drain_plug: {
         name: 'drain hole', loc: 'boathouse', fixed: true,
+        hiddenUntil: (g) => g.has('lanyard'),
         names: ['plug', 'drain', 'drain plug', 'drain hole', 'chain', 'transom', 'keeper chain'],
         desc: "A clean, undamaged threaded drain hole. The keeper chain hangs empty. Plugs don't unscrew themselves.",
         onExamine: (g) => { g.clue('lanyard'); }
@@ -1324,7 +1334,7 @@
         names: ['cal', 'cal brenner', 'brenner', 'guide', 'fisherman'],
         here: (g) => (g.flag('cal_talked')
           ? 'At the end of the bar, Cal Brenner is working slowly through the beer you bought him, looking marginally less put-upon.'
-          : 'At the end of the bar, a sunburned fishing guide named Cal Brenner is nursing the last inch of a beer.'),
+          : 'At the end of the bar, a sunburned fishing guide named Cal Brenner is nursing the last inch of a beer, a battered duffel at his feet.'),
         desc: 'Wiry, sun-wrecked and missing the tip of one finger. His hands have tied ten thousand knots.',
         talk: (g) => {
           if (!g.flag('cal_talked')) {

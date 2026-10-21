@@ -302,7 +302,10 @@
       const lit = !this.isDark();
       const ids = Object.keys(this.state.items).filter((id) => {
         const l = this.state.items[id].loc;
-        return l === 'inv' || (lit && l === loc);
+        if (l === 'inv') return true;
+        // Some things only come into view once something else shows them to you (the lanyard on the skiff).
+        const hidden = this.items[id].hiddenUntil;
+        return lit && l === loc && (!hidden || hidden(this));
       });
       // Contents of open containers that are in scope (one level deep is all this world needs).
       for (const cid of [...ids]) {

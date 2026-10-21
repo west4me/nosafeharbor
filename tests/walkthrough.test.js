@@ -34,7 +34,7 @@ function runAll(g, cmds) {
 }
 
 // Get the truck keys out of the lockbox at the ferry terminal.
-const KEYS = ['enter 1187', 'take keys'];
+const KEYS = ['read case file', 'enter 1187', 'take keys'];
 
 // The optimal route through the whole game.
 const WALKTHROUGH = [
@@ -157,6 +157,9 @@ test('the office is locked until Marnie hands over the key', () => {
 test('wrong safe combination keeps it shut', () => {
   const g = newGame();
   runAll(g, [...KEYS, 'w', 'w', 's', 's', 's', 'e', 'talk to marnie', 'w', 'w']);
+  // Before you've found the combination, any numbers are just a guess.
+  assert.match(run(g, 'dial 14 3 28'), /only guessing/);
+  runAll(g, ['take photo', 'read photo']);
   assert.match(run(g, 'dial 1 2 3'), /stays shut/);
   assert.match(run(g, 'open safe'), /will not budge/);
   assert.match(run(g, 'turn dial to 14-3-28'), /swings open/);
@@ -189,7 +192,7 @@ test('accusing outside the trooper post is redirected', () => {
 test('warrant ending is reachable without finding Dale', () => {
   const g = newGame();
   runAll(g, [...KEYS, 'w', 'w', 's', 'w', 'w', 'take receipt', 'read receipt', 'e', 'e', 's', 's', 'e', 'talk to marnie', 'w', 'w',
-    'dial 14 3 28', 'take napkin', 'read napkin', 'e', 'n', 'n', 'n', 'w']);
+    'take photo', 'read photo', 'dial 14 3 28', 'take napkin', 'read napkin', 'e', 'n', 'n', 'n', 'w']);
   const out = run(g, 'accuse rick and dale');
   assert.match(out, /warrant/);
   assert.equal(g.state.over, true);
@@ -211,7 +214,7 @@ test('parser handles synonyms and multi-commands', () => {
   const g = newGame();
   assert.match(run(g, 'x truck'), /ISLAND AUTO RENTAL/);
   assert.match(run(g, 'look at the terminal building'), /lockbox/);
-  run(g, 'punch in 1187. get keys. climb into the pickup');
+  run(g, 'read file. punch in 1187. get keys. climb into the pickup');
   assert.equal(g.state.loc, 'truck_cab');
   assert.match(run(g, 'look at the glovebox'), /glovebox/);
   run(g, 'open glove box. get torch');
@@ -398,8 +401,37 @@ test('you cannot leave Hollis without the truck keys', () => {
   assert.equal(g.state.loc, 'ferry');
 });
 
+test('you need to know about the keypad, and the code, before you can use them', () => {
+  // Never looked at the lockbox, never read the case file: what keypad?
+  let g = newGame();
+  run(g, 'look at terminal');
+  assert.match(run(g, 'enter 1187 into keypad'), /Enter it into what\?/);
+  assert.ok(g.itemState('lockbox').locked);
+  // Seen the keypad, but no code yet: only guessing.
+  assert.match(run(g, 'x lockbox'), /four-digit keypad/);
+  assert.match(run(g, 'enter 1187'), /only guessing/);
+  assert.ok(g.itemState('lockbox').locked);
+  // Read the case file first: it tells you where the lockbox is and how to get the code.
+  g = newGame();
+  run(g, 'read case file');
+  assert.match(run(g, 'enter 1187'), /There it is[\s\S]*truck keys/);
+});
+
+test('the skiff has to be looked at before its details are', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'w', 's', 's', 's', 's']);
+  assert.equal(g.state.loc, 'boathouse');
+  assert.match(run(g, 'x lanyard'), /don't see any lanyard/);
+  assert.ok(!g.has('lanyard'));
+  run(g, 'x skiff');
+  assert.ok(g.has('lanyard'));
+  assert.match(run(g, 'x lanyard'), /clipped to the boat/);
+  assert.match(run(g, 'x plug'), /keeper chain/);
+});
+
 test('the lockbox wants the right code', () => {
   const g = newGame();
+  run(g, 'read case file');
   assert.match(run(g, 'open lockbox'), /four-digit keypad/);
   assert.match(run(g, 'enter 1234'), /unhappy beep/);
   assert.match(run(g, 'enter 1187'), /truck keys/);
