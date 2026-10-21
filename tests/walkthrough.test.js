@@ -674,6 +674,44 @@ test('typos get fixed when it is clear, and suggested when it is not', () => {
   assert.ok(g.state.turns > t);
 });
 
+test('every drive says why you stopped and that you got out, exactly once', () => {
+  const probe = newGame();
+  for (const [rid, room] of Object.entries(probe.rooms)) {
+    for (const [dir, exit] of Object.entries(room.exits || {})) {
+      if (!(exit && exit.drive)) continue;
+      const g = newGame();
+      runAll(g, KEYS);
+      g.state.loc = rid;
+      g.moveItem('truck', rid);
+      const out = run(g, dir);
+      assert.equal(g.state.loc, exit.to, `${rid} ${dir}`);
+      const outs = out.match(/climb out|ease out of the cab/g) || [];
+      assert.equal(outs.length, 1, `${rid} ${dir}: ${out}`);
+      assert.match(out, /parked right behind you/, `${rid} ${dir}`);
+    }
+  }
+  // A long DRIVE TO only pulls over once, at the end.
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'w', 's', 'drive to ferry']);
+  const out = run(g, 'drive to craig');
+  assert.equal(g.state.loc, 'craig');
+  assert.equal((out.match(/climb out/g) || []).length, 1, out);
+  assert.doesNotMatch(out, /get your bearings/);
+});
+
+test('START TRUCK next to the truck gets you in and starts it; DRIVE to a footpath walks', () => {
+  const g = newGame();
+  runAll(g, KEYS);
+  const out = run(g, 'start truck');
+  assert.equal(g.state.loc, 'truck_cab');
+  assert.match(out, /engine/);
+  assert.ok(g.flag('engine_on'));
+  runAll(g, ['w', 'w', 's', 's']);
+  assert.equal(g.state.loc, 'lodge_road');
+  assert.match(run(g, 'drive south'), /just a short walk/);
+  assert.equal(g.state.loc, 'lodge');
+});
+
 test('no rowing to Sweetwater without oars, and Hazel has a spare pair', () => {
   const g = newGame();
   runAll(g, [...TO_TRAILHEAD, 'w', 'n', 'w']);

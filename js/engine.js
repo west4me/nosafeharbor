@@ -278,6 +278,9 @@
     }
 
     end(text) {
+      // Journal notes earned on the last move go above the ending, not after it.
+      for (const p of this.pending) this.print(p, 'clue');
+      this.pending = [];
       this.print(text, 'ending');
       this.state.over = true;
       this.print(this.scoreLine(), 'meta');
@@ -440,7 +443,14 @@
 
       // --- movement
       if (words.length === 1 && DIRS[words[0]]) return this.go(DIRS[words[0]]);
-      if ((m = cmd.match(/^(?:go|walk|run|drive|head|travel|move|hike|climb|row|paddle)(?: to| toward| towards)? (\w+)$/)) && DIRS[m[1]]) return this.go(DIRS[m[1]]);
+      if ((m = cmd.match(/^(go|walk|run|drive|head|travel|move|hike|climb|row|paddle)(?: to| toward| towards)? (\w+)$/)) && DIRS[m[2]]) {
+        // DRIVE somewhere you can only walk: say so, then walk.
+        if (m[1] === 'drive' && this.state.loc !== 'truck_cab') {
+          const exit = this.exitsOf(this.rooms[this.state.loc])[DIRS[m[2]]];
+          if (exit && !(typeof exit === 'object' && exit.drive) && this.exitTo(exit) !== 'truck_cab') this.print("(No road that way, just a short walk. You leave the truck where it is.)", 'meta');
+        }
+        return this.go(DIRS[m[2]]);
+      }
       if (/^(row|paddle|launch(?: .+)?|push off|row (?:across|out|over)(?: .+)?|use (?:skiff|boat))$/.test(cmd)) return this.row();
       if ((m = cmd.match(/^(?:go|walk|run|drive|head|travel|hike|row|paddle) (?:to |into |toward |towards |back to )?(.+)$/))) return this.goByName(m[1]);
       if (/^(get out|climb out|step out|hop out|get out of .+|climb out of .+|exit (?:truck|pickup|car|cab|vehicle)|leave (?:truck|pickup|car|cab))$/.test(cmd)) {
@@ -605,7 +615,9 @@
       }
       const to = this.exitTo(exit);
       if (typeof exit === 'object' && exit.guard) {
+        this.passingThrough = !!quiet; // tells a road it's one leg of a longer trip
         const block = exit.guard(this);
+        this.passingThrough = false;
         if (block) { this.print(block); return; }
       }
       this.moveTo(to, quiet);
@@ -674,8 +686,15 @@
       for (let i = 0; i < dirs.length; i++) {
         const before = this.state.loc;
         this.go(dirs[i], i < dirs.length - 1);
-        if (this.state.loc === before) return;
+        if (this.state.loc === before) break;
+        // Mid-trip you only pull over and get out if the next leg is on foot.
+        if (this.pendingStop) {
+          const next = i < dirs.length - 1 ? this.exitsOf(this.rooms[this.state.loc])[dirs[i + 1]] : null;
+          if (!(next && typeof next === 'object' && next.drive)) this.print(this.pendingStop, 'travel');
+          this.pendingStop = null;
+        }
       }
+      if (this.pendingStop) { this.print(this.pendingStop, 'travel'); this.pendingStop = null; }
     }
 
     crossRiver() {
