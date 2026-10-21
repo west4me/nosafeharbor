@@ -33,6 +33,32 @@
     return String(phrase || '').split(/\s+/).filter((w) => w && !STOP_WORDS.has(w)).join(' ');
   }
 
+  // Typo distance: insertions, deletions, substitutions and swapped neighbors each cost 1.
+  function typoDistance(a, b) {
+    if (Math.abs(a.length - b.length) > 2) return 99;
+    const d = [];
+    for (let i = 0; i <= a.length; i++) d.push([i]);
+    for (let j = 1; j <= b.length; j++) d[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+        if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      }
+    }
+    return d[a.length][b.length];
+  }
+
+  // How far off a typo can be and still be fixed without asking: short words have to be close.
+  const autoFixLimit = (word) => (word.length <= 3 ? 0 : word.length <= 5 ? 1 : 2);
+
+  // First words of commands, for fixing typos like TAEK KEYS or NROTH.
+  const VERB_WORDS = ['look', 'examine', 'read', 'take', 'grab', 'drop', 'open', 'close', 'unlock', 'push', 'pull', 'press',
+    'talk', 'ask', 'give', 'show', 'wear', 'remove', 'enter', 'drive', 'north', 'south', 'east', 'west', 'northeast',
+    'northwest', 'southeast', 'southwest', 'inventory', 'help', 'hint', 'notes', 'notebook', 'search', 'listen', 'smell',
+    'touch', 'turn', 'start', 'stop', 'buy', 'accuse', 'climb', 'sit', 'knock', 'fish', 'row', 'wait', 'save', 'load',
+    'restart', 'score', 'thank', 'cross', 'wade', 'switch', 'light', 'dial', 'eat', 'drink', 'travel', 'walk', 'go'];
+
   function capitalize(s) {
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
@@ -324,11 +350,35 @@
         return null;
       }
       if (!m) {
-        if (this.isDark()) this.print("It's too dark to see anything like that.");
-        else this.print(`You don't see any ${clean(phrase) || 'such thing'} here.`);
+        if (this.isDark()) { this.print("It's too dark to see anything like that."); return null; }
+        const p = clean(phrase);
+        const guess = this.guessName(p, scope);
+        if (guess && guess.sure) {
+          this.print(`(The ${guess.name}, I assume.)`, 'meta');
+          return guess.ent;
+        }
+        this.print(`You don't see any ${p || 'such thing'} here.` + (guess ? ` Did you mean the ${guess.name}?` : ''));
         return null;
       }
       return m;
+    }
+
+    // Best near-miss for a mistyped noun among what's in reach. sure = close enough to just go with it.
+    guessName(p, scope) {
+      if (!p || p.length < 3) return null;
+      let best = null;
+      let tie = false;
+      for (const e of scope) {
+        for (const n of e.names) {
+          const d = typoDistance(p, n);
+          if (d > 2) continue;
+          if (!best || d < best.d) { best = { ent: e, name: n, d }; tie = false; }
+          else if (d === best.d && best.ent !== e) tie = true;
+        }
+      }
+      if (!best || tie) return null;
+      best.sure = best.d <= autoFixLimit(p);
+      return best;
     }
 
     // ------------------------------------------------------------ commands
@@ -482,6 +532,27 @@
       if ((m = cmd.match(/^(?:touch|feel|rub|stroke|poke) (.+)$/))) return this.itemVerb('touch', m[1], 'It feels about how it looks.');
       if ((m = cmd.match(/^(?:push|pull|move|shake|lift|tug|turn) (.+)$/))) return this.itemVerb('push', m[1], 'Nothing happens.');
 
+      // One typo in the first word (TAEK KEYS, NROTH): fix it and try again, once.
+      if (!this.fixingTypo) {
+        const first = words[0];
+        let bestD = 99;
+        let best = [];
+        for (const v of VERB_WORDS) {
+          const d = typoDistance(first, v);
+          if (d === 0 || d > Math.max(1, autoFixLimit(first))) continue;
+          if (d < bestD) { bestD = d; best = [v]; } else if (d === bestD) best.push(v);
+        }
+        if (best.length === 1 && bestD <= autoFixLimit(first)) {
+          const fixed = [best[0]].concat(words.slice(1)).join(' ');
+          this.print(`(Taking that as "${fixed}".)`, 'meta');
+          this.fixingTypo = true;
+          try { return this.dispatch(fixed); } finally { this.fixingTypo = false; }
+        }
+        if (best.length && best.length <= 3) {
+          this.print(`I don't know how to "${cmd}". Did you mean ${best.map((v) => v.toUpperCase()).join(' or ')}?`);
+          return false;
+        }
+      }
       this.print(`I don't know how to "${cmd}". (Type HELP for a list of commands.)`);
       return false;
     }

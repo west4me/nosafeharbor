@@ -74,6 +74,19 @@
       return null;
     }
 
+    // PUSH FOB: unlocks the truck if it's in sight, locks it if it's already open.
+    function pressFob(g) {
+      if (!hasKeys(g)) return "You'd need the keys in your hand first.";
+      if (g.state.loc === 'truck_cab') return 'You press the fob from the driver\'s seat. The locks clunk down and pop back up. Deeply satisfying.';
+      if (truckLoc(g) !== g.state.loc) return 'You press the fob. Somewhere out of sight, your truck probably chirps.';
+      if (!g.flag('truck_unlocked')) {
+        g.flag('truck_unlocked', true);
+        return 'You press the fob. The locks clunk open and the lights blink. Your chariot awaits.';
+      }
+      g.flag('truck_unlocked', false);
+      return "You press the fob. The locks clunk shut and the horn gives a little chirp. Locked, which on this island makes you look like a tourist. (It'll unlock again when you get in.)";
+    }
+
     function getInTruck(g) {
       const block = truckDoor(g);
       if (block) return block;
@@ -723,7 +736,9 @@
         names: ['keys', 'truck keys', 'truck key', 'key fob', 'fob', 'car keys', 'car key', 'rental keys'],
         desc: 'A Ford key on a plastic ISLAND AUTO RENTAL fob, plus a bottle opener shaped like a halibut. Island priorities.',
         verbs: {
-          use: (g) => g.doVerb('unlock', 'truck'),
+          use: (g) => pressFob(g),
+          push: (g) => pressFob(g),
+          turnon: (g) => pressFob(g),
           drop: (g) => {
             if (g.state.loc !== 'truck_cab') return false;
             g.moveItem('truck_keys', 'truck_cab');

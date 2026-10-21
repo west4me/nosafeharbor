@@ -643,6 +643,37 @@ test('the game autosaves every move, and Continue picks up where you left off', 
   assert.equal(g2.autosaveInfo(), null);
 });
 
+test('the key fob unlocks the truck, and locks it again', () => {
+  const g = newGame();
+  assert.match(run(g, 'push fob'), /don't see any fob/);
+  runAll(g, KEYS);
+  assert.match(run(g, 'push fob'), /locks clunk open/);
+  assert.ok(g.flag('truck_unlocked'));
+  assert.match(run(g, 'press fob'), /locks clunk shut/);
+  assert.ok(!g.flag('truck_unlocked'));
+  assert.match(run(g, 'get in truck'), /locks clunk open/);
+  assert.equal(g.state.loc, 'truck_cab');
+  run(g, 'out'); run(g, 'w');
+  assert.equal(g.state.loc, 'hwy');
+  run(g, 'e');
+});
+
+test('typos get fixed when it is clear, and suggested when it is not', () => {
+  const g = newGame();
+  runAll(g, KEYS);
+  assert.match(run(g, 'push pub'), /Did you mean the fob\?/);
+  assert.match(run(g, 'x truk'), /The truck, I assume[\s\S]*white pickup/);
+  assert.match(run(g, 'sit on bnech'), /The bench, I assume[\s\S]*soaks through/);
+  assert.match(run(g, 'raed file'), /Taking that as "read file"[\s\S]*NORTHBOUND/);
+  assert.match(run(g, 'taek keys'), /Did you mean TAKE or TALK\?/);
+  assert.match(run(g, 'lok'), /Did you mean LOOK\?/);
+  assert.match(run(g, 'x zebra'), /You don't see any zebra here\.$/);
+  const t = g.state.turns;
+  run(g, 'sotuh');
+  assert.equal(g.state.loc, 'ferry');
+  assert.ok(g.state.turns > t);
+});
+
 test('no rowing to Sweetwater without oars, and Hazel has a spare pair', () => {
   const g = newGame();
   runAll(g, [...TO_TRAILHEAD, 'w', 'n', 'w']);
