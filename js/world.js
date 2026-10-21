@@ -244,8 +244,8 @@
           ? 'The Hollis ferry dock, empty and gray, with Clarence Strait chopping away beyond it. Spruce and hemlock crowd the hill above the small terminal building and the gravel lot. The road runs west into the trees.'
           : 'The inter-island ferry groans away from the dock behind you, back across Clarence Strait toward Ketchikan. Rain blows in sideways off the water, fine as mist and twice as wet. Spruce and hemlock crowd the hill above a small gray terminal building and a gravel lot. The only road out runs west into the trees.'),
         exits: {
-          west: road('hwy', "You pull out of the ferry lot and head west, wipers slapping, into a tunnel of dripping spruce. Eleven miles in, the road crosses the Harris River.",
-            "Just past the bridge the Hydaburg Highway splits off to the south, and the signs are too shot up to read at speed. You pull onto the shoulder to get your bearings, kill the engine and climb out into the rain.")
+          west: road('hwy', "You pull out of the ferry lot and head west, wipers slapping, into a tunnel of dripping spruce. Eleven miles in, your tires drum across a bridge over a fast, high river.",
+            "On the far side a road forks off to the left, and the signs are too shot up to read at speed. You pull onto the shoulder to get your bearings, kill the engine and climb out into the rain.")
         },
         exitNotes: { east: 'East is Clarence Strait, three hours of it, and then Ketchikan. The ferry just left.' }
       },
@@ -310,7 +310,7 @@
           east: road('ferry', "You drive back east down the Harris River valley, eleven miles of muskeg and old clearcuts, until the gray water of Clark Bay opens up ahead.",
             "You pull into the ferry lot, park and climb out."),
           west: road('klawock', "West on the highway, over the hills and down along Klawock Lake, shining like hammered tin through the alders for miles. A school bus passes going the other way and the driver lifts two fingers off the wheel. Everybody waves here. Fourteen miles from the bridge, you roll down into Klawock.",
-            "You park in the middle of town and climb out into air that smells like woodsmoke and low tide.")
+            "You park in the middle of town and climb out.")
         },
         exitNotes: { south: "That's the Hydaburg Highway, forty miles of it down to Hydaburg, the Kaigani Haida town on Sukkwan Strait. Haida families from the old villages of Howkan, Sukkwan and Klinkwan came together there in 1911, and they raised their totem park in 1939. It's a beautiful drive. Your case is the other way." },
         fish: "No rod, no license and no time. The steelhead will have to wait. They're good at that."
@@ -324,10 +324,10 @@
         exits: {
           southwest: road('klawock', "Back down Big Salt Road, sixteen miles past muskeg and the tide flats of Big Salt Lake, into Klawock.",
             "You park in the middle of town and climb out."),
-          east: road('trailhead', "East on the Thorne Bay Road, eight miles of gravel and potholes down the Thorne River valley. The river shows through the trees on your left now and then, big and tea-colored.",
-            "Just past where it swings close to the road, a brown Forest Service sign marks a pullout: THORNE RIVER TRAIL. This must be the trail. You pull in, kill the engine and climb out. It's very quiet."),
-          north: road('sweetwater_turnoff', "North on the North Prince of Wales Road, then east on the Coffman Tie: twenty-eight miles of gravel, clearcuts and second growth, with a doe in the ditch every few miles. Finally the road runs along the east shore of a big, dark lake.",
-            "A muddy pullout and a brown Forest Service sign: SWEETWATER LAKE. You pull over, kill the engine and climb out to have a look.")
+          east: road('trailhead', "East toward Thorne Bay, eight miles of gravel and potholes down the Thorne River valley. The river shows through the trees on your left now and then, big and tea-colored.",
+            "Just past where it swings close to the road, you spot a pullout and the words THORNE RIVER TRAIL. You pull in, kill the engine and climb out. It's very quiet."),
+          north: road('sweetwater_turnoff', "North on the North Prince of Wales Road, then east on the Coffman Tie: twenty-eight miles of gravel, clearcuts and second growth, with a doe in the ditch every few miles. Finally a big, dark lake opens up through the trees beside the road.",
+            "You pull over at the turnoff for it, kill the engine and climb out to have a look.")
         },
         exitNotes: { northwest: "The North Prince of Wales Road keeps going north to Naukati, Whale Pass and the limestone country of the north end, where El Capitan Cave runs two miles into the mountain. It's the biggest known cave in Alaska. Not today." }
       },
@@ -338,7 +338,7 @@
         aliases: ['trailhead', 'pullout', 'thorne river trailhead'],
         desc: "A gravel pullout off the Thorne Bay Road, at the edge of serious forest. A brown Forest Service sign, bullet-pocked in one corner, marks a trail heading northeast into the old growth toward the Thorne River. The mud here is churned up with tire tracks, and one set is a lot fresher than the rest. The Thorne Bay Road runs back west to the Control Lake junction.",
         exits: {
-          west: road('thorne_road', "You bump back out of the pullout and head west, eight miles up the Thorne River valley to the junction at Control Lake.",
+          west: road('thorne_road', "You bump back out of the pullout and head west, eight miles of gravel and potholes back to the junction at Control Lake.",
             "Roads run off three ways from here, so you pull over to get your bearings and climb out."),
           northeast: 'river_trail'
         },
@@ -392,10 +392,10 @@
         aliases: ['dog creek'],
         desc: "South of Coffman Cove, the road runs right alongside Dog Creek. The creek is clear and quick over clean gravel, and the bank is trampled flat where the bears come down to fish. Just downstream, a black bear sow and her cub are working the shallows and ignoring you completely. Down the valley to the north you can see rooftops and the gray water beyond the town. A gravel side road signed HALF DOG ROAD climbs off to the east. The road goes north into town and south over the hill toward Luck Lake.",
         exits: {
-          north: road('coffman_cove', "You follow the creek two miles down into town: houses, woodpiles and skiffs, gray water and gulls.",
-            "You park by the community hall and climb out."),
-          south: road('luck_lake', "South over the hill on the Coffman Cove Loop, seven or eight miles of it. Then a long, narrow lake shows through the trees on your left.",
-            "You turn down the Luck Lake access road to the beach at its north end, park and climb out. The lake is so still it looks painted.")
+          north: road('coffman_cove', "You follow the creek two miles downhill until the trees open up on salt water and gulls.",
+            "You park in town and climb out."),
+          south: road('luck_lake', "South over the hill on the Coffman Cove Loop, seven or eight miles of it. Then a lake shows through the trees on your left, so still it looks painted.",
+            "You turn down the access road, park by the water and climb out.")
         },
         fish: 'Coho fry are flicking in the shallows along the road. The sow is fishing. The cub is supervising. You, sadly, are only watching.'
       },
@@ -404,7 +404,7 @@
         map: { at: [-132.7680, 55.9520], site: 'luck' },
         name: 'Luck Lake',
         aliases: ['luck lake', 'luck'],
-        desc: "A gravel access road leads down to the Luck Lake day-use area at the north end of the lake: a rock beach, a covered picnic shelter and an outhouse with a crescent moon on the door. Eagle Creek slips out of the lake right beside the beach, headed for the strait. The lake stretches away to the south, long and narrow and dark, with the clouds sitting right down on the hills on either side. A loon calls from somewhere out on the water. The road runs back north over the hill to Dog Creek and Coffman Cove.",
+        desc: "A gravel access road leads down to the Luck Lake day-use area at the north end of the lake: a rock beach, a covered picnic shelter and an outhouse with a crescent moon on the door. Eagle Creek slips out of the lake right beside the beach, headed for the strait. The lake stretches away to the south, long and narrow and dark, with the clouds sitting low on the hills on either side. A loon calls from somewhere out on the water. The road runs back north over the hill to Dog Creek and Coffman Cove.",
         exits: {
           north: road('dog_creek', "Back up the access road and north over the hill on the Coffman Cove Loop. A doe and twin fawns stand in the ditch and watch you pass with no particular concern. The road tips downhill and picks up Dog Creek.",
             "Where the creek bends close to the road, something big and black moves on the gravel bar. You pull over to watch, then ease out of the cab, keeping the pickup between you and the creek.")
@@ -422,9 +422,9 @@
             to: 'sweetwater_landing',
             guard: (g) => { g.print('You follow the trail down: two hundred feet of roots, puddles and slick spruce needles.', 'travel'); return null; }
           },
-          northeast: road('coffman_cove', "Northeast on the Coffman Cove Road, seven miles of it, across Coffman Creek where it spills into the lagoon behind town. Then the trees give up, the road tips downhill, and there is the cove: houses, woodpiles and skiffs, gray water and gulls.",
-            "You park by the community hall and climb out."),
-          south: road('thorne_road', "Back south: the Coffman Tie, then the North Prince of Wales Road, twenty-eight miles of gravel to the junction at Control Lake.",
+          northeast: road('coffman_cove', "Northeast toward town, seven miles of gravel, across Coffman Creek where it spills into the lagoon behind town. Then the road tips downhill and the cove opens up below you, gray and wide.",
+            "You park in town and climb out."),
+          south: road('thorne_road', "Back south: the Coffman Tie, then the long road down the middle of the island, twenty-eight miles of gravel to the junction at Control Lake.",
             "Roads run off three ways from here, so you pull over to get your bearings and climb out.")
         }
       },
@@ -457,7 +457,7 @@
         map: { at: [-132.9345, 55.9600], site: 'sweetwater' },
         name: 'Sweetwater Lake',
         aliases: ['sweetwater lake', 'middle of the lake', 'lake'],
-        desc: "You're in the Forest Service skiff on Sweetwater Lake, a little way off the east shore, oars dripping. The water is dark as coffee and so still that the clouds float in it upside down. The lake runs on for miles to the southwest. Back to the south is the landing. Ahead to the north, a small cedar log cabin sits above a little float on the shore, smoke curling from its stovepipe.",
+        desc: "You're in the Forest Service skiff on Sweetwater Lake, a short way off the east shore, oars dripping. The water is dark as coffee and so still that the clouds hang in it upside down. The lake runs on for miles to the southwest. Back to the south is the landing. Ahead to the north, a small cedar log cabin sits above a little float on the shore, smoke curling from its stovepipe.",
         exits: {
           south: { to: 'sweetwater_landing', guard: (g) => { g.print('You row back to the landing and drag the skiff up onto the gravel.', 'travel'); return null; } },
           north: { to: 'sweetwater_cabin', guard: (g) => { g.print("You row the last stretch and bump up against the cabin's little float. You tie off, climb out and walk up to the door.", 'travel'); return null; } }
@@ -472,7 +472,7 @@
         name: 'Sweetwater Lake Cabin',
         aliases: ['sweetwater cabin', 'sweetwater lake cabin'],
         desc: (g) => "A twelve-by-fourteen cabin of pre-cut cedar logs above the east shore of the lake, with wooden bunks, a table and benches, and a woodstove ticking with heat. Somebody has moved in for the long haul: a sleeping bag on the lower bunk, groceries stacked under the table and paperbacks on the windowsill. " + (g.flag('fs_oars_taken') ? '' : 'A pair of oars leans by the door. ') +
-          (g.itemAt('winston', 'sweetwater_cabin') ? 'In the corner, leaning in a place of honor, is a bamboo fly rod. ' : '') +
+          (g.itemAt('winston', 'sweetwater_cabin') ? 'In the corner, in a place of honor, stands a bamboo fly rod. ' : '') +
           'The float and the skiff are back down the path to the south.',
         exits: {
           south: { to: 'sweetwater_lake', guard: (g) => pushOff(g) },
@@ -489,10 +489,10 @@
         desc: "The road ends where the trees give up and Clarence Strait begins. Coffman Cove started out as a logging camp and has never quite stopped looking like one: houses and trailers scattered along the cove, woodpiles under blue tarps, a school, a community hall, and more skiffs parked in yards than trucks. Dog Creek runs out through the middle of town into the cove. The general store is down by the water to the north, and the harbor is down the hill to the east. The Coffman Cove Road heads southwest toward Sweetwater Lake, and the loop road runs south up the Dog Creek valley.",
         exits: {
           in: 'cove_store',
-          south: road('dog_creek', "You head south out of town up the Dog Creek valley, the road running right beside the water.",
+          south: road('dog_creek', "You head south out of town and up the valley, the creek flashing through the alders.",
             "At a bend, something big and black moves on the gravel bar. You pull over to watch, then ease out of the cab, keeping the pickup between you and the creek."),
-          southwest: road('sweetwater_turnoff', "Southwest out of town on the Coffman Cove Road, across Coffman Creek where it runs into the lagoon, seven miles to the shore of Sweetwater Lake.",
-            "A muddy pullout and a brown Forest Service sign: SWEETWATER LAKE. You pull over, kill the engine and climb out to have a look."),
+          southwest: road('sweetwater_turnoff', "Southwest out of town, across Coffman Creek where it runs into the lagoon, then seven miles of gravel until a big, dark lake opens up through the trees.",
+            "You pull over at the turnoff for it, kill the engine and climb out to have a look."),
           north: 'cove_store',
           east: 'cove_harbor'
         }
@@ -528,13 +528,13 @@
         desc: "A small town on a wide inlet, where woodsmoke mixes with the smell of low tide. Klawock, Lawáak in Tlingit, is one of the oldest communities on the island and home of the Heinyaa Ḵwáan, whose people have fished these waters for longer than anyone has written anything down. Down by the water, rotting pilings mark where one of Alaska's first salmon canneries stood. Up the hill to the north stand the carved poles of the totem park. The Alaska State Troopers post is a low building to the west. The highway runs east back toward Hollis and south to Craig, and Big Salt Road heads northeast toward Control Lake and the Thorne River.",
         exits: {
           in: 'trooper',
-          east: road('hwy', "You head east out of Klawock along Klawock Lake and over the hills. Twenty-five minutes of curves and muskeg later, you're back at the Harris River bridge.",
-            "You pull onto the shoulder at the Hydaburg turnoff to get your bearings and climb out to stretch your legs."),
+          east: road('hwy', "You head east out of Klawock along Klawock Lake and over the hills. Twenty-five minutes of curves and muskeg later, you're back at the river.",
+            "You pull onto the shoulder at the fork to get your bearings and climb out to stretch your legs."),
           north: 'totem_park',
           west: 'trooper',
           south: road('craig', "South along the water. Bald eagles sit on the light poles like they are waiting for a bus. Six miles later, the road drops down into Craig.",
             "You park on Front Street and climb out."),
-          northeast: road('thorne_road', "Big Salt Road runs north out of Klawock past the wide tide flats of Big Salt Lake, then climbs northeast through second growth and old clearcuts. Sixteen miles later it ends in a T beside a small, still lake.",
+          northeast: road('thorne_road', "You head north out of Klawock past the wide tide flats of Big Salt Lake, then climb northeast through second growth and old clearcuts. Sixteen miles later the road runs out at a junction in the trees.",
             "Roads run off three ways from here and none of the signs are worth reading, so you pull over to get your bearings and climb out.")
         }
       },
@@ -569,7 +569,7 @@
             "You park in the middle of town and climb out."),
           west: 'harbor',
           east: 'tavern',
-          south: road('lodge_road', "You take the gravel shore road southeast out of town, spray flying from the potholes.",
+          south: road('lodge_road', "You head out of town past the last houses, spray flying from the potholes.",
             "A mile and a half along, a carved sign swings in the wind: HARBOR LIGHT LODGE. You park on the shoulder by the sign and climb out.")
         }
       },

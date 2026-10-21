@@ -728,6 +728,29 @@ test('every drive says why you stopped and that you got out, exactly once', () =
   assert.doesNotMatch(out, /get your bearings/);
 });
 
+test("a drive doesn't repeat the description of the place you arrive", () => {
+  // No run of four words shared between the drive and the room you pull up in.
+  const grams = (t) => {
+    const w = t.toLowerCase().replace(/[^a-z' ]/g, ' ').split(/\s+/).filter(Boolean);
+    const out = new Set();
+    for (let i = 0; i + 3 < w.length; i++) out.add(w.slice(i, i + 4).join(' '));
+    return out;
+  };
+  const probe = newGame();
+  for (const [rid, room] of Object.entries(probe.rooms)) {
+    for (const [dir, exit] of Object.entries(room.exits || {})) {
+      if (!(exit && exit.drive)) continue;
+      const g = newGame();
+      runAll(g, KEYS);
+      g.state.loc = rid;
+      g.moveItem('truck', rid);
+      const [drive, , roomText] = g.command(dir).map((b) => b.text);
+      const shared = [...grams(drive)].filter((x) => grams(roomText).has(x));
+      assert.deepEqual(shared, [], `${rid} ${dir}`);
+    }
+  }
+});
+
 test('START TRUCK next to the truck gets you in and starts it; DRIVE to a footpath walks', () => {
   const g = newGame();
   runAll(g, KEYS);
