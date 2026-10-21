@@ -2001,7 +2001,11 @@
       { name: 'Hydaburg', at: [-132.8267, 55.2081] },
       { name: 'Coffman Cove', at: [-132.8278, 56.0139], label: [12, -10, 'start'] },
       { name: 'Naukati Bay', at: [-133.1847, 55.8736] },
-      { name: 'Whale Pass', at: [-133.1208, 56.1153] }
+      { name: 'Whale Pass', at: [-133.1208, 56.1153] },
+      { name: 'Point Baker', at: [-133.6211, 56.3528], label: [10, -6, 'start'] },
+      { name: 'Port Protection', at: [-133.5981, 56.3172] },
+      { name: 'Edna Bay', at: [-133.6622, 55.9489] },
+      { name: 'Waterfall', at: [-133.2406, 55.2972], label: [-10, 6, 'end'] }
     ];
     // Road names, placed along the real road (a story route and how far along it, or a spot to snap to).
     const mapRoads = [

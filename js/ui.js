@@ -76,16 +76,46 @@
     return Math.max(0.3, mapScroll.clientWidth / Math.max(1, mapScroll.clientHeight));
   }
 
+  // shownBox is the viewBox the layers are actually drawn at. While you drag or spin the wheel, the
+  // drawn map just slides and scales (cheap), and it's redrawn at the new view once you stop.
+  let shownBox = null;
+  let commitTimer = null;
+
   function applyView() {
-    const svg = mapScroll.querySelector('svg');
-    if (svg && mapViewBox) {
+    if (!mapViewBox) return;
+    clearTimeout(commitTimer);
+    // Zoomed out, names and the pin grow so they stay readable, and the small print steps aside.
+    const s = Math.max(mapViewBox[2] / (mapScroll.clientWidth || 1), mapViewBox[3] / (mapScroll.clientHeight || 1));
+    for (const svg of mapScroll.querySelectorAll('svg')) {
+      svg.style.transform = '';
       svg.setAttribute('viewBox', mapViewBox.join(' '));
-      // Zoomed out, names and the pin grow so they stay readable, and the small print steps aside.
-      const s = Math.max(mapViewBox[2] / (mapScroll.clientWidth || 1), mapViewBox[3] / (mapScroll.clientHeight || 1));
-      svg.style.setProperty('--k', Math.min(4, Math.max(1, s / 1.4)).toFixed(2));
+      svg.style.setProperty('--k', Math.min(5, Math.max(1, s / 1.4)).toFixed(2));
       svg.classList.toggle('far', s > 2.2);
     }
+    shownBox = mapViewBox.slice();
     updateScale();
+  }
+
+  // How a viewBox lands on screen: sheet units per pixel, and the letterbox offsets.
+  function screenFit(box) {
+    const rw = mapScroll.clientWidth || 1;
+    const rh = mapScroll.clientHeight || 1;
+    const s = Math.max(box[2] / rw, box[3] / rh);
+    return { s, ox: (rw - box[2] / s) / 2, oy: (rh - box[3] / s) / 2 };
+  }
+
+  // Show mapViewBox by moving the already-drawn layers, then redraw properly after a pause.
+  function previewView(delay) {
+    if (!shownBox) { applyView(); return; }
+    const A = screenFit(shownBox);
+    const B = screenFit(mapViewBox);
+    const a = A.s / B.s;
+    const bx = (shownBox[0] - mapViewBox[0] - A.ox * A.s) / B.s + B.ox;
+    const by = (shownBox[1] - mapViewBox[1] - A.oy * A.s) / B.s + B.oy;
+    for (const svg of mapScroll.querySelectorAll('svg')) svg.style.transform = `translate(${bx}px, ${by}px) scale(${a})`;
+    updateScale();
+    clearTimeout(commitTimer);
+    if (delay !== undefined) commitTimer = setTimeout(applyView, delay);
   }
 
   // The scale bar follows the zoom: pick a round distance that draws 60 to 150 pixels long.
@@ -113,21 +143,25 @@
   setLegend(keyPref ? keyPref === 'open' : window.innerWidth >= 700);
   legendToggle.addEventListener('click', () => { setLegend(legendBody.hidden); input.focus(); });
 
+  // Two stacked layers: the printed sheet (drawn once) and your pencil work (redrawn every move).
   function drawMap() {
-    mapScroll.innerHTML = window.NSH.renderMap(game);
+    if (!mapScroll.querySelector('.map-sheet')) mapScroll.innerHTML = window.NSH.renderSheet(game);
+    const old = mapScroll.querySelector('.map-pencil-layer');
+    if (old) old.remove();
+    mapScroll.insertAdjacentHTML('beforeend', window.NSH.renderPencil(game));
     mapWhere.textContent = '';
     mapWhere.append('You are here: ');
     const strong = document.createElement('strong');
     strong.textContent = game.status().location;
     mapWhere.append(strong);
-    const svg = mapScroll.querySelector('svg');
-    if (svg && svg.dataset.explored) mapWhere.append(` · ${svg.dataset.explored}`);
+    const pencil = mapScroll.querySelector('.map-pencil-layer');
+    if (pencil && pencil.dataset.explored) mapWhere.append(` · ${pencil.dataset.explored}`);
     if (followMe || !mapViewBox) mapViewBox = window.NSH.mapView(game, panelAspect());
     applyView();
   }
 
   // Zoom by a factor around a point on the sheet (defaults to the middle of the view).
-  function zoomBy(f, cx, cy) {
+  function zoomBy(f, cx, cy, smooth) {
     const [x, y, w, h] = mapViewBox;
     const whole = window.NSH.wholeView(panelAspect());
     const nw = Math.min(Math.max(w * f, 160), whole[2]);
@@ -136,7 +170,7 @@
     const py = cy === undefined ? y + h / 2 : cy;
     mapViewBox = [px - (px - x) * k, py - (py - y) * k, nw, h * k];
     followMe = false;
-    applyView();
+    if (smooth) previewView(150); else applyView();
   }
 
   document.getElementById('map-tools').addEventListener('click', (e) => {
@@ -160,20 +194,24 @@
     return [x + (clientX - r.left - ox) * s, y + (clientY - r.top - oy) * s, s];
   }
 
+  // Zoom in proportion to how far the wheel turned: about 12% per notch, however the browser
+  // splits a notch into events (Edge and Chrome on Windows send several small ones).
   mapScroll.addEventListener('wheel', (e) => {
     if (!mapViewBox) return;
     e.preventDefault();
+    const lines = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1;
+    const dy = Math.max(-300, Math.min(300, e.deltaY * lines));
     const [px, py] = sheetPoint(e.clientX, e.clientY);
-    zoomBy(e.deltaY > 0 ? 1.2 : 1 / 1.2, px, py);
+    zoomBy(Math.exp(dy * 0.0012), px, py, true);
   }, { passive: false });
 
   let drag = null;
   mapScroll.addEventListener('pointerdown', (e) => {
     if (!mapViewBox) return;
+    e.preventDefault(); // no text selection while dragging the map
     drag = { x: e.clientX, y: e.clientY, box: mapViewBox.slice(), scale: sheetPoint(e.clientX, e.clientY)[2] };
     mapScroll.setPointerCapture(e.pointerId);
-    const svg = mapScroll.querySelector('svg');
-    if (svg) svg.classList.add('dragging');
+    mapScroll.classList.add('dragging');
   });
   mapScroll.addEventListener('pointermove', (e) => {
     if (!drag) return;
@@ -181,12 +219,12 @@
     const dy = (e.clientY - drag.y) * drag.scale;
     if (Math.abs(dx) + Math.abs(dy) > 2) followMe = false;
     mapViewBox = [drag.box[0] - dx, drag.box[1] - dy, drag.box[2], drag.box[3]];
-    applyView();
+    previewView();
   });
   const endDrag = () => {
+    if (drag) applyView();
     drag = null;
-    const svg = mapScroll.querySelector('svg');
-    if (svg) svg.classList.remove('dragging');
+    mapScroll.classList.remove('dragging');
   };
   mapScroll.addEventListener('pointerup', endDrag);
   mapScroll.addEventListener('pointercancel', endDrag);

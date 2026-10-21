@@ -227,9 +227,13 @@ html, body {
   position: relative;
 }
 
-/* The sheet fills the panel; which part of it shows is the SVG viewBox (pan and zoom). */
-.map-svg { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
-.map-svg.dragging { cursor: grabbing; }
+/* The sheet fills the panel; which part of it shows is the SVG viewBox (pan and zoom).
+   The printed sheet and your pencil layer sit exactly on top of each other. */
+.map-svg { display: block; width: 100%; height: 100%; }
+#map-scroll .map-svg { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
+#map-scroll { touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+#map-scroll.dragging { cursor: grabbing; }
+.map-svg text { user-select: none; -webkit-user-select: none; }
 @media (max-width: 560px) { #map-tip { display: none; } }
 
 .map-svg text {
@@ -265,7 +269,8 @@ html, body {
 .map-svg .map-you-text { font-weight: 700; letter-spacing: 1px; }
 .map-svg .map-label-town { font-family: Georgia, "Times New Roman", serif; font-weight: 700; fill: #1f1f1f; font-size: calc(18px * var(--k, 1)); }
 .map-svg .map-site-name { font-size: calc(18px * var(--k, 1)); }
-.map-svg .map-you-text { fill: #fffdf6; stroke: none; }
+.map-svg.far .map-label-island { font-size: calc(30px * var(--k, 1)); }
+.map-svg .map-you-text { fill: #fffdf6; stroke: none; font-family: Arial, "Helvetica Neue", sans-serif; }
 .map-svg .map-pin { transform-box: fill-box; transform-origin: 50% 100%; transform: scale(var(--k, 1)); }
 /* Zoomed way out: keep towns, roads you've driven and your pin; hide the small print. */
 .map-svg.far .map-site-room, .map-svg.far .map-site-card, .map-svg.far .map-label-road,

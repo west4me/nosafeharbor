@@ -302,21 +302,10 @@
     return out.join('\n');
   }
 
-  function renderMap(game) {
-    const W = geo.width;
-    const H = geo.height;
+  // Patterns for the printed sheet: the graph-paper grid and water hatching.
+  function sheetDefs() {
     const G = geo.view.pxPerKm; // one graph-paper square = 1 km
-    const model = mapModel(game);
-    const byId = {};
-    for (const r of model.rooms) byId[r.id] = r;
-    const P = (id) => project(game.rooms[id].map.at);
-    const hereName = game.status().location;
-
-    const out = [];
-    const explored = `explored ${model.rooms.length} of ${model.total}`;
-    out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" class="map-svg" role="img" data-explored="${explored}" aria-label="${esc('Map of Prince of Wales Island. You are at ' + hereName + '. You have ' + explored + ' places.')}">`);
-    out.push(`<defs>
-  <pattern id="map-grid" width="${G}" height="${G}" patternUnits="userSpaceOnUse">
+    return `<pattern id="map-grid" width="${G}" height="${G}" patternUnits="userSpaceOnUse">
     <path d="M${G},0 L0,0 0,${G}" fill="none" stroke="#c4d7ec" stroke-width="0.8"/>
   </pattern>
   <pattern id="map-grid-major" width="${G * 5}" height="${G * 5}" patternUnits="userSpaceOnUse">
@@ -324,15 +313,48 @@
   </pattern>
   <pattern id="map-water" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
     <line x1="0" y1="0" x2="0" y2="9" stroke="#8fb0d4" stroke-width="1.4"/>
-  </pattern>
-  <filter id="map-pencil" x="-5%" y="-5%" width="110%" height="110%">
+  </pattern>`;
+  }
+
+  const PENCIL_DEFS = `<filter id="map-pencil" x="-5%" y="-5%" width="110%" height="110%">
     <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="7"/>
     <feDisplacementMap in="SourceGraphic" scale="2.4"/>
-  </filter>
-</defs>`);
+  </filter>`;
 
-    // The printed sheet, then your pencil on top.
-    out.push(printedSheet(game));
+  function svgOpen(cls, extra) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${geo.width} ${geo.height}" class="map-svg${cls ? ' ' + cls : ''}" ${extra}>`;
+  }
+
+  function pencilAttrs(game, model) {
+    const explored = `explored ${model.rooms.length} of ${model.total}`;
+    return `role="img" data-explored="${explored}" aria-label="${esc('Map of Prince of Wales Island. You are at ' + game.status().location + '. You have ' + explored + ' places.')}"`;
+  }
+
+  // The whole map as one SVG (tests, or anything that wants a single picture).
+  function renderMap(game) {
+    const model = mapModel(game);
+    return svgOpen('', pencilAttrs(game, model)) + `<defs>${sheetDefs()}${PENCIL_DEFS}</defs>` +
+      printedSheet(game) + pencilLayer(game, model) + '</svg>';
+  }
+
+  // The page stacks two layers: the big printed sheet, built once and left alone, and your pencil
+  // work, redrawn after every move. Redrawing only the pencil keeps moves quick on a big map.
+  function renderSheet(game) {
+    return svgOpen('map-sheet', 'aria-hidden="true"') + `<defs>${sheetDefs()}</defs>` + printedSheet(game) + '</svg>';
+  }
+
+  function renderPencil(game) {
+    const model = mapModel(game);
+    return svgOpen('map-pencil-layer', pencilAttrs(game, model)) + `<defs>${PENCIL_DEFS}</defs>` + pencilLayer(game, model) + '</svg>';
+  }
+
+  // Everything that changes as you play: names, your pencil lines, pins and where you are.
+  function pencilLayer(game, model) {
+    const byId = {};
+    for (const r of model.rooms) byId[r.id] = r;
+    const P = (id) => project(game.rooms[id].map.at);
+
+    const out = [];
     out.push(featureNames(game, model));
     out.push(townNames(game, model));
 
@@ -405,8 +427,8 @@
   <circle class="map-you-ring" cx="${x}" cy="${y}" r="16" fill="none" stroke="#c0392b" stroke-width="3"/>
   <g class="map-pin">
     <g class="map-you-tag">
-      <rect x="${x - 58}" y="${y - 70}" width="116" height="22" rx="4" fill="#c0392b"/>
-      <text class="map-you-text" x="${x}" y="${y - 54}" font-size="14" text-anchor="middle">YOU ARE HERE</text>
+      <rect x="${x - 62}" y="${y - 70}" width="124" height="22" rx="4" fill="#c0392b"/>
+      <text class="map-you-text" x="${x}" y="${y - 54}" font-size="14" text-anchor="middle" textLength="108" lengthAdjust="spacingAndGlyphs">YOU ARE HERE</text>
     </g>
     <path d="M${x},${y} C${x - 5},${y - 9} ${x - 14},${y - 17} ${x - 14},${y - 27} A14,14 0 1 1 ${x + 14},${y - 27} C${x + 14},${y - 17} ${x + 5},${y - 9} ${x},${y} Z" fill="#c0392b" stroke="#fffdf6" stroke-width="2"/>
     <circle cx="${x}" cy="${y - 27}" r="5.5" fill="#fffdf6"/>
@@ -414,15 +436,16 @@
 </g>`);
     }
 
-    out.push('</svg>');
     return out.join('\n');
   }
 
   root.NSH = root.NSH || {};
   root.NSH.renderMap = renderMap;
+  root.NSH.renderSheet = renderSheet;
+  root.NSH.renderPencil = renderPencil;
   root.NSH.mapModel = mapModel;
   root.NSH.project = project;
   root.NSH.mapView = mapView;
   root.NSH.wholeView = wholeView;
-  if (typeof module === 'object' && module.exports) module.exports = { renderMap, mapModel, project, mapView, wholeView };
+  if (typeof module === 'object' && module.exports) module.exports = { renderMap, renderSheet, renderPencil, mapModel, project, mapView, wholeView };
 })(typeof window !== 'undefined' ? window : globalThis);

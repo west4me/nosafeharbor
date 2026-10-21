@@ -27,8 +27,8 @@ import shapely
 ROOT = Path(__file__).resolve().parent.parent
 NHD, TRAN = sys.argv[1], sys.argv[2]
 
-# The middle of the island: Craig, Hollis, Kasaan and Hydaburg up to Coffman Cove and Whale Pass.
-LON0, LON1, LAT0, LAT1 = -133.25, -132.34, 55.18, 56.14
+# The whole island, Cape Chacon to Point Baker, with Dall and Kosciusko islands along the west side.
+LON0, LON1, LAT0, LAT1 = -133.72, -131.95, 54.66, 56.38
 MID_LAT = (LAT0 + LAT1) / 2
 KM_X = 111.32 * math.cos(math.radians(MID_LAT))  # km per degree of longitude here
 KM_Y = 110.57                                     # km per degree of latitude
@@ -93,13 +93,13 @@ def polys(geom, tol, min_km2):
 # ------------------------------------------------------------------ water
 area = read(NHD, 'NHDArea', ['ftype'])
 sea = shapely.union_all([a['geom'] for a in area if a['ftype'] == 445])  # FType 445 = Sea/Ocean
-sea_out = polys(sea, 0.00035, 0.02)
+sea_out = polys(sea, 0.0006, 0.02)
 
 lakes_out, labels = [], []
 for w in read(NHD, 'NHDWaterbody', ['gnis_name', 'areasqkm']):
     if (w['areasqkm'] or 0) < 0.08 or not w['geom'].intersects(VIEW):
         continue
-    lakes_out += polys(w['geom'], 0.0002, 0.05)
+    lakes_out += polys(w['geom'], 0.0003, 0.05)
     if w['gnis_name'] and w['areasqkm'] > 0.3:
         p = w['geom'].representative_point()
         if VIEW.contains(p):
