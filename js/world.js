@@ -214,7 +214,8 @@
           : 'The inter-island ferry groans away from the dock behind you, back across Clarence Strait toward Ketchikan. Rain blows in sideways off the water, fine as mist and twice as wet. Spruce and hemlock crowd the hill above a small gray terminal building and a gravel lot. The only road out runs west into the trees.'),
         exits: {
           west: road('hwy', "You pull out of the ferry lot and head west, wipers slapping, into a tunnel of dripping spruce. A few miles in, the road crosses the Harris River, and you pull onto the shoulder by the bridge.")
-        }
+        },
+        exitNotes: { east: 'East is Clarence Strait, three hours of it, and then Ketchikan. The ferry just left.' }
       },
 
       truck_cab: {
@@ -277,7 +278,7 @@
           east: road('ferry', 'You drive back east down the Harris River valley, eleven miles of muskeg and old clearcuts, until the gray water of Clark Bay opens up ahead and you pull into the ferry lot.'),
           west: road('klawock', 'West on the highway, over the hills and down along Klawock Lake, shining like hammered tin through the alders for miles. A school bus passes going the other way and the driver lifts two fingers off the wheel. Everybody waves here. Fourteen miles from the bridge, you roll down into Klawock and park.')
         },
-        exitNotes: { south: 'That is the Hydaburg Highway, forty miles of it down to Hydaburg. Your case is the other way.' },
+        exitNotes: { south: "That's the Hydaburg Highway, forty miles of it down to Hydaburg, the Kaigani Haida town on Sukkwan Strait. Haida families from the old villages of Howkan, Sukkwan and Klinkwan came together there in 1911, and they raised their totem park in 1939. It's a beautiful drive. Your case is the other way." },
         fish: "No rod, no license and no time. The steelhead will have to wait. They're good at that."
       },
 
@@ -291,7 +292,7 @@
           east: road('trailhead', "East on the Thorne Bay Road, eight miles of gravel and potholes down the Thorne River valley. The river shows through the trees on your left now and then, big and tea-colored. Just past where it swings close to the road, a brown Forest Service sign marks a pullout: THORNE RIVER TRAIL. You pull in and kill the engine. It's very quiet."),
           north: road('sweetwater_turnoff', "North on the North Prince of Wales Road, then east on the Coffman Tie: twenty-eight miles of gravel, clearcuts and second growth, with a doe in the ditch every few miles. Finally the road runs along the east shore of a big, dark lake. At a muddy pullout and a brown Forest Service sign, SWEETWATER LAKE, you pull over.")
         },
-        exitNotes: { northwest: 'The North Prince of Wales Road keeps going north to Naukati and Whale Pass. Not today.' }
+        exitNotes: { northwest: "The North Prince of Wales Road keeps going north to Naukati, Whale Pass and the limestone country of the north end, where El Capitan Cave runs two miles into the mountain. It's the biggest known cave in Alaska. Not today." }
       },
 
       trailhead: {
@@ -303,7 +304,7 @@
           west: road('thorne_road', 'You bump back out of the pullout and head west, eight miles up the Thorne River valley to the junction at Control Lake.'),
           northeast: 'river_trail'
         },
-        exitNotes: { east: 'Thorne Bay is a few more miles down the road. Nothing there for your case.' }
+        exitNotes: { east: "The road goes on to Thorne Bay, which was the biggest logging camp in North America once. On the way, the Kasaan Highway branches south to Kasaan, where Naay I'waans, the Great House, has stood since 1880. It's the last Haida clan house left in Alaska. Neither one is your case today." }
       },
 
       river_trail: {
@@ -479,7 +480,7 @@
         map: { at: [-133.0958, 55.5522], site: 'klawock' },
         name: 'Klawock',
         aliases: ['klawock', 'town'],
-        desc: "The highway comes down out of the hills into Klawock, a small town on a wide inlet where woodsmoke mixes with the smell of low tide. Klawock is one of the oldest communities on the island. Up the hill to the north stand the carved poles of the totem park. The Alaska State Troopers post is a low building to the west. The highway runs east back toward Hollis and south to Craig, and Big Salt Road heads northeast toward Control Lake and the Thorne River.",
+        desc: "The highway comes down out of the hills into Klawock, a small town on a wide inlet where woodsmoke mixes with the smell of low tide. Klawock, Lawáak in Tlingit, is one of the oldest communities on the island and home of the Heinyaa Ḵwáan, whose people have fished these waters for longer than anyone has written anything down. Down by the water, rotting pilings mark where one of Alaska's first salmon canneries stood. Up the hill to the north stand the carved poles of the totem park. The Alaska State Troopers post is a low building to the west. The highway runs east back toward Hollis and south to Craig, and Big Salt Road heads northeast toward Control Lake and the Thorne River.",
         exits: {
           in: 'trooper',
           east: road('hwy', 'You head east out of Klawock along Klawock Lake and over the hills. Twenty-five minutes of curves and muskeg later, you pull over at the Harris River bridge.'),
@@ -494,7 +495,9 @@
         map: { at: [-133.0958, 55.5522], site: 'klawock' },
         name: 'Klawock Totem Park',
         aliases: ['totem park', 'park', 'totems', 'poles'],
-        desc: 'Totem poles line the hillside above the town and the inlet. They are carved from red cedar, weathered to silver-gray, and their figures watch the water the way they have for generations. Next to a carving shed at the edge of the park, a fresh cedar log rests on sawhorses, halfway to becoming something with wings. The path leads south back down into town.',
+        desc: "Totem poles line the hillside above the town and the inlet, more than twenty of them, red cedar weathered to silver-gray. Their figures watch the water: Raven, Eagle, Killer Whale, Wolf, Bear. The poles came from Tuxekan, the old winter village up the coast, and some have been recarved by Klawock hands as the old ones gave out. A wooden plaque stands at the foot of the path. Next to a carving shed at the edge of the park, a fresh cedar log rests on sawhorses, halfway to becoming something with wings. The path leads south back down into town.",
+        listen: 'Rain ticking on the cedar. The scrape of an adze. Down below, a raven says something long and complicated, and another one answers.',
+        smell: 'Fresh-cut red cedar, sweet and sharp, over the salt of the inlet.',
         exits: { south: 'klawock' }
       },
 
@@ -511,7 +514,7 @@
         map: { at: [-133.1483, 55.4764], site: 'craig' },
         name: 'Craig — Front Street',
         aliases: ['craig', 'front street', 'downtown'],
-        desc: "Craig is the biggest town on the island, which means two grocery stores, three bars and a lot of boats. Front Street runs along the water past bait shops and a cannery that's seen better decades. The harbor is to the west. The neon OPEN sign of the Riptide Tavern buzzes to the east. The road climbs north back to Klawock, and a gravel road heads south along the shore toward the Harbor Light Lodge.",
+        desc: "Craig is the biggest town on the island, which means two grocery stores, three bars and a lot of boats. Its old Tlingit name is Shaan Seet, and Fish Egg Island lies just offshore, where the herring have spawned every spring for longer than anyone remembers. Front Street runs along the water past bait shops and a cannery that's seen better decades. The harbor is to the west. The neon OPEN sign of the Riptide Tavern buzzes to the east. The road climbs north back to Klawock, and a gravel road heads south along the shore toward the Harbor Light Lodge.",
         exits: {
           in: 'tavern',
           north: road('klawock', 'North out of Craig with the water on your left and the hills on your right. Fifteen minutes later you coast into Klawock.'),
@@ -865,7 +868,15 @@
       totems: {
         name: 'totem poles', loc: 'totem_park', fixed: true,
         names: ['totems', 'totem poles', 'totem', 'poles', 'figures'],
-        desc: "Eagle, raven, bear and killer whale, carved and recarved by generations of hands. You stand there longer than you meant to."
+        desc: "Up close, the figures are bigger than you expected: a killer whale with a raven for its dorsal fin, an eagle with its wings folded, a wolf, a bear, a frog tucked at the base. The paint has gone soft with eighty years of rain, black and red and blue-green. You know enough to know you can't read them. Each one is a record, someone's crests and history set in cedar, and the stories behind them belong to the clans who own them. You stand there longer than you meant to.",
+        verbs: {
+          touch: (g) => (g.npcHere('walt')
+            ? "You reach out, then stop. Walt hasn't said anything, but he's watching. You put your hand down.\n\n'Gunalchéesh,' he says. 'People mean well. But old cedar doesn't like hands, and these aren't ours to handle. They belong to the families.'"
+            : 'You reach out, then think better of it and put your hand in your pocket. The plaque asked nicely.'),
+          climb: "You don't even finish the thought. Those poles are somebody's grandparents, more or less, and you were raised better than that.",
+          take: "That's someone's history. You keep your hands to yourself.",
+          push: "You keep your hands to yourself. These have stood eighty years in Klawock and a lot longer before that, and they don't need your help."
+        }
       },
       wall_map: {
         name: 'wall map', loc: 'trooper', fixed: true,
@@ -1115,7 +1126,7 @@
       fish_egg: {
         name: 'Fish Egg Island', loc: 'lodge_road', fixed: true,
         names: ['island', 'fish egg island', 'fish egg', 'kelp', 'water'],
-        desc: 'Low, dark and close, maybe a half mile offshore. A strong swimmer in a survival suit could make that in a flat calm. Interesting thought.'
+        desc: 'Low, dark and close, maybe a half mile offshore. People lived there long before there was a Craig; the shell middens are still in the banks, and every spring the herring come in to spawn along its shores and families go out for the eggs. A strong swimmer in a survival suit could make it in a flat calm. Interesting thought.'
       }
     };
 
@@ -1194,7 +1205,12 @@
         name: 'Joe Kitka', loc: 'harbormaster',
         names: ['joe', 'joe kitka', 'kitka', 'harbormaster', 'harbor master'],
         here: 'Joe Kitka, the harbormaster, a broad man in faded rain gear, is drinking coffee out of a mug that says WORLD\'S OKAYEST GRANDPA.',
-        desc: 'Sixty, steady, and weathered by fifty winters on the water. He looks at you like he looks at the sky: checking for trouble.',
+        desc: 'Sixty, steady, and weathered by fifty winters on the water. He looks at you like he looks at the sky: checking for trouble. There is a silver bracelet on his wrist, engraved with an eagle.',
+        thanks: (g, lang) => {
+          if (lang === 'haida') return "Joe's eyebrows go up, and then he laughs, a big one that rattles the window. 'Háw'aa! Where'd you pick that up? My granny would have fed you till you couldn't stand.'";
+          if (lang === 'tlingit') return "'Gunalchéesh. That's Tlingit. Walt up in Klawock would be proud of you.' Joe grins. 'Me, I'm Haida on my mom's side, and we go by the mother's side. We say háw'aa. Either way, you're welcome.'";
+          return "Joe raises the mug an inch. 'Don't thank me yet. Thank me when you've found him.'";
+        },
         talk: (g) => {
           if (!g.flag('got_report')) {
             g.flag('got_report', true);
@@ -1212,8 +1228,12 @@
           { k: ['lanyard', 'kill', 'switch'], r: "'Every time. Forty years. Clipped to his wrist.'" },
           { k: ['suit', 'survival', 'immersion'], r: "'Survival suit? Not for crab pots in Bucareli Bay. Not in October on a flat calm. That's what you'd wear to swim.' He looks at you over his mug. 'Why do you ask?'" },
           { k: ['tide', 'tides', 'slack'], r: "'High tide 9:42 that night. Slack around ten. Not that it matters to a man in a boat.'" },
-          { k: ['mug', 'grandpa'], r: "'Grandkids gave it to me. Okayest. I'll take it.'" },
-          { k: ['island', 'fish egg'], r: "'Half a mile off the Craig shore. Strong swimmer in a survival suit could make it on a calm night. Not that anybody would.'" }
+          { k: ['mug', 'grandpa', 'grandkids'], r: "'Grandkids gave it to me. Okayest. I'll take it.'" },
+          { k: ['island', 'fish egg'], r: "'Half a mile off the Craig shore. Strong swimmer in a survival suit could make it on a calm night. Not that anybody would.' He sips. 'There was a village on Fish Egg, long before Craig. You can still see the shell middens. Herring spawn all along there in the spring, and people have been coming for the eggs since forever. That's why it's called that.'" },
+          { k: ['haida', 'kaigani', 'family', 'mom', 'mother', 'bracelet', 'eagle'], r: "'My dad was Tlingit, from Sitka. My mom's people are Kaigani Haida, from Howkan, before everybody moved to Hydaburg.' He turns the bracelet on his wrist. 'Eagle side. We go by the mother, so I'm Haida. The Kaigani came north from Haida Gwaii, three hundred years ago, give or take, and made a home on the south end. Smallpox came through twice and took most of them. We're still here.'" },
+          { k: ['hydaburg', 'howkan', 'sukkwan', 'klinkwan'], r: "'Hydaburg. Nineteen eleven, Howkan and Sukkwan and Klinkwan all moved to one place, so the kids could have a school. My grandma never stopped calling Howkan home. Good totem park down there now. And the kids are learning the language again. Xaad Kíl. Better than I ever spoke it.'" },
+          { k: ['kasaan', 'longhouse', 'naay', 'great house', 'son-i-hat'], r: "'Kasaan. Chief Son-i-Hat built Naay I'waans in 1880, the Great House. It's the last Haida clan house left in Alaska. It was falling down for years. Then they fixed it, the right way, with Stormy Hamar carving, and in 2016 they opened it again.' He looks into his mug. 'I drove the grandkids over for it. Best day I've had in a long time. You go, sometime. Ask before you take pictures.'" },
+          { k: ['craig', 'town', 'shaan seet', 'history'], r: "'Shaan Seet, the old name. A man named Craig Millar put up a saltery out on Fish Egg in 1907, with a Haida crew, and the town got named for him. Funny how that goes.'" }
         ],
         askDefault: "Joe shrugs. 'Not my department.'",
         show: {
@@ -1233,8 +1253,14 @@
           { k: ['rick', 'sorensen'], r: "'Mr. Sorensen? He came by the day after Mr. Haugen... you know. The twelfth, real early. Bought two propane tanks and a bunch of gas in cans and paid cash, which was weird because the lodge has an account.' She jerks her chin at the barrel. 'He threw the receipt in there. Nobody ever empties that barrel.'" },
           { k: ['dale', 'haugen'], r: "'He used to tip me in smoked salmon. Best tips on the dock.'" },
           { k: ['propane', 'gas', 'fuel', 'tanks'], r: "'Twenty-pound exchange is thirty bucks. Gas is eleven and change a gallon. Welcome to the island.'" },
-          { k: ['receipt', 'barrel', 'trash'], r: "'Knock yourself out. Watch for herring.'" }
+          { k: ['receipt', 'barrel', 'trash'], r: "'Knock yourself out. Watch for herring.'" },
+          { k: ['herring', 'eggs', 'roe', 'spring', 'kelp', 'hemlock', 'grandma', 'fish egg', 'island'], r: "For the first time she puts the phone down. 'Every spring, when the herring come in to spawn, me and my grandma go out to Fish Egg. You sink hemlock branches, or you find the good kelp, and the herring lay their eggs all over it, thick as frosting. Then you pick it and dry it and give most of it away. Elders first.' She grins. 'Herring eggs with a little seal oil. Best food on earth. Fight me.'" },
+          { k: ['shaan seet', 'craig', 'town'], r: "'Shaan Seet's the old name. My grandma only ever calls it that. Craig is some guy who had a fish saltery.'" },
+          { k: ['school', 'phone'], r: "'School's fine. We're doing Haida and Tlingit this year, both. I'm better at the songs than the grammar.' She goes back to the phone. 'Don't tell anyone I said school's fine.'" }
         ],
+        thanks: (g, lang) => (lang
+          ? "Kenzie looks up, surprised, and actually smiles. 'Hey. Not bad. Most people who come off the ferry can't even say Klawock.'"
+          : "'Mm-hm.' She doesn't look up, but she does wave."),
         askDefault: "Kenzie shrugs without looking up.",
         show: {
           receipt: "'Yep. That's the one. Told you nobody empties that barrel.'"
@@ -1255,9 +1281,14 @@
           return "'Go up the Thorne,' Cal says. 'And don't drown in my waders.'";
         },
         topics: [
-          { k: ['dale', 'haugen', 'rick', 'sorensen', 'thorne', 'wages', 'fight', 'marnie', 'boat', 'skiff'], r: (g) => g.flag('cal_talked') ? "'Told you what I know. Rick, Thorne Bay Road, every few days. Go look.'" : "Cal taps his empty bottle meaningfully." }
+          { k: ['dale', 'haugen', 'rick', 'sorensen', 'thorne', 'wages', 'fight', 'marnie', 'boat', 'skiff'], r: (g) => g.flag('cal_talked') ? "'Told you what I know. Rick, Thorne Bay Road, every few days. Go look.'" : "Cal taps his empty bottle meaningfully." },
+          { k: ['fishing', 'fish', 'steelhead', 'trout', 'cutthroat', 'river', 'rivers', 'fly', 'flies'], r: (g) => g.flag('cal_talked') ? "Cal's whole face changes. 'Now you're talking. This island's got some of the best steelhead water in Alaska. The Thorne, the Karta, Klawock, Staney Creek, the Harris. Fall fish come in with the rain and sit in there all winter, and spring brings the big push.' He holds his hands apart, then, being an honest man, moves them closer together. 'Cutthroat in every lake that isn't too deep to fish. Swing a fly, keep 'em wet, let 'em go. They were here before us. Act like it.'" : 'Cal taps his empty bottle meaningfully.' },
+          { k: ['bear', 'bears', 'grizzly', 'brown'], r: "'Black bears. Every bear on this island's a black bear. The brown bears are on the mainland and the ABC islands, not here. Not since the ice age, anyway. They found grizzly bones up in the caves on the north end.' He drinks. 'Plenty of black ones, though. Make noise on the trail. Don't get between a sow and her cub, and don't keep salmon in your tent.'" },
+          { k: ['wolf', 'wolves'], r: "'Alexander Archipelago wolves. Only in Southeast. Little, dark, smart as hell. You'll hear them before you ever see one. The count on this island went from two hundred something to under a hundred in one year, back around 2014. Too many roads, too much trapping. Better now, I hear.' He's quiet a second. 'Heard a pack up the Thorne last week. Best sound there is.'" },
+          { k: ['deer', 'hunting', 'hunt'], r: "'Sitka blacktail. Little deer, good meat. Half the freezers on this island are full of it. Rick couldn't hit one with his truck, which is my point.'" }
         ],
         askDefault: (g) => g.flag('cal_talked') ? "'No idea. Ask me about fishing sometime.'" : 'Cal taps his empty bottle meaningfully.',
+        thanks: "Cal grunts. 'Thank me by bringing my waders back dry.'",
         give: {
           beer: (g) => {
             g.moveItem('beer', null);
@@ -1295,18 +1326,34 @@
         name: 'Walt', loc: 'totem_park',
         names: ['walt', 'walter', 'carver', 'old man', 'elder'],
         here: 'An older man in a canvas apron is shaping the cedar log with an adze, curls of red wood piling up around his boots.',
-        desc: "Seventy-something, with a carver's forearms and a fisherman's squint. He knows this island the way you know your own kitchen.",
+        desc: "Seventy-something, with a carver's forearms and a fisherman's squint. Tlingit, Klawock born and raised. He knows this island the way you know your own kitchen.",
+        thanks: (g, lang) => {
+          if (lang === 'tlingit') {
+            g.flag('said_gunalcheesh', true);
+            return "Walt stops carving. For a second he just looks at you. Then he smiles, all the way to his eyes. 'Gunalchéesh to you, too. Not bad. Most people say it like a sneeze.' He goes back to work, but now he's humming.";
+          }
+          if (lang === 'haida') return "'Háw'aa. That's Haida. Joe Kitka down at the harbor would like that.' He taps the log. 'Up here we say gunalchéesh.'";
+          return "Walt lifts the adze an inch off the cedar, which from him is a speech.";
+        },
         talk: (g) => {
           g.flag('knows_cabin', true);
           return "Walt sets down the adze and looks you over. 'The insurance investigator. Small island. Everybody knows by now.' He nods toward the water. 'Dale Haugen ran boats out of Craig for forty years. I don't believe the water took him.'\n\nHe goes back to work, then adds without looking up: 'My nephew was hunting up off Thorne Bay Road last week. Says he saw a light in the old Forest Service cabin up the Thorne. Nobody rents that cabin in October.'";
         },
         topics: [
+          { k: ['klawock river', 'klawock lake', 'hatchery'], r: "'Our river. The sockeye run up it to the lake every summer. The hatchery helps the coho now. When I was a kid you could walk across their backs, my uncle said. He also said he caught a halibut the size of a door, so.'" },
           { k: ['cabin', 'thorne', 'river', 'light', 'nephew'], r: (g) => { g.flag('knows_cabin', true); return "'Take Big Salt Road out of Klawock to Control Lake, then east on the Thorne Bay Road to the trailhead. The trail goes northeast through the big trees to the river. The cabin's on the far bank. River's high this time of year. Don't try it in street clothes, and bring a light. It's dark under those trees.'"; } },
           { k: ['dale', 'haugen'], r: "'Good fisherman. Stubborn. The kind of man who'd rather lose everything than lose his pride. That's not always a good thing.'" },
           { k: ['rick', 'sorensen'], r: "'He's been driving up the Thorne road a lot. Not hunting. You don't hunt in loafers.'" },
           { k: ['coffman', 'cove', 'hazel', 'sweetwater', 'north'], r: "'Hazel at the store in Coffman Cove knows everything that happens north of the Thorne. Long drive. Up the North Prince of Wales Road from Control Lake, past Sweetwater.'" },
-          { k: ['totem', 'totems', 'pole', 'poles', 'carving', 'log', 'cedar', 'raven'], r: "'This one's for the school. Raven. It'll take me most of a year if I do it right, and I do it right.'" },
-          { k: ['island', 'prince of wales', 'klawock'], r: "'People have lived here a very long time. Everything on this island remembers things. People forget that.'" }
+          { k: ['carving', 'log', 'cedar', 'adze', 'school'], r: "'This one's for the school. Raven. It'll take me most of a year if I do it right, and I do it right.' He runs a thumb along the grain. 'Red cedar. Tree of life, the old people called it. Gave us houses, canoes, clothes, baskets, and the poles. You thank the tree when you take it. That's not superstition. That's manners.'" },
+          { k: ['totem', 'totems', 'pole', 'poles', 'story', 'stories', 'figures', 'crest', 'crests', 'meaning'], r: "'Everybody wants to know what a pole means.' Walt sets the adze down. 'First you ask whose it is. Every figure up there is a crest. It belongs to a clan, along with the stories and the songs that go with it. We call that at.óow. Owned things. Sacred, some of them.' He nods up the hill. 'I can tell you that one's a killer whale with a raven for a fin. The story behind it belongs to the family that owns it, and it's not mine to hand to a stranger in the rain. No offense meant.'\n\nHe picks the adze back up. 'And they're not idols. Nobody ever prayed to a pole. They're more like a library, if you know how to read it.'" },
+          { k: ['tuxekan', 'ccc', 'grandfather', 'moved', 'park', 'history'], r: "'Tuxekan. Our winter village, up the coast. When the people moved down here for the cannery and the school, the poles stayed behind, falling down in the rain. In '38 the government sent the CCC, and the families said yes, bring them. My grandfather was on that crew. A dollar a day, he said, and worth every penny.' Walt smiles. 'Some of these are his work. When they rot, we carve them again. That's the job. A pole's supposed to go back to the forest someday. The story's what you keep.'" },
+          { k: ['raven', 'eagle', 'wolf', 'clan', 'clans', 'moiety', 'side', 'sides'], r: "'Two sides. Raven, and Eagle, or Wolf, depending who you ask. You're born to your mother's side and your mother's clan. You marry the other side. When somebody dies, the other side takes care of everything, and a year or so later the family holds a koo.éex', a memorial party, and pays them back. Feeds them, gives gifts, sings the songs.' He shrugs. 'Each side holds the other one up. Keeps things in balance. I'm Raven. My wife was Eagle. Fifty-one years. Balance.'" },
+          { k: ['shuka', 'kaa', 'ancient', 'skeleton', 'bones', 'dna', 'oldest', 'ice', 'ice age'], r: "Walt is quiet for a bit. 'Shuká Káa. Man Ahead of Us. That's the name the elders gave him.' He keeps his voice low, like you would in a church. 'They found him in 1996, in a cave on the north end. Ten thousand years old, more. The scientists asked the tribes first, before they did anything. That's how it should be done, and it mostly isn't. When the DNA came back, it said he's related to us. Tlingit, Haida, Tsimshian. Our grandparents always said we'd been here since the ice. Now it's on paper.' He looks out at the water. 'We put him back in the ground in 2008, with the songs. He's home.'" },
+          { k: ['tlingit', 'lingit', 'language', 'words', 'gunalcheesh', 'speak'], r: "'Lingít. Not many first speakers left, and every year a few less. But my granddaughter's learning it in school, and now she corrects me at dinner.' He laughs. 'You want one word? Gunalchéesh. Thank you. Say it to somebody and mean it.'" },
+          { k: ['cannery', 'canneries', 'salmon', 'sockeye', 'fish', 'traps'], r: "'Eighteen seventy-eight, they built the cannery here. One of the first in Alaska. Brought in Chinese crews to work the line. Our people fished for them, worked for them. Then came the fish traps, and the runs nearly went.' He shrugs. 'Statehood got rid of the traps. The sockeye came back some. The river remembers.'" },
+          { k: ['bear', 'bears'], r: "'Black bears. Lots of them. There were brown bears too, back in the ice time. They found the bones in the caves up north. Now it's just the black ones, and that's plenty.'" },
+          { k: ['island', 'prince of wales', 'klawock', 'lawaak', 'lawa', 'name', 'village', 'town', 'heinyaa', 'henya'], r: "'Lawáak. That's our name for this place. It's said it comes from Lawá, who started the village. We're Heinyaa Ḵwáan, the people of this part of the coast.' He nods at the inlet. 'People have lived here a very long time. Everything on this island remembers things. People forget that.'" }
         ],
         askDefault: "Walt keeps carving. 'Can't help you there.'",
         show: {
@@ -1337,7 +1384,9 @@
           { k: ['sweetwater', 'cabin', 'lake', 'skiff', 'boat'], r: "'Southwest on the Coffman Cove Road, seven miles, past Coffman Creek. There's a pullout on the east shore with a Forest Service sign. Two hundred feet of trail to the water, and the cabin's half a mile up the shore. The Forest Service leaves a skiff there. Usually with oars.'" },
           { k: ['eagle'], r: "'Eagle Creek runs out of Luck Lake right by the beach. Best cutthroat fishing on the north end, and I didn't tell you that.'" },
           { k: ['oars', 'oar'], r: (g) => g.inInv('oars') ? "'You've got my good ones. Bring them back.'" : "'Talk to me first, then we'll see about oars.'" },
-          { k: ['coffman', 'cove', 'town', 'camp', 'logging'], r: "'Used to be a logging camp. Now it's a town that still thinks it's a logging camp. Best place on the island, if you like rain and minding your own business.'" },
+          { k: ['coffman', 'cove', 'town', 'camp', 'logging', 'history'], r: "'Named for some Navy lieutenant back in 1886, Dewitt Coffman. Nobody up here could tell you a thing about him.' She sharpens her pencil. 'Logging camp in the fifties. Big timber, big money, a hundred and some men in the bunkhouses. When the timber sales dried up, so did the jobs. School got down to ten kids one year. Ten.' She shrugs. 'Now it's fishermen, retirees and people who like it quiet. It's a town that still thinks it's a logging camp. Best place on the island, if you like rain and minding your own business.'" },
+          { k: ['thorne bay', 'ketchikan pulp', 'kpc', 'pulp', 'timber'], r: "'Thorne Bay was the biggest logging camp in North America, once. Ketchikan Pulp floated the whole camp over from Hollis in the sixties. Pulp mill closed in '97, and that was the end of that.' She doesn't look up. 'You can still see the clearcuts from the air. You can see them from the moon, my husband used to say. He set chokers for thirty years, so he was allowed to say it.'" },
+          { k: ['cave', 'caves', 'el capitan', 'whale pass', 'shuka', 'kaa', 'north end'], r: "'El Capitan, up past Whale Pass. Biggest cave in Alaska, two miles of it. Forest Service gives tours in the summer. They found bear bones in there older than the ice, black and brown both.' She sets her pencil down. 'And there's the other cave up north, where they found the man the tribes named Shuká Káa. Ten thousand years. That's not my story to tell. If you're ever in Klawock, ask Walt.'" },
           { k: ['luck'], r: "'Prettiest lake on the island. Don't tell anybody.'" },
           { k: ['half dog', 'half'], r: "'Half Dog Road? Don't ask me. Some logger with a sense of humor, fifty years ago. The name stuck. Names do, up here.'" },
           { k: ['dog', 'creek', 'bears', 'bear'], r: "'The sow and her cub have been fishing Dog Creek since August, right down to the edge of town. Make noise and don't get between them.'" },
@@ -1549,6 +1598,15 @@
         'road': 'One road out. It goes west.',
         'bench': { desc: 'A wooden bench under the overhang, somehow wet anyway.', sit: 'You sit on the bench. The wet soaks through immediately. You stand back up, wiser.' },
         'vending machine, machine': { desc: 'A vending machine with one sad bag of pretzels and a handwritten sign taped to the glass: NO.', push: 'You press the button. The machine hums, considers your request, and declines.' },
+        'brochure, brochures, rack, brochure rack, pamphlet, visitor guide, guide': {
+          desc: 'A wire rack of soggy visitor brochures under the overhang. One has survived the weather better than the rest: WELCOME TO PRINCE OF WALES ISLAND.',
+          text: "WELCOME TO PRINCE OF WALES ISLAND\n\nThe fourth-largest island in the United States: about 2,577 square miles of mountains, muskeg, old-growth rain forest and salt water, roughly 135 miles from end to end. Around 6,000 people live here, in a dozen small towns joined by the longest road system in Southeast Alaska.\n\nThis has always been Native land. Native people have lived on these islands for more than ten thousand years; Lawáak (Klawock) is home of the Heinyaa Ḵwáan. Kaigani Haida people came north from Haida Gwaii about three hundred years ago and made their homes in the south and east, at Kasaan and Hydaburg. Please respect village lands, cultural sites and subsistence camps. Ask before you photograph people, poles or ceremonies.\n\nGUNALCHÉESH (Tlingit) — HÁW'AA (Haida) — THANK YOU for visiting.",
+          take: "You take a brochure. Then you put it back, because the next person off the ferry should get one too. You've already read it."
+        },
+        'historical marker, marker, plaque, hollis, history': {
+          desc: 'A weathered wooden marker at the edge of the lot, its letters gone soft with moss.',
+          text: "HOLLIS\nIn 1899 prospectors staked gold claims up the Harris River, and for a while Hollis was a busy mining camp. The Dawson Mine produced nearly 10,000 ounces of gold before the mines played out in the 1920s.\nIn 1953 Ketchikan Pulp Company made Hollis its main logging camp. In 1962 the camp moved to Thorne Bay.\nSince 2002 the Inter-Island Ferry has linked Hollis to Ketchikan.\n(Someone has scratched underneath: AND IT'S STILL RAINING.)"
+        },
         'schedule, ferry schedule, sign, notice': { desc: 'A ferry schedule in a scratched plastic case.', text: 'INTER-ISLAND FERRY — HOLLIS / KETCHIKAN\nDaily departures 8:00 AM and 3:30 PM, weather permitting.\n(Someone has added in pen: "it usually doesn\'t")' }
       },
       hwy: {
@@ -1556,6 +1614,7 @@
         'muskeg, bog, shore pines, pines': "Open muskeg: spongy, wet and dotted with stunted shore pines, all bonsai'd by the wind. Step in the wrong spot and you'll lose a boot.",
         'clearcuts, clearcut, alder, alders, stumps, second growth, forest, trees': 'Old clearcuts from the big logging days, the stumps gone silver, the hillsides grown back thick with alder and young spruce.',
         'hydaburg sign, sign, green sign, hydaburg highway': 'A green highway sign: HYDABURG 40, with an arrow pointing south. Riddled with what you hope is birdshot.',
+        'gold, mine, mines, mining, tailings': "A hundred-odd years ago this valley was full of prospectors. They found gold up the Harris River, and Hollis boomed and then went bust. These days the river's gold is the steelhead.",
         'highway, road, pavement, two-lane': 'Two lanes, no shoulder, no traffic. A pickup passes and the driver waves. You wave back. That is the whole social scene.'
       },
       thorne_road: {
@@ -1685,7 +1744,9 @@
         'troopers post, post, low building': 'A low building with an Alaska State Troopers shield on the sign out front and two blue-and-gold cruisers parked a little crooked.',
         'totem park, hill': 'The carved poles stand along the hillside to the north, facing the water.',
         'woodsmoke, smoke, stovepipes': 'Woodsmoke from a dozen stovepipes, hanging low over the town in the wet air.',
-        'school, hoop, basketball hoop': 'The school, with an outdoor basketball hoop that has clearly survived a lot of rain-delayed games.'
+        'school, hoop, basketball hoop': 'The school, with an outdoor basketball hoop that has clearly survived a lot of rain-delayed games. A banner over the door says WELCOME in English, and underneath it in Lingít.',
+        'cannery, pilings, old pilings, cannery site': "Black stubs of pilings march out into the inlet, all that's left of the cannery. It opened in 1878, one of the first in Alaska, and ran for about fifty years. Chinese crews worked the lines. The salmon that filled the cans were the same runs the Heinyaa people had lived on for thousands of years, and the canneries and fish traps came close to emptying the rivers. These days the hatchery up the Klawock River helps the sockeye and coho along.",
+        'river, klawock river, klawock lake, hatchery': 'The Klawock River runs out of Klawock Lake into the inlet. A hatchery upriver helps the sockeye and coho runs, which used to feed the whole village and still feed a lot of it.'
       },
       totem_park: {
         'shed, carving shed': 'An open-sided shed full of cedar chips, with adzes and knives hung neatly along the back wall in order of size.',
@@ -1693,7 +1754,13 @@
         'chips, cedar chips, shavings, curls': { desc: 'Curls of red cedar, fragrant as the inside of a hope chest.', smell: 'Cedar. You could stand here all day.', take: 'You pocket a curl of cedar for luck. Walt pretends not to notice.' },
         'view, town, inlet, water': 'From up here you can see the whole inlet, the town, and the hills fading off into the rain.',
         'path, hillside, park': 'A gravel path winds between the poles down the hill to town.',
-        'sawhorses, sawhorse': 'Heavy, paint-spattered sawhorses. They have held up a lot of history.'
+        'sawhorses, sawhorse': 'Heavy, paint-spattered sawhorses. They have held up a lot of history.',
+        'plaque, marker, wooden plaque, park sign': {
+          desc: 'A cedar plaque at the foot of the path, carved and painted, with a row of small images along the bottom: raven, eagle, killer whale, wolf, frog.',
+          text: "KLAWOCK TOTEM PARK\n\nThese poles were carved for the clan houses of Tuxekan, the winter village of the Heinyaa Ḵwáan, north of here. When Tuxekan's people moved to Klawock, the poles stayed behind in the rain.\n\nFrom 1938 to 1940, with the agreement of the families who owned them, the Civilian Conservation Corps and Native carvers brought 21 poles here, restoring the ones they could and recarving the ones they could not.\n\nAmong them: the Sockeye Salmon Pole, the Raven-Finned Blackfish Pole, the Eagle and Wolf Pole, the Giant Clam Pole and the pole of Gonaqadate, who brings wealth from the sea.\n\nA pole tells who a clan is: its crests, its history, its rights. Each pole belongs to the clan whose story it carries. Please do not touch or climb the poles.\n\nGUNALCHÉESH."
+        },
+        'tuxekan': 'Somewhere up the coast to the north, past Big Salt Lake. The old village is quiet now. The poles here are what it sent ahead.',
+        'raven, ravens': "A pair of ravens on the roof of the carving shed, talking it over. In the old stories Raven brought the light into the world, mostly by accident and entirely for his own reasons. These two look like they're planning something similar."
       },
       trooper: {
         'desk, front desk, nameplate': 'Neat stacks of paper, a nameplate that reads SGT. A. REYES, and a framed photo of a very large halibut.',

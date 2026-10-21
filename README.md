@@ -73,6 +73,18 @@ Real places: Hollis, Klawock, Craig, Control Lake, the Thorne River, Sweetwater 
 Dog Creek, Luck Lake and every road between them. Made up: the people, the Harbor Light Lodge,
 the businesses, and the cabin on the Thorne.
 
+### The island's people and history
+
+Prince of Wales is Tlingit and Kaigani Haida country, and the game tries to treat it that way. The
+history in the signs, the brochure and what people tell you is real: Lawáak (Klawock) and the
+Heinyaa Ḵwáan, the 1878 cannery, the Tuxekan poles the CCC and Native carvers brought to the Klawock
+totem park in 1938–40, Shuká Káa ("Man Ahead of Us," found in a north-end cave in 1996 and reburied
+in 2008), Kasaan's Naay I'waans clan house (1880, rededicated 2016), Hydaburg's founding in 1911,
+herring eggs at Fish Egg Island, Hollis gold, and the logging camps at Hollis, Thorne Bay and Coffman
+Cove. The island has only black bears today. Clan stories (at.óow) belong to the clans that own them,
+so the game never makes one up: Walt will tell you what a pole is, not whose story it carries.
+Try THANK, GUNALCHÉESH (Tlingit) or HÁW'AA (Haida).
+
 ## Project layout
 
 ```

@@ -508,7 +508,64 @@ test('real roads that are not part of the case get a real answer', () => {
   g.state.loc = 'hwy';
   assert.match(run(g, 's'), /Hydaburg/);
   g.state.loc = 'thorne_road';
-  assert.match(run(g, 'nw'), /Naukati and Whale Pass/);
+  assert.match(run(g, 'nw'), /Naukati, Whale Pass/);
+});
+
+test('the island has only black bears', () => {
+  const g = newGame();
+  g.state.loc = 'river_trail';
+  const dark = run(g, 'look');
+  assert.match(dark, /black bear/);
+  assert.doesNotMatch(dark, /brown bear/);
+});
+
+test('thank-yous in English, Tlingit and Haida, accents optional', () => {
+  const g = newGame();
+  g.state.loc = 'totem_park';
+  assert.match(run(g, 'say gunalchéesh to walt'), /Most people say it like a sneeze/);
+  assert.match(run(g, 'gunalcheesh'), /Most people say it like a sneeze/);
+  assert.match(run(g, 'thank you walt'), /adze an inch/);
+  assert.match(run(g, "háw’aa"), /That's Haida/);
+  g.state.loc = 'harbormaster';
+  assert.match(run(g, "haw'aa joe"), /Where'd you pick that up/);
+  assert.match(run(g, 'tell joe thanks'), /Thank me when you've found him/);
+  g.state.loc = 'ferry';
+  assert.match(run(g, 'thanks'), /trees/);
+  assert.match(run(g, 'say hello'), /out loud/);
+});
+
+test('the poles are treated with respect, and their stories stay with their clans', () => {
+  const g = newGame();
+  g.state.loc = 'totem_park';
+  assert.match(run(g, 'touch poles'), /belong to the families/);
+  assert.match(run(g, 'climb totem'), /don't even finish the thought/);
+  assert.match(run(g, 'take poles'), /someone's history/);
+  assert.match(run(g, 'read plaque'), /Tuxekan/);
+  assert.match(run(g, 'ask walt about poles'), /not mine to hand to a stranger/);
+  assert.match(run(g, 'ask walt about shuka kaa'), /Man Ahead of Us/);
+  assert.match(run(g, 'ask walt about klawock river'), /sockeye/);
+  assert.match(run(g, 'ask walt about thorne river'), /trailhead/);
+});
+
+test('history and people of the island show up where they belong', () => {
+  const g = newGame();
+  assert.match(run(g, 'read brochure'), /fourth-largest island/);
+  assert.match(run(g, 'read marker'), /Dawson Mine/);
+  g.state.loc = 'trailhead';
+  assert.match(run(g, 'e'), /Naay I'waans/);
+  g.state.loc = 'klawock';
+  assert.match(run(g, 'look'), /Heinyaa Ḵwáan/);
+  assert.match(run(g, 'x cannery'), /1878/);
+  g.state.loc = 'harbormaster';
+  assert.match(run(g, 'ask joe about kasaan'), /2016/);
+  g.state.loc = 'fuel_dock';
+  assert.match(run(g, 'ask kenzie about herring'), /Elders first/);
+  g.state.loc = 'cove_store';
+  assert.match(run(g, 'ask hazel about thorne bay'), /biggest logging camp/);
+  g.state.loc = 'tavern';
+  g.flag('cal_talked', true);
+  assert.match(run(g, 'ask cal about wolves'), /Alexander Archipelago/);
+  assert.match(run(g, 'ask cal about bears'), /black bear/);
 });
 
 test('no rowing to Sweetwater without oars, and Hazel has a spare pair', () => {

@@ -35,6 +35,10 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
+  // Thank you, in English, Tlingit (gunalchéesh) and Haida (háw'aa), after accents and apostrophes are folded away.
+  const THANK_WORDS = /^(?:thank you|thanks|thank|gunalcheesh|haw ?aa)(?: (?:you|very much|a lot|so much))?$/;
+  const THANKS = /^(thank you|thanks|thank|gunalcheesh|haw ?aa)(?: (?:you|very much|a lot|so much))?(?: (?:to )?(.+))?$/;
+
   function listJoin(arr) {
     if (arr.length <= 1) return arr.join('');
     if (arr.length === 2) return arr[0] + ' and ' + arr[1];
@@ -308,7 +312,9 @@
     // Returns false for meta commands that shouldn't use up a turn.
     dispatch(input) {
       this.drivingNow = false; // set by world road exits while a trip is under way
-      const cmd = input.replace(/[^a-z0-9\s'-]/g, ' ').replace(/'/g, '').replace(/\s+/g, ' ').trim();
+      // Fold accents and curly quotes first, so GUNALCHÉESH and HÁW’AA read the same as typed plain.
+      const cmd = input.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\u2018\u2019]/g, "'")
+        .replace(/[^a-z0-9\s'-]/g, ' ').replace(/'/g, '').replace(/\s+/g, ' ').trim();
       if (!cmd) { this.print('Beg pardon?'); return false; }
       const words = cmd.split(' ');
       let m;
@@ -386,6 +392,10 @@
       if ((m = cmd.match(/^lock (.+)$/))) { this.print("You'd rather leave things the way you found them."); return; }
 
       // --- people
+      if ((m = cmd.match(THANKS))) return this.thank(m[2], m[1]);
+      if ((m = cmd.match(/^say (.+?)(?: to (.+))?$/)) && THANK_WORDS.test(m[1])) return this.thank(m[2], m[1]);
+      if ((m = cmd.match(/^tell (\S+(?: \S+)?) (.+)$/)) && THANK_WORDS.test(m[2])) return this.thank(m[1], m[2]);
+      if ((m = cmd.match(/^(?:say|whisper|mutter) (.+)$/))) { this.print(`You say "${m[1]}" out loud. The rain keeps its opinion to itself.`); return; }
       if ((m = cmd.match(/^(?:ask|question|quiz) (.+?) (?:about|regarding|re) (.+)$/))) return this.ask(m[1], m[2]);
       if ((m = cmd.match(/^(?:tell) (.+?) about (.+)$/))) return this.ask(m[1], m[2]);
       if ((m = cmd.match(/^(?:talk|speak|chat|converse)(?: to| with)? (.+?)(?: about (.+))?$/))) return m[2] ? this.ask(m[1], m[2]) : this.talk(m[1]);
@@ -433,7 +443,7 @@
       const room = this.rooms[this.state.loc];
       if (this.isDark()) {
         this.print('Darkness', 'room-title');
-        this.print('It is pitch dark under the canopy. You can hear the river somewhere ahead and something large moving through the brush nearby. You are likely to be eaten by a brown bear.');
+        this.print('It is pitch dark under the canopy. You can hear the river somewhere ahead and something large moving through the brush nearby. You are likely to be eaten by a black bear.');
         return;
       }
       this.state.lit[room.id] = true;
@@ -608,6 +618,7 @@
         'DRIVING     GET IN TRUCK, GET OUT, DRIVE TO a place you\'ve been',
         'PEOPLE      TALK TO person, ASK person ABOUT topic,',
         '            SHOW thing TO person, GIVE thing TO person',
+        "            THANK person (or GUNALCHÉESH in Tlingit, HÁW'AA in Haida)",
         'THE CASE    NOTES (your journal), SCORE, HINT,',
         '            ACCUSE person (at the State Troopers post)',
         'GAME        MAP (your graph-paper map), SAVE, LOAD, RESTART',
@@ -786,6 +797,23 @@
       if (!e) return;
       if (e.kind !== 'npc') { this.print(`You talk to the ${e.name}. It's a good listener.`); return; }
       this.print(this.t(e.talk), 'speech');
+    }
+
+    // THANK WALT, or GUNALCHEESH / HAWAA, Tlingit and Haida for thank you. Each person can answer in their own way.
+    thank(phrase, word) {
+      let npc;
+      if (phrase) {
+        npc = this.find(phrase, { items: false });
+        if (!npc) return;
+      } else {
+        const here = this.visibleNpcs();
+        if (!here.length) { this.print('You say it to the trees. The trees, being polite, say nothing back.'); return; }
+        if (here.length > 1) { this.print(`Thank whom? ${listJoin(here.map((n) => n.name))} are here.`); return false; }
+        npc = here[0];
+      }
+      const lang = /gunalcheesh/.test(word) ? 'tlingit' : /^haw ?aa/.test(word) ? 'haida' : null;
+      const r = typeof npc.thanks === 'function' ? npc.thanks(this, lang) : npc.thanks;
+      this.print(r || `${npc.name} nods. 'Sure thing.'`, 'speech');
     }
 
     talkToOnly() {
