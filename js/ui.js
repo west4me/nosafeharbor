@@ -31,6 +31,24 @@
   const history = [];
   let histPos = 0;
 
+  // The transcript is saved with the autosave, so CONTINUE brings back what was on screen.
+  const TRANSCRIPT_KEY = 'nosafeharbor-transcript-v2';
+  const TRANSCRIPT_KEEP = 200;
+  let transcript = [];
+
+  function addLine(text, cls, fresh) {
+    const p = document.createElement('p');
+    p.className = fresh ? cls + ' new' : cls;
+    p.textContent = text;
+    out.appendChild(p);
+    transcript.push({ text, cls });
+  }
+
+  function saveTranscript() {
+    if (transcript.length > TRANSCRIPT_KEEP) transcript = transcript.slice(-TRANSCRIPT_KEEP);
+    storage.set(TRANSCRIPT_KEY, JSON.stringify(transcript));
+  }
+
   function render(blocks) {
     for (const b of blocks) {
       if (b.cls === 'event') {
@@ -38,11 +56,9 @@
         if (b.event === 'notebook') toggleNotebook();
         continue;
       }
-      const p = document.createElement('p');
-      p.className = b.cls + ' new';
-      p.textContent = b.text;
-      out.appendChild(p);
+      addLine(b.text, b.cls, true);
     }
+    saveTranscript();
     out.scrollTop = out.scrollHeight;
     updateStatus();
     if (!mapPanel.hidden) drawMap();
@@ -192,10 +208,7 @@
   });
 
   function echo(cmd) {
-    const p = document.createElement('p');
-    p.className = 'echo';
-    p.textContent = '> ' + cmd;
-    out.appendChild(p);
+    addLine('> ' + cmd, 'echo', false);
   }
 
   function updateStatus() {
@@ -259,6 +272,66 @@
     input.focus();
   });
 
-  render(game.start());
-  input.focus();
+  // ---- start screen: continue the autosaved case, or open a new one
+  const startScreen = document.getElementById('start-screen');
+  const startContinue = document.getElementById('start-continue');
+  const btnContinue = document.getElementById('btn-continue');
+  const btnNew = document.getElementById('btn-new');
+
+  function ago(ms) {
+    const min = Math.round((Date.now() - ms) / 60000);
+    if (!(min >= 1)) return 'just now';
+    if (min < 60) return `${min} minute${min === 1 ? '' : 's'} ago`;
+    const hr = Math.round(min / 60);
+    if (hr < 24) return `${hr} hour${hr === 1 ? '' : 's'} ago`;
+    const d = Math.round(hr / 24);
+    return `${d} day${d === 1 ? '' : 's'} ago`;
+  }
+
+  function closeStart() {
+    startScreen.hidden = true;
+    input.focus();
+  }
+
+  function newCase() {
+    out.innerHTML = '';
+    transcript = [];
+    game.newGame();
+    render(game.start());
+    game.autosave(); // a fresh case replaces the old autosave right away
+    closeStart();
+  }
+
+  function continueCase() {
+    let saved = [];
+    try { saved = JSON.parse(storage.get(TRANSCRIPT_KEY)) || []; } catch (e) { saved = []; }
+    out.innerHTML = '';
+    transcript = [];
+    for (const b of saved) if (b && typeof b.text === 'string') addLine(b.text, b.cls || 'text', false);
+    if (saved.length) addLine('— — —', 'meta', false);
+    render(game.continueGame());
+    nbSeen = logLength(); // what happened before the break isn't news
+    updateNotebookBadge();
+    closeStart();
+  }
+
+  const info = game.autosaveInfo();
+  if (info) {
+    startContinue.hidden = false;
+    document.getElementById('start-info').textContent =
+      `${info.location} · turn ${info.turns} · ${info.score}/${info.maxScore} points · ${info.evidence} piece${info.evidence === 1 ? '' : 's'} of evidence · last played ${ago(info.savedAt)}`;
+    btnNew.textContent = 'Start a new case';
+  }
+  let confirmNew = false;
+  btnContinue.addEventListener('click', continueCase);
+  btnNew.addEventListener('click', () => {
+    if (info && !confirmNew) {
+      confirmNew = true;
+      btnNew.textContent = 'Sure? This replaces the case in progress. Click again.';
+      return;
+    }
+    newCase();
+  });
+  startScreen.hidden = false;
+  (info ? btnContinue : btnNew).focus();
 })();

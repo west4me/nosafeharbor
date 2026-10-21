@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>No Safe Harbor</title>
   <meta name="description" content="A Zork-style text adventure mystery set on Prince of Wales Island, Alaska.">
-  <link rel="icon" href="img/favicon.svg?v=8" type="image/svg+xml">
-  <link rel="icon" href="img/favicon-32.png?v=8" type="image/png" sizes="32x32">
-  <link rel="apple-touch-icon" href="img/apple-touch-icon.png?v=8">
-  <link rel="stylesheet" href="css/style.css?v=8">
+  <link rel="icon" href="img/favicon.svg?v=9" type="image/svg+xml">
+  <link rel="icon" href="img/favicon-32.png?v=9" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png?v=9">
+  <link rel="stylesheet" href="css/style.css?v=9">
 </head>
 <body>
   <div id="app" class="crt">
@@ -54,6 +54,20 @@
       <input id="cmd" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="send" aria-label="Type a command" autofocus>
     </form>
 
+    <section id="start-screen" aria-label="Start" hidden>
+      <div class="start-card">
+        <img class="start-icon" src="img/favicon.svg?v=9" alt="" width="72" height="72">
+        <h1>NO SAFE HARBOR</h1>
+        <p class="start-sub">A Prince of Wales Island Mystery</p>
+        <div id="start-continue" hidden>
+          <button type="button" id="btn-continue" class="start-primary">Continue the case</button>
+          <p id="start-info"></p>
+        </div>
+        <button type="button" id="btn-new">New case</button>
+        <p class="start-tip">The game saves itself after every move, so you can close the tab any time and pick up right where you left off.</p>
+      </div>
+    </section>
+
     <nav id="quick" aria-label="Quick commands">
       <button type="button" id="map-toggle" aria-pressed="false">Map</button>
       <button type="button" data-cmd="look">Look</button>
@@ -67,11 +81,11 @@
   </div>
 
   <!-- Classic scripts (not ES modules) so the game also runs straight from a double-clicked file. -->
-  <script src="js/world.js?v=8"></script>
-  <script src="js/engine.js?v=8"></script>
-  <script src="js/geodata.js?v=8"></script>
-  <script src="js/map.js?v=8"></script>
-  <script src="js/notebook.js?v=8"></script>
-  <script src="js/ui.js?v=8"></script>
+  <script src="js/world.js?v=9"></script>
+  <script src="js/engine.js?v=9"></script>
+  <script src="js/geodata.js?v=9"></script>
+  <script src="js/map.js?v=9"></script>
+  <script src="js/notebook.js?v=9"></script>
+  <script src="js/ui.js?v=9"></script>
 </body>
 </html>

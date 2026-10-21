@@ -46,6 +46,13 @@ fills in as you go. `Esc` folds it back up.
 Chain commands with periods (`open glovebox. take flashlight`). Up/down arrows recall
 earlier commands. The **Theme** button switches between amber and green.
 
+## Saving
+
+The game autosaves after every move, in your browser. When you come back, the start screen offers
+**Continue the case** (with where you were, your score and when you last played) or **Start a new
+case**, which asks once before replacing the case in progress. SAVE and LOAD still work as a
+separate bookmark you control.
+
 ## Case notebook
 
 Click **Notebook** (or type NOTEBOOK) to see how the case is going: a progress bar, your working

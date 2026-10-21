@@ -362,3 +362,40 @@ html, body {
 #quick #notebook-toggle { color: var(--bright); border-color: var(--dim); }
 #quick #notebook-toggle[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
 #quick #notebook-toggle.has-new { border-color: var(--clue); color: var(--clue); }
+
+/* ---------- Start screen */
+
+#start-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--bg);
+  text-shadow: var(--glow);
+}
+#start-screen[hidden] { display: none; }
+
+.start-card { max-width: 520px; text-align: center; }
+.start-icon { display: block; margin: 0 auto 12px; border-radius: 12px; }
+.start-card h1 { margin: 0; font-size: 2rem; letter-spacing: 0.25em; color: var(--bright); }
+.start-sub { margin: 4px 0 28px; color: var(--fg); }
+#start-info { margin: 8px 0 18px; color: var(--dim); font-size: 0.85rem; }
+.start-tip { margin-top: 24px; color: var(--dim); font-size: 0.8rem; }
+
+.start-card button {
+  font: inherit;
+  display: block;
+  width: 100%;
+  margin: 0 auto;
+  padding: 10px 16px;
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--dim);
+  cursor: pointer;
+}
+.start-card button.start-primary { background: var(--fg); color: var(--bg); font-weight: 700; border-color: var(--fg); }
+.start-card button:hover, .start-card button:focus-visible { outline: 2px solid var(--bright); outline-offset: 2px; }
+@media (max-width: 560px) { .start-card h1 { font-size: 1.5rem; letter-spacing: 0.15em; } }

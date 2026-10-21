@@ -620,6 +620,29 @@ test('old saves without a notebook still load and get their leads', () => {
   assert.equal(g.state.leads.joe, 'open');
 });
 
+test('the game autosaves every move, and Continue picks up where you left off', () => {
+  const g = newGame();
+  assert.equal(g.autosaveInfo(), null);
+  runAll(g, ['read case file', ...KEYS, 'w', 'w']);
+  const info = g.autosaveInfo();
+  assert.equal(info.location, 'Klawock');
+  assert.equal(info.turns, g.state.turns);
+  // A fresh page load, sharing the same storage.
+  const g2 = new Game(buildWorld, { storage: g.storage });
+  const out = g2.continueGame().map((b) => b.text).join('\n');
+  assert.match(out, /Back on the case/);
+  assert.match(out, /Klawock/);
+  assert.equal(g2.state.loc, 'klawock');
+  assert.ok(g2.inInv('truck_keys') || g2.state.items.truck_keys.loc !== 'lockbox');
+  assert.deepEqual(g2.state.log, g.state.log);
+  // The autosave is its own slot: it doesn't touch a manual SAVE.
+  assert.match(run(g2, 'load'), /No saved game/);
+  // A finished case isn't offered to continue.
+  g2.state.over = true;
+  g2.autosave();
+  assert.equal(g2.autosaveInfo(), null);
+});
+
 test('no rowing to Sweetwater without oars, and Hazel has a spare pair', () => {
   const g = newGame();
   runAll(g, [...TO_TRAILHEAD, 'w', 'n', 'w']);

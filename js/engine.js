@@ -25,6 +25,8 @@
   const STOP_WORDS = new Set(['the', 'a', 'an', 'some', 'my', 'your', 'that', 'this', 'of', 'at', 'his', 'her']);
   const SAVE_KEY = 'nosafeharbor-save-v2';
   const OLD_SAVE_KEYS = ['nosafeharbor-save-v1'];
+  // The autosave is its own slot, written after every command, so SAVE/LOAD stay a separate bookmark.
+  const AUTO_KEY = 'nosafeharbor-autosave-v2';
   const COMPASS_DIRS = new Set(['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest']);
 
   function clean(phrase) {
@@ -350,6 +352,7 @@
           this.pending = [];
         }
       }
+      this.autosave();
       return this.flush();
     }
 
@@ -671,6 +674,7 @@
         '            ACCUSE person (at the State Troopers post)',
         'GAME        MAP (your graph-paper map), NOTEBOOK (progress, leads, evidence),',
         '            NOTES (the same, in text), SAVE, LOAD, RESTART',
+        '            The game autosaves after every move. SAVE keeps a separate bookmark.',
         '',
         'You can chain commands with periods: TAKE PHOTO. READ IT.',
         'Press the up and down arrow keys to recall earlier commands.'
@@ -1014,6 +1018,14 @@
       }
       let saved;
       try { saved = JSON.parse(raw); } catch (e) { this.print('That save file is corrupted.', 'meta'); return false; }
+      this.restoreState(saved);
+      this.print('Game restored.', 'meta');
+      this.describe(true);
+      return false;
+    }
+
+    // Rebuild a game from saved state (a SAVE, or the autosave).
+    restoreState(saved) {
       this.newGame();
       // Merge so saves keep working if new items get added to the world later.
       for (const id of Object.keys(saved.items || {})) {
@@ -1028,9 +1040,45 @@
       if (!saved.met) this.state.met = {};
       if (!saved.leads) this.state.leads = {};
       this.updateLeads(true);
-      this.print('Game restored.', 'meta');
+    }
+
+    autosave() {
+      try { this.storage.set(AUTO_KEY, JSON.stringify({ savedAt: Date.now(), state: this.state })); } catch (e) { /* storage full or blocked */ }
+    }
+
+    readAutosave() {
+      try {
+        const data = JSON.parse(this.storage.get(AUTO_KEY));
+        return data && data.state && data.state.items ? data : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // What the start screen shows about the case in progress, or null if there isn't one.
+    autosaveInfo() {
+      const data = this.readAutosave();
+      if (!data || data.state.over || !data.state.turns) return null;
+      const room = this.rooms[data.state.loc];
+      return {
+        savedAt: data.savedAt,
+        turns: data.state.turns,
+        score: data.state.score,
+        maxScore: this.world.maxScore,
+        location: room ? room.name : '',
+        evidence: (data.state.found || []).filter((id) => id !== 'solved').length
+      };
+    }
+
+    // Pick up the autosaved case where you left it.
+    continueGame() {
+      const data = this.readAutosave();
+      if (!data) return this.start();
+      this.restoreState(data.state);
+      const open = this.openLeads().length;
+      this.print(`Back on the case. Score ${this.state.score} of ${this.world.maxScore}, turn ${this.state.turns}${open ? `, ${open} open lead${open === 1 ? '' : 's'} in your notebook` : ''}.`, 'meta');
       this.describe(true);
-      return false;
+      return this.flush();
     }
 
     restart() {
