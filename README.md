@@ -47,11 +47,11 @@ earlier commands. The **Theme** button switches between amber and green.
 ```
                 General Store ── Coffman Cove ── Cove Harbor
                                       │
+                                  Dog Creek
+                                      │
                              Sweetwater Turnoff ── Landing ~~ Lake ~~ Sweetwater Cabin
                                       │                    (row!)
                                   Luck Lake
-                                      │
-                                 Dog Creek Bridge
                                       │
                                   Trailhead ── Old-Growth Trail ── River Crossing ── Thorne Cabin
                                       │          (dark!)           (deep!)
