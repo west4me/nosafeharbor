@@ -233,7 +233,6 @@
             g.print("(The case file said the keys are in a lockbox on the terminal wall. There it is: a gray steel box by the door, with a four-digit keypad.)");
           }
           if (!st.locked) return 'The lockbox is already open.';
-          if (!g.flag('read_case_file')) return `You punch in ${code}. The keypad gives an unhappy beep and blinks red. You're only guessing; the code must be written down somewhere. Maybe in your paperwork.`;
           if (code === '1187') {
             st.locked = false;
             st.open = true;
@@ -675,7 +674,6 @@
         dial: (g, nums) => {
           const st = g.itemState('safe');
           if (!st.locked) return 'The safe is already unlocked.';
-          if (!g.has('photo')) return `You spin the dial to ${nums.join('-')} and pull the handle. Nothing. You're only guessing; the combination has to be written down somewhere.`;
           if (nums[0] === 14 && nums[1] === 3 && nums[2] === 28) {
             st.locked = false;
             st.open = true;

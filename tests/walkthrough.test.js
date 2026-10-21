@@ -157,9 +157,6 @@ test('the office is locked until Marnie hands over the key', () => {
 test('wrong safe combination keeps it shut', () => {
   const g = newGame();
   runAll(g, [...KEYS, 'w', 'w', 's', 's', 's', 'e', 'talk to marnie', 'w', 'w']);
-  // Before you've found the combination, any numbers are just a guess.
-  assert.match(run(g, 'dial 14 3 28'), /only guessing/);
-  runAll(g, ['take photo', 'read photo']);
   assert.match(run(g, 'dial 1 2 3'), /stays shut/);
   assert.match(run(g, 'open safe'), /will not budge/);
   assert.match(run(g, 'turn dial to 14-3-28'), /swings open/);
@@ -401,16 +398,16 @@ test('you cannot leave Hollis without the truck keys', () => {
   assert.equal(g.state.loc, 'ferry');
 });
 
-test('you need to know about the keypad, and the code, before you can use them', () => {
+test('you need to know about the keypad before you can use it', () => {
   // Never looked at the lockbox, never read the case file: what keypad?
   let g = newGame();
   run(g, 'look at terminal');
   assert.match(run(g, 'enter 1187 into keypad'), /Enter it into what\?/);
   assert.ok(g.itemState('lockbox').locked);
-  // Seen the keypad, but no code yet: only guessing.
+  // Once you've seen the keypad, you can try any code, and a lucky guess works.
   assert.match(run(g, 'x lockbox'), /four-digit keypad/);
-  assert.match(run(g, 'enter 1187'), /only guessing/);
-  assert.ok(g.itemState('lockbox').locked);
+  assert.match(run(g, 'enter 1234'), /unhappy beep/);
+  assert.match(run(g, 'enter 1187'), /truck keys/);
   // Read the case file first: it tells you where the lockbox is and how to get the code.
   g = newGame();
   run(g, 'read case file');
