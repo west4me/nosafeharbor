@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- No Safe Harbor: an empty skiff adrift on amber water, in the terminal colors. -->
+  <rect width="64" height="64" rx="12" fill="#120d05"/>
+  <path d="M10 33 H54 L47 43 H17 Z" fill="#ffb547"/>
+  <rect x="38" y="27" width="5" height="6" fill="#ffb547"/>
+  <path d="M6 50 q6 -5 12 0 t12 0 t12 0 t12 0 t12 0" fill="none" stroke="#ffd894" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="48" cy="15" r="5" fill="#ffd894" opacity="0.85"/>
+</svg>
