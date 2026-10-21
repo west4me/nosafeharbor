@@ -230,15 +230,31 @@ html, body {
 }
 .map-svg .map-room-label { font-weight: 700; }
 .map-svg .map-here .map-room-label { fill: #a5281b; }
-.map-svg .map-label-island { fill: #9aa7b6; letter-spacing: 6px; font-weight: 700; }
-.map-svg .map-label-water { fill: #5d7fa6; letter-spacing: 3px; font-style: italic; }
-.map-svg .map-label-river { fill: #3f74ad; font-style: italic; }
-.map-svg .map-q { fill: #6b6b6b; font-weight: 700; }
-.map-svg .map-title { fill: #555; }
-.map-svg .map-label-lake { fill: #3f74ad; font-style: italic; }
-.map-svg .map-site-name { font-weight: 700; fill: #2f2f2f; }
-.map-svg .map-site-room { fill: #3b3b3b; }
+/* Every map label gets a paper-colored halo, so lines and hatching never cut through the letters. */
+.map-svg text {
+  paint-order: stroke fill;
+  stroke: #fbf8ef;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+/* Names printed on the sheet use a clean serif, like a real topo map; your own notes stay handwritten. */
+.map-svg .map-label-island,
+.map-svg .map-label-water,
+.map-svg .map-label-river,
+.map-svg .map-label-lake {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+}
+.map-svg .map-label-island { fill: #7f8ea3; letter-spacing: 5px; font-weight: 700; font-style: normal; stroke-width: 5px; }
+.map-svg .map-label-water { fill: #2f5b8c; letter-spacing: 1.5px; }
+.map-svg .map-label-river { fill: #1f5596; }
+.map-svg .map-label-lake { fill: #1f5596; }
+.map-svg .map-q { fill: #444; font-weight: 700; }
+.map-svg .map-title { fill: #333; }
+.map-svg .map-site-name { font-weight: 700; fill: #1f1f1f; }
+.map-svg .map-site-room { fill: #2a2a2a; }
 .map-svg .map-here-text { fill: #a5281b; font-weight: 700; }
+.map-svg .map-legend-text { fill: #222; }
 
 #quick #map-toggle { color: var(--bright); border-color: var(--dim); }
 #quick #map-toggle[aria-pressed="true"] { background: var(--fg); color: var(--bg); }

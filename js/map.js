@@ -154,11 +154,32 @@
       const [x, y] = project(l.at);
       out.push(`<text class="map-label map-label-${esc(l.cls)}" x="${x}" y="${y}" font-size="${l.size}" text-anchor="middle" transform="rotate(${l.rotate || 0} ${x} ${y})">${esc(l.text)}</text>`);
     }
-    for (const l of geo.labels) {
-      out.push(`<text class="map-label map-label-${l.cls === 'lake' ? 'lake' : 'river'}" x="${l.at[0]}" y="${l.at[1]}" font-size="12" text-anchor="middle">${esc(l.text)}</text>`);
-    }
     baseCache = { labels: game.world.mapLabels, svg: out.join('\n') };
     return baseCache.svg;
+  }
+
+  // Lake and river names from the USGS data. Skip any that would land on another name,
+  // and any that just repeat the name of a place you've already pinned.
+  function featureNames(game, model) {
+    const pinned = new Set(model.sites.map((s) => ((game.world.mapSites || {})[s.id] || {}).name));
+    const boxes = [];
+    const out = [];
+    for (const l of geo.labels) {
+      if (pinned.has(l.text)) continue;
+      const size = l.cls === 'lake' ? 15 : 14;
+      const w = l.text.length * size * 0.5;
+      // Try the spot itself, then a line below or above, before giving up on the name.
+      let placed = null;
+      for (const dy of [0, size + 4, -(size + 4)]) {
+        const y = l.at[1] + dy;
+        const box = [l.at[0] - w / 2, y - size, l.at[0] + w / 2, y + 4];
+        if (!boxes.some((b) => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1])) { placed = { box, y }; break; }
+      }
+      if (!placed) continue;
+      boxes.push(placed.box);
+      out.push(`<text class="map-label map-label-${l.cls === 'lake' ? 'lake' : 'river'}" x="${l.at[0]}" y="${placed.y}" font-size="${size}" text-anchor="middle">${esc(l.text)}</text>`);
+    }
+    return out.join('\n');
   }
 
   function renderMap(game) {
@@ -191,6 +212,7 @@
 
     // The printed sheet, then your pencil on top.
     out.push(printedSheet(game));
+    out.push(featureNames(game, model));
 
     // Your pencil: roads you've driven, trails you've walked, water you've rowed.
     out.push(`<g filter="url(#map-pencil)" fill="none" stroke="#2f2f2f" stroke-linecap="round" stroke-linejoin="round">`);
@@ -250,14 +272,15 @@
       } else if (byId[all[0].id].label === 'Dark!') {
         lines.push({ text: 'Dark!', cls: 'map-site-room', here: false });
       }
-      const lh = 17;
-      const wMax = Math.max(...lines.map((l, i) => l.text.length * (i === 0 ? 9.2 : 7.6))) + 14;
+      const lh = 19;
+      // Handwriting fonts run wide (Segoe Print on Windows especially), so size the note card generously.
+      const wMax = Math.max(...lines.map((l, i) => l.text.length * (i === 0 ? 11 : 9))) + 16;
       const x0 = anchor === 'end' ? ax + dx - wMax : anchor === 'middle' ? ax + dx - wMax / 2 : ax + dx;
-      out.push(`<rect x="${x0 - 2}" y="${ay + dy - 16}" width="${wMax}" height="${lines.length * lh + 6}" rx="4" fill="#fbf8ef" opacity="0.88"/>`);
+      out.push(`<rect x="${x0 - 2}" y="${ay + dy - 18}" width="${wMax}" height="${lines.length * lh + 6}" rx="4" fill="#fbf8ef" opacity="0.92"/>`);
       lines.forEach((l, i) => {
         const tx = anchor === 'end' ? ax + dx - 6 : anchor === 'middle' ? ax + dx : ax + dx + 4;
         const prefix = i === 0 ? '' : (l.here ? '◉ ' : '· ');
-        out.push(`<text class="${l.cls}${l.here ? ' map-here-text' : ''}" x="${tx}" y="${ay + dy + i * lh}" font-size="${i === 0 ? 16 : 13.5}" text-anchor="${anchor}">${esc(prefix + l.text)}</text>`);
+        out.push(`<text class="${l.cls}${l.here ? ' map-here-text' : ''}" x="${tx}" y="${ay + dy + i * lh}" font-size="${i === 0 ? 18 : 15}" text-anchor="${anchor}">${esc(prefix + l.text)}</text>`);
       });
     }
 
@@ -302,7 +325,7 @@
   <text class="map-legend-text" x="${lx + 2}" y="${ly + 106}" font-size="11.5">1 square = 1 km · USGS map data</text>
 </g>`);
     out.push(`<rect x="10" y="10" width="420" height="30" rx="4" fill="#fbf8ef" opacity="0.88"/>`);
-    out.push(`<text class="map-label map-title" x="18" y="31" font-size="16">Claim NM-1187 · field map · explored ${model.rooms.length} of ${model.total}</text>`);
+    out.push(`<text class="map-label map-title" x="18" y="31" font-size="17">Claim NM-1187 · field map · explored ${model.rooms.length} of ${model.total}</text>`);
     out.push('</svg>');
     return out.join('\n');
   }

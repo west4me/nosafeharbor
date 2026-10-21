@@ -1860,16 +1860,16 @@
 
     // Names printed on the map, at real positions.
     const mapLabels = [
-      { text: 'PRINCE OF WALES ISLAND', at: [-132.98, 55.76], size: 30, rotate: -62, cls: 'island' },
-      { text: 'CLARENCE STRAIT', at: [-132.60, 55.86], size: 20, rotate: -58, cls: 'water' },
-      { text: 'Klawock Inlet', at: [-133.168, 55.530], size: 14, rotate: -62, cls: 'water' },
-      { text: 'San Alberto Bay', at: [-133.215, 55.505], size: 14, rotate: -75, cls: 'water' },
-      { text: 'Twelvemile Arm', at: [-132.700, 55.468], size: 14, rotate: 0, cls: 'water' },
-      { text: 'Clark Bay', at: [-132.595, 55.500], size: 13, rotate: 0, cls: 'water' },
-      { text: 'Thorne Bay', at: [-132.600, 55.655], size: 14, rotate: 0, cls: 'water' },
-      { text: 'Coffman Cove', at: [-132.840, 56.030], size: 14, rotate: 0, cls: 'water' },
-      { text: 'Big Salt Lake', at: [-133.020, 55.615], size: 13, rotate: -35, cls: 'water' },
-      { text: 'Fish Egg I.', at: [-133.188, 55.497], size: 12, rotate: 0, cls: 'water' }
+      { text: 'PRINCE OF WALES ISLAND', at: [-132.98, 55.76], size: 34, rotate: -62, cls: 'island' },
+      { text: 'CLARENCE STRAIT', at: [-132.60, 55.86], size: 22, rotate: -58, cls: 'water' },
+      { text: 'Klawock Inlet', at: [-133.168, 55.530], size: 17, rotate: -62, cls: 'water' },
+      { text: 'San Alberto Bay', at: [-133.215, 55.505], size: 17, rotate: -75, cls: 'water' },
+      { text: 'Twelvemile Arm', at: [-132.700, 55.468], size: 17, rotate: 0, cls: 'water' },
+      { text: 'Clark Bay', at: [-132.595, 55.500], size: 16, rotate: 0, cls: 'water' },
+      { text: 'Thorne Bay', at: [-132.600, 55.655], size: 17, rotate: 0, cls: 'water' },
+      { text: 'Coffman Cove', at: [-132.840, 56.030], size: 17, rotate: 0, cls: 'water' },
+      { text: 'Big Salt Lake', at: [-133.020, 55.615], size: 16, rotate: -35, cls: 'water' },
+      { text: 'Fish Egg I.', at: [-133.188, 55.497], size: 15, rotate: 0, cls: 'water' }
     ];
 
     // ---------------------------------------------------------------- hints
