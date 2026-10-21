@@ -59,11 +59,11 @@ const WALKTHROUGH = [
   'turn on flashlight', 'e', 'e', 'wear waders', 'e',
   // The Thorne cabin is empty, but Rick left a note
   'read note',
-  // North to Coffman Cove: Luck Lake, the Sweetwater turnoff, Dog Creek, town
-  'w', 'w', 'w', 'n', 'n', 'n', 'n',
-  'w', 'talk to hazel', 'e',
-  // Sweetwater: back down Dog Creek to the turnoff, the landing, row across, cabin
-  's', 's', 'e', 'e', 'e',
+  // North to Coffman Cove: Luck Lake, Dog Creek, town, and Hazel's store
+  'w', 'w', 'w', 'n', 'n', 'n',
+  'n', 'talk to hazel', 's',
+  // Sweetwater: west out of town to the turnoff, down to the landing, row across to the cabin
+  'w', 's', 'w', 'w',
   'talk to dale',
   // Over to the troopers in Klawock
   'drive to klawock', 'w',
@@ -164,7 +164,7 @@ test('wrong safe combination keeps it shut', () => {
 test('Dale stonewalls without enough evidence', () => {
   const g = newGame();
   runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'w', 's', 'e', 'buy beer', 'give beer to cal',
-    'w', 'n', 'e', 'drive to hwy', 'n', 'n', 'n', 'n', 'n', 'n', 'w', 'talk to hazel', 'e', 's', 's', 'e', 'e', 'e']);
+    'w', 'n', 'e', 'drive to hwy', 'n', 'n', 'n', 'n', 'n', 'n', 'talk to hazel', 's', 'w', 's', 'w', 'w']);
   assert.equal(g.state.loc, 'sweetwater_cabin');
   assert.match(run(g, 'talk to dale'), /Name's Bill/);
   assert.equal(g.flag('dale_confessed'), false);
@@ -425,32 +425,32 @@ test('the Thorne cabin is empty, with a note pointing to Sweetwater', () => {
   assert.ok(g.has('rick_note'));
 });
 
-test('the road runs north from the trailhead to Coffman Cove', () => {
+test('the road runs north to Coffman Cove, and Sweetwater is west of town', () => {
   const g = newGame();
   runAll(g, TO_TRAILHEAD);
   assert.match(run(g, 'n'), /Luck Lake/);
-  assert.match(run(g, 'n'), /SWEETWATER LAKE/);
   assert.match(run(g, 'n'), /Dog Creek/);
   assert.match(run(g, 'n'), /Dog Creek runs out through the middle of town/);
-  assert.equal(g.itemState('truck').loc, 'coffman_cove');
+  assert.match(run(g, 'w'), /SWEETWATER LAKE/);
+  assert.equal(g.itemState('truck').loc, 'sweetwater_turnoff');
 });
 
 test('no rowing to Sweetwater without oars, and Hazel has a spare pair', () => {
   const g = newGame();
-  runAll(g, [...TO_TRAILHEAD, 'n', 'n', 'e']);
+  runAll(g, [...TO_TRAILHEAD, 'n', 'n', 'n', 'w', 's']);
   assert.equal(g.state.loc, 'sweetwater_landing');
   assert.match(run(g, 'row'), /taken the oars/);
   assert.equal(g.state.loc, 'sweetwater_landing');
-  runAll(g, ['w', 'n', 'n', 'w']);
+  runAll(g, ['n', 'e', 'n']);
   assert.match(run(g, 'talk to hazel'), /two of everything/);
   assert.ok(g.inInv('oars'));
   assert.ok(g.has('hazel_tip'));
   // You've seen the turnoff, so you can drive to the landing by name even before visiting it.
-  runAll(g, ['e', 'drive to sweetwater landing']);
+  runAll(g, ['s', 'drive to sweetwater landing']);
   assert.equal(g.state.loc, 'sweetwater_landing');
-  assert.match(run(g, 'row east'), /push off/);
+  assert.match(run(g, 'row west'), /push off/);
   assert.equal(g.state.loc, 'sweetwater_lake');
-  assert.match(run(g, 'e'), /Dale Haugen/);
+  assert.match(run(g, 'w'), /Dale Haugen/);
   assert.ok(g.has('found_dale'));
 });
 

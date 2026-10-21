@@ -209,7 +209,7 @@
         desc: "A gravel pullout at the edge of serious forest. A brown Forest Service sign, bullet-pocked in one corner, marks a trail heading east into the old growth toward the Thorne River. The mud here is churned up with tire tracks, and one set is a lot fresher than the rest. The gravel road keeps going north toward Coffman Cove, and Thorne Bay Road heads back south.",
         exits: {
           south: road('thorne_road', 'You bump back out of the pullout and head south on the gravel.'),
-          north: road('luck_lake', 'North past the trailhead the road gets narrower and the trees get bigger. A grouse explodes out of the ditch and nearly gives you a heart attack. Through the trees, a long dark lake opens up on your right. You turn down a gravel spur to the water and park.'),
+          north: road('luck_lake', 'North past the trailhead the road gets narrower and the trees get bigger. A grouse explodes out of the ditch and nearly gives you a heart attack. Then a long, narrow lake shows through the trees on your right. At its north end you turn down a gravel spur to the beach and park.'),
           east: 'river_trail'
         }
       },
@@ -256,13 +256,13 @@
 
       // ----- the north end: Coffman Cove country
       dog_creek: {
-        map: { x: 4, y: -3, label: ['Dog Creek'] },
+        map: { x: 4, y: -2, label: ['Dog Creek'] },
         name: 'Dog Creek',
-        aliases: ['dog creek', 'creek'],
-        desc: "For the last mile into Coffman Cove, the road runs right alongside Dog Creek. The creek is clear and quick over clean gravel, and the bank is trampled flat where the bears come down to fish. Just downstream, a black bear sow and her cub are working the shallows and ignoring you completely. Ahead, through the trees, you can see the first rooftops and the gray water of the cove where the creek runs out. A gravel side road signed HALF DOG ROAD climbs off to the east. The road goes north into town and south toward the Sweetwater turnoff.",
+        aliases: ['dog creek'],
+        desc: "For the last mile into Coffman Cove, the road runs right alongside Dog Creek. The creek is clear and quick over clean gravel, and the bank is trampled flat where the bears come down to fish. Just downstream, a black bear sow and her cub are working the shallows and ignoring you completely. Ahead, through the trees, you can see the first rooftops and the gray water beyond the town. A gravel side road signed HALF DOG ROAD climbs off to the east. The road goes north into town and south toward Luck Lake.",
         exits: {
           north: road('coffman_cove', 'You follow the creek the last stretch down into town: houses, woodpiles and skiffs, gray water and gulls. You park by the community hall.'),
-          south: road('sweetwater_turnoff', 'South along the creek and up into the hills. At the brown Sweetwater Lake sign, you pull over.')
+          south: road('luck_lake', 'South along the creek, then up into the hills. At the north end of Luck Lake, you turn down the spur to the beach and park.')
         },
         fish: 'Coho fry are flicking in the shallows along the road. The sow is fishing. The cub is supervising. You, sadly, are only watching.'
       },
@@ -271,34 +271,33 @@
         map: { x: 4, y: -1, label: ['Luck Lake'] },
         name: 'Luck Lake',
         aliases: ['luck lake', 'luck'],
-        desc: "A gravel spur leads down to the Luck Lake day-use area: a rock beach, a covered picnic shelter and an outhouse with a crescent moon on the door. The lake stretches away to the east, long and dark, with the clouds sitting right down on the hills around it. A loon calls from somewhere out on the water. The road runs north toward Coffman Cove and south toward the Thorne River trailhead.",
+        desc: "A gravel spur leads down to the Luck Lake day-use area at the north end of the lake: a rock beach, a covered picnic shelter and an outhouse with a crescent moon on the door. Eagle Creek comes in right beside the beach. The lake stretches away to the south, long and narrow and dark, with the clouds sitting right down on the hills on either side. A loon calls from somewhere out on the water. The road runs north toward Coffman Cove and south toward the Thorne River trailhead.",
         exits: {
           south: road('trailhead', 'Back up the spur and south down the hill to the Thorne River trailhead.'),
-          north: road('sweetwater_turnoff', 'North along the Coffman Cove road. A doe and twin fawns stand in the ditch and watch you pass with no particular concern. At a junction marked by a brown Forest Service sign, you pull over.')
+          north: road('dog_creek', 'North on NF-3030. A doe and twin fawns stand in the ditch and watch you pass with no particular concern. The road tips downhill and picks up Dog Creek, running right alongside it toward town. You pull over where the creek bends close to the road.')
         },
-        fish: "Cutthroat are rising along the drop-off, one after another, like they know. You do not have a rod. This should be illegal."
+        fish: "Cutthroat are rising off the mouth of Eagle Creek, one after another, like they know. You do not have a rod. This should be illegal."
       },
 
       sweetwater_turnoff: {
-        map: { x: 4, y: -2, label: ['Sweetwater', 'Turnoff'] },
+        map: { x: 3, y: -3, label: ['Sweetwater', 'Turnoff'] },
         name: 'Sweetwater Turnoff',
-        aliases: ['sweetwater turnoff', 'turnoff', 'junction'],
-        desc: 'A junction on the Coffman Cove road, marked by a brown Forest Service sign with an arrow pointing east: SWEETWATER LAKE. A muddy spur heads that way into the trees. The main road continues north toward Dog Creek and Coffman Cove, and back south to Luck Lake.',
+        aliases: ['sweetwater turnoff', 'turnoff', 'junction', 'coffman creek'],
+        desc: 'West of town, NF-3030 crosses Coffman Creek where it spills out into the lagoon behind Coffman Cove, then climbs into the trees. Just past the creek, a brown Forest Service sign points down a muddy spur to the south: SWEETWATER LAKE. The road runs back east into town.',
         exits: {
-          north: road('dog_creek', 'North along the hills above Clarence Strait. Then the road tips downhill and picks up Dog Creek, running alongside it toward town. You pull over where the creek bends close to the road.'),
-          south: road('luck_lake', 'South to Luck Lake. You pull back into the day-use area and park facing the water.'),
-          east: road('sweetwater_landing', 'The spur is one lane of mud and potholes, with alder brushing both sides of the truck. Fresh tire tracks run ahead of you the whole way. It dead-ends in a muddy turnaround in the trees, and you park next to the tracks.')
+          east: road('coffman_cove', 'Back east across Coffman Creek and into town. You park by the community hall.'),
+          south: road('sweetwater_landing', 'The spur is one lane of mud and potholes, with alder brushing both sides of the truck. Fresh tire tracks run ahead of you the whole way. It dead-ends in a muddy turnaround in the trees, and you park next to the tracks.')
         }
       },
 
       sweetwater_landing: {
-        map: { x: 5, y: -2, label: ['Sweetwater', 'Landing'] },
+        map: { x: 3, y: -2, label: ['Sweetwater', 'Landing'] },
         name: 'Sweetwater Lake Landing',
         aliases: ['sweetwater landing', 'landing', 'sweetwater', 'boat landing'],
-        desc: "The spur ends in a muddy turnaround. A short trail, maybe two hundred feet of roots and puddles, drops through the trees to a gravel landing on Sweetwater Lake. A Forest Service skiff lies upside down on the bank. Across a half mile of still water to the east, smoke rises from the stovepipe of a small log cabin. The spur leads back west to the road.",
+        desc: "The spur ends in a muddy turnaround. A short trail, maybe two hundred feet of roots and puddles, drops through the trees to a gravel landing on Sweetwater Lake. A Forest Service skiff lies upside down on the bank. Across a half mile of still water to the west, smoke rises from the stovepipe of a small log cabin. The spur leads back north to the road.",
         exits: {
-          west: road('sweetwater_turnoff', 'You climb back up the trail, turn the truck around in the mud on the fourth try, and bounce back out the spur to the main road.'),
-          east: {
+          north: road('sweetwater_turnoff', 'You climb back up the trail, turn the truck around in the mud on the fourth try, and bounce back up the spur to NF-3030.'),
+          west: {
             to: 'sweetwater_lake',
             guard: (g) => {
               if (!g.inInv('oars')) {
@@ -309,56 +308,57 @@
             }
           }
         },
-        row: (g) => { g.go('east'); return true; }
+        row: (g) => { g.go('west'); return true; }
       },
 
       sweetwater_lake: {
-        map: { x: 6, y: -2, label: ['Sweetwater', 'Lake'] },
+        map: { x: 2, y: -2, label: ['Sweetwater', 'Lake'] },
         name: 'Sweetwater Lake',
         aliases: ['sweetwater lake', 'middle of the lake'],
-        desc: "You're in the Forest Service skiff in the middle of Sweetwater Lake, oars dripping. The water is dark as coffee and so still that the clouds float in it upside down. Back to the west is the landing. Ahead to the east, a small cedar log cabin sits above a little float, smoke curling from its stovepipe.",
+        desc: "You're in the Forest Service skiff out on Sweetwater Lake, oars dripping. The water is dark as coffee and so still that the clouds float in it upside down. Back to the east is the landing. Ahead to the west, a small cedar log cabin sits above a little float, smoke curling from its stovepipe.",
         exits: {
-          west: { to: 'sweetwater_landing', guard: (g) => { g.print('You row back to the landing and drag the skiff up onto the gravel.', 'travel'); return null; } },
-          east: { to: 'sweetwater_cabin', guard: (g) => { g.print("You row the last stretch and bump up against the cabin's little float. You tie off, climb out and walk up to the door.", 'travel'); return null; } }
+          east: { to: 'sweetwater_landing', guard: (g) => { g.print('You row back to the landing and drag the skiff up onto the gravel.', 'travel'); return null; } },
+          west: { to: 'sweetwater_cabin', guard: (g) => { g.print("You row the last stretch and bump up against the cabin's little float. You tie off, climb out and walk up to the door.", 'travel'); return null; } }
         },
-        row: () => 'Which way? Row EAST to the cabin or WEST back to the landing.',
-        noExit: 'The lake is long, but the cabin is east and the landing is west.',
+        row: () => 'Which way? Row WEST to the cabin or EAST back to the landing.',
+        noExit: 'The lake is big, but the cabin is west and the landing is east.',
         fish: 'A trout rises ten feet from the boat. Then another. No rod. Life is cruel and specific.'
       },
 
       sweetwater_cabin: {
-        map: { x: 7, y: -2, label: ['Sweetwater', 'Cabin'] },
+        map: { x: 1, y: -2, label: ['Sweetwater', 'Cabin'] },
         name: 'Sweetwater Lake Cabin',
         aliases: ['sweetwater cabin', 'sweetwater lake cabin'],
         desc: (g) => "A twelve-by-fourteen cabin of pre-cut cedar logs above the lake, with wooden bunks, a table and benches, and a woodstove ticking with heat. Somebody has moved in for the long haul: a sleeping bag on the lower bunk, groceries stacked under the table and paperbacks on the windowsill. A pair of oars leans by the door. " +
           (g.itemAt('winston', 'sweetwater_cabin') ? 'In the corner, leaning in a place of honor, is a bamboo fly rod. ' : '') +
-          'The float and the skiff are back down to the west.',
+          'The float and the skiff are back down to the east.',
         exits: {
-          west: { to: 'sweetwater_lake', guard: (g) => { g.print('You climb back into the skiff and push off from the float.', 'travel'); return null; } },
+          east: { to: 'sweetwater_lake', guard: (g) => { g.print('You climb back into the skiff and push off from the float.', 'travel'); return null; } },
           out: { to: 'sweetwater_lake', guard: (g) => { g.print('You climb back into the skiff and push off from the float.', 'travel'); return null; } }
         },
-        row: (g) => { g.go('west'); return true; },
+        row: (g) => { g.go('east'); return true; },
         onEnter: (g) => { g.clue('found_dale'); }
       },
 
       coffman_cove: {
-        map: { x: 4, y: -4, label: ['Coffman', 'Cove'] },
+        map: { x: 4, y: -3, label: ['Coffman', 'Cove'] },
         name: 'Coffman Cove',
         aliases: ['coffman cove', 'coffman'],
-        desc: "The road ends where the trees give up and Clarence Strait begins. Coffman Cove started out as a logging camp and has never quite stopped looking like one: houses and trailers scattered along the cove, woodpiles under blue tarps, a school, a community hall, and more skiffs parked in yards than trucks. Dog Creek runs out through the middle of town into the cove. The general store is a short walk west. The harbor is down the hill to the east. The road runs back south along the creek.",
+        desc: "The road ends where the trees give up and Clarence Strait begins. Coffman Cove started out as a logging camp and has never quite stopped looking like one: houses and trailers scattered along the cove, woodpiles under blue tarps, a school, a community hall, and more skiffs parked in yards than trucks. Dog Creek runs out through the middle of town into the cove. The general store is down by the water to the north, and the harbor is down the hill to the east. NF-3030 heads west out of town toward Sweetwater Lake, and back south along Dog Creek.",
         exits: {
           south: road('dog_creek', 'You head south out of town along Dog Creek and pull over where the road runs right beside the water.'),
-          west: 'cove_store',
+          west: road('sweetwater_turnoff', 'You head west out of town on NF-3030, across Coffman Creek where it runs into the lagoon, and pull over at a brown Forest Service sign.'),
+          north: 'cove_store',
           east: 'cove_harbor'
         }
       },
 
       cove_store: {
-        map: { x: 3, y: -4, label: ['General', 'Store'] },
+        map: { x: 4, y: -4, label: ['General', 'Store'] },
         name: 'Cove General Store',
         aliases: ['store', 'general store', 'cove store', 'shop'],
-        desc: "A low building with a covered porch, a woodstove going in the middle of the floor, and narrow aisles of everything: canned goods, chainsaw chain, ammunition, birthday candles, rain gear and fishing tackle, plus a cooler of bait next to a cooler of milk. A coffee pot sits on the woodstove for anyone who wants it. By the register, a hand-lettered sign: COFFMAN COVE. POP.: ENOUGH. The door is east.",
-        exits: { east: 'coffman_cove', out: 'coffman_cove' },
+        desc: "A low building with a covered porch, a woodstove going in the middle of the floor, and narrow aisles of everything: canned goods, chainsaw chain, ammunition, birthday candles, rain gear and fishing tackle, plus a cooler of bait next to a cooler of milk. A coffee pot sits on the woodstove for anyone who wants it. By the register, a hand-lettered sign: COFFMAN COVE. POP.: ENOUGH. The door is south.",
+        exits: { south: 'coffman_cove', out: 'coffman_cove' },
         buy: (g, what) => {
           if (/coffee|cup/.test(what)) return "Hazel waves at the pot on the woodstove. 'Help yourself. Coffee's free. Advice costs extra.' You pour a cup. It's good.";
           if (/oar/.test(what)) return g.inInv('oars') ? "You've already got her spare pair." : "'Not for sale,' Hazel says. 'Talk to me first.'";
@@ -368,7 +368,7 @@
       },
 
       cove_harbor: {
-        map: { x: 5, y: -4, label: ['Cove', 'Harbor'] },
+        map: { x: 5, y: -3, label: ['Cove', 'Harbor'] },
         name: 'Coffman Cove Harbor',
         aliases: ['cove harbor', 'coffman harbor', 'coffman cove harbor', 'boat harbor'],
         desc: "A small boat harbor tucked behind a rock breakwater: a few dozen slips of skiffs and crabbers, and one old seiner that hasn't left the dock in a decade. Up the shore is the old ferry ramp where the inter-island ferry used to come in, now just a concrete apron and a gull convention. Beyond the breakwater, Clarence Strait runs gray all the way to the mountains on the far side. A black lab trots along the floats like he's the harbormaster. The road climbs back west into town.",
@@ -722,14 +722,14 @@
         name: 'oars', short: 'a pair of oars', loc: null,
         names: ['oars', 'oar', 'pair of oars', 'spare oars', 'hazels oars'],
         desc: 'A pair of spruce oars, worn pale at the grips, with HAZEL burned into each blade.',
-        verbs: { use: (g) => (g.state.loc === 'sweetwater_landing' ? (g.go('east'), true) : "There's nothing here to row.") }
+        verbs: { use: (g) => (g.state.loc === 'sweetwater_landing' ? (g.go('west'), true) : "There's nothing here to row.") }
       },
       fs_skiff: {
         name: 'Forest Service skiff', loc: 'sweetwater_landing', fixed: true,
         names: ['skiff', 'forest service skiff', 'boat', 'oarlocks', 'chain', 'padlock'],
         desc: (g) => 'A 14-foot aluminum Forest Service skiff, upside down on two logs and chained to a tree with an open padlock. A sign screwed to the transom: USDA FOREST SERVICE — PFDs NOT PROVIDED. The oarlocks are there. ' + (g.inInv('oars') ? "The oars weren't, but you brought Hazel's." : 'The oars are not.'),
-        fixedMsg: "It's a boat. You row it. (Try ROW or EAST.)",
-        verbs: { enter: (g) => { g.go('east'); return true; }, push: (g) => { g.go('east'); return true; } }
+        fixedMsg: "It's a boat. You row it. (Try ROW or WEST.)",
+        verbs: { enter: (g) => { g.go('west'); return true; }, push: (g) => { g.go('west'); return true; } }
       },
       winston: {
         name: "'52 Winston bamboo rod", short: 'a bamboo fly rod', loc: 'sweetwater_cabin', fixed: true,
@@ -1207,13 +1207,14 @@
             g.moveItem('oars', 'inv');
             return "'You're the insurance one.' Hazel doesn't look up from her crossword. 'Seven letters. A man who isn't where he's supposed to be.' She fills it in.\n\n'Rick Sorensen has been in twice a week since the middle of the month, buying groceries for two. Chili, coffee, saltines, eggs. Pays cash. Says he's deer hunting out of a Forest Service cabin.' Now she looks up. 'Then last Thursday he borrowed my spare oars. Said the Sweetwater skiff was missing a pair. Never brought them back.'\n\nShe reaches under the counter and sets a second pair of oars across it. 'If you're going out there yourself, take these. I keep two of everything. Bring them back.'\n\nYou take the oars.";
           }
-          return "'Sweetwater's east off the road at the turnoff, short trail down to the lake,' Hazel says. 'Row east. Bring my oars back.'";
+          return "'Sweetwater's west of town on 3030, then down the spur at the sign. Short trail to the lake,' Hazel says. 'Row west. Bring my oars back.'";
         },
         topics: [
           { k: ['rick', 'sorensen'], r: "'Buys for two, pays cash, tips like a man who wants you to remember he was friendly. I remember.'" },
           { k: ['dale', 'haugen'], r: "'Dale set chokers for the camp up here when he was young. Married Marnie on the beach at Luck Lake. Rained like the end of the world. Best wedding I ever went to.'" },
           { k: ['marnie'], r: "'Marnie cooked for the logging crews up here. Best bread on the north end. Still is, I hear, down in Craig.'" },
-          { k: ['sweetwater', 'cabin', 'lake', 'skiff', 'boat'], r: "'East off the road at the Sweetwater sign. Two hundred feet of trail down to the lake. The Forest Service leaves a skiff there. Usually with oars.'" },
+          { k: ['sweetwater', 'cabin', 'lake', 'skiff', 'boat'], r: "'West out of town on 3030, past Coffman Creek, then down the spur at the Sweetwater sign. Two hundred feet of trail to the lake. The Forest Service leaves a skiff there. Usually with oars.'" },
+          { k: ['eagle'], r: "'Eagle Creek comes into Luck Lake right by the beach. Best cutthroat fishing on the north end, and I didn't tell you that.'" },
           { k: ['oars', 'oar'], r: (g) => g.inInv('oars') ? "'You've got my good ones. Bring them back.'" : "'Talk to me first, then we'll see about oars.'" },
           { k: ['coffman', 'cove', 'town', 'camp', 'logging'], r: "'Used to be a logging camp. Now it's a town that still thinks it's a logging camp. Best place on the island, if you like rain and minding your own business.'" },
           { k: ['luck'], r: "'Prettiest lake on the island. Don't tell anybody.'" },
@@ -1245,7 +1246,7 @@
           { k: ['cal', 'brenner'], r: "'Cal's got two DUIs and a heart of gold. Not a killer.'" },
           { k: ['accuse', 'evidence', 'case', 'proof'], r: "'You tell me who did what, and you show me why. ACCUSE and the name. Or names.'" },
           { k: ['search', 'coast guard'], r: "'Helicopter out of Sitka flew it for two days. Nothing. Not a boot, not a hat.'" },
-          { k: ['sweetwater', 'coffman', 'luck', 'hazel'], r: "'Sweetwater Lake? Up past Luck Lake on the Coffman Cove road. Forest Service cabin out there. Nobody goes there in October.' She looks at you a beat longer. 'Why?'" }
+          { k: ['sweetwater', 'coffman', 'luck', 'hazel'], r: "'Sweetwater Lake? West of Coffman Cove on 3030. Forest Service cabin out there. Nobody goes there in October.' She looks at you a beat longer. 'Why?'" }
         ],
         askDefault: "'Not my problem today.'",
         show: {
@@ -1459,7 +1460,8 @@
         'tracks, tire tracks, road, gravel road, nf-3030': 'NF-3030, gravel, running beside the creek. Fresh tire tracks head north toward town and the store. Wide tires, aggressive tread. The same tracks as at the Thorne trailhead.'
       },
       luck_lake: {
-        'lake, luck lake, water, drop-off, drop off': 'Long, deep and still, with the hills folding down into it from every side. Cutthroat dimple the surface along the drop-off. Locals swear there is a thirty-inch Dolly Varden in here somewhere.',
+        'lake, luck lake, water, drop-off, drop off': 'Long, narrow, deep and still, stretching away south between the hills. Cutthroat dimple the surface along the drop-off. Locals swear there is a thirty-inch Dolly Varden in here somewhere.',
+        'eagle creek, creek, mouth': 'Eagle Creek slides into the lake right beside the beach, clear over gravel, with a fan of sand at its mouth. Every cutthroat in the lake knows where the food comes from.',
         'rock beach, beach, rocks, stones, stone': { desc: 'Flat gray stones, perfect for skipping.', take: 'You pick out a flat stone and skip it across the lake. Six skips. You have a feeling somebody around here could do seven.' },
         'picnic shelter, shelter, picnic table, table, bench, carving, initials, heart': { desc: 'A covered picnic shelter with a heavy plank table, carved over the years with initials. One set is old and deep, inside a crooked heart: D.H. + M.H. 1979.', sit: 'You sit at the picnic table under the shelter. Rain ticks on the roof. Somebody carved D.H. + M.H. 1979 into the plank next to your hand.' },
         'outhouse, crescent moon, door': { desc: 'A Forest Service outhouse with a crescent moon cut in the door. Surprisingly clean, for an outhouse.', open: 'You open the door. Somebody has left a 1997 issue of Field & Stream in there. You close the door and leave the magazine for the next guy.', enter: 'You have a case to solve. You can hold it.' },
@@ -1467,21 +1469,24 @@
         'hills, clouds': 'The clouds sit right down on the hills around the lake. Somewhere up there it is already snowing.'
       },
       sweetwater_turnoff: {
-        'sign, forest service sign, brown sign, arrow': { desc: 'A brown Forest Service sign with a white arrow pointing east.', text: 'SWEETWATER LAKE →\nPUBLIC USE CABIN\nBoat at end of trail. PFDs NOT PROVIDED.' },
-        'spur, mud, tracks, tire tracks': "Fresh tire tracks turn off the main road here and head east up the spur. Wide tires, aggressive tread. You're starting to know this tread personally.",
-        'road, coffman cove road, main road': 'The Coffman Cove road: gravel, potholes and the occasional deer, all the way north to the water.'
+        'sign, forest service sign, brown sign, arrow': { desc: 'A brown Forest Service sign with a white arrow pointing south down the spur.', text: 'SWEETWATER LAKE ↓\nPUBLIC USE CABIN\nBoat at end of trail. PFDs NOT PROVIDED.' },
+        'spur, mud, tracks, tire tracks': "Fresh tire tracks turn off NF-3030 here and head south down the spur. Wide tires, aggressive tread. You're starting to know this tread personally.",
+        'road, nf-3030, main road': 'NF-3030: gravel, potholes and the occasional deer, heading back east into town.',
+        'coffman creek, creek, lagoon': 'Coffman Creek, tea-dark, sliding under the road and out into the lagoon behind town. At the creek mouth, a great blue heron stands perfectly still, pretending to be a stick.',
+        'heron, great blue heron': 'A great blue heron in the shallows at the creek mouth. It has been standing there since before you arrived, and it will be standing there after you leave.'
       },
       sweetwater_landing: {
         'trail, roots, puddles, path': 'Two hundred feet of roots, puddles and slick spruce needles from the turnaround down to the water. The Forest Service calls it a trail. Your ankles call it something else.',
         'lake, sweetwater lake, water': 'Still, dark water, a half mile across, with low green hills all around and the clouds hanging close. It looks like a place nobody would ever find you. That is the idea.',
         'cabin, smoke, stovepipe, far shore, chimney': "A small log cabin on the far shore, with a float out front and smoke curling from the stovepipe. Somebody's home.",
         'turnaround, truck tracks, tracks': 'Two sets of tire tracks in the mud: yours, and the wide, aggressive tread you have been following across the island.',
+        'spur': 'The muddy spur climbs back north to NF-3030.',
         'logs, tree': 'Two logs the skiff rests on, and a spruce it is chained to. The padlock hangs open.'
       },
       sweetwater_lake: {
         'water, lake, reflection, clouds': { desc: 'Dark as coffee, and so still the clouds float in it upside down.', touch: 'You trail a hand in the lake. It is cold enough to ache. You think about Dale swimming half a mile of salt water in October and feel a strange, grudging respect.' },
         'cabin, float, smoke': 'Closer now: a cedar log cabin with a little float out front and smoke from the stovepipe. A shape moves past the window.',
-        'landing, shore': 'The landing is back to the west, your truck hidden in the trees above it.',
+        'landing, shore': 'The landing is back to the east, your truck hidden in the trees above it.',
         'skiff, boat, oarlocks': "The Forest Service skiff. It's sturdy, and it leaks a little. Not like the Kittiwake. Not on purpose."
       },
       sweetwater_cabin: {
@@ -1504,7 +1509,8 @@
         'community hall, hall, bulletin board, board': { desc: 'The community hall, with a bulletin board out front under a little roof.', text: 'POTLUCK FRIDAY — bring a dish, bring a fork, bring your own chair.\nFOR SALE: firewood, $250 a cord, you haul.\nFOUND: one bear-proof garbage can lid. The bear has not claimed it.\nCHURCH SUNDAY 10 AM — coffee after, and also before.' },
         'cove, water, strait, clarence strait, mountains': 'The cove opens out onto Clarence Strait, gray and wide, with the mountains on the far side already wearing snow up top.',
         'deer, doe': { desc: "A Sitka black-tailed doe standing next to a trampoline in somebody's yard, eating their flowers like she pays rent.", touch: 'She lets you get closer than she should, then decides that is enough.' },
-        'road, gravel road': 'The road you came in on, heading south along Dog Creek.',
+        'road, gravel road, nf-3030': 'NF-3030: south along Dog Creek toward Luck Lake, or west out of town toward Sweetwater Lake.',
+        'lagoon': 'The lagoon behind town, west of the main road, where Coffman Creek runs in. Calm, shallow and full of birds.',
         'dog creek, creek, mouth, creek mouth': 'Dog Creek runs out right through the middle of town and fans across the gravel into the cove. At low tide the gulls stand in the riffle like they are waiting for a delivery. In the fall, they get one.'
       },
       cove_store: {
@@ -1516,7 +1522,7 @@
         'tackle, fishing tackle, lures, flies, fly, pegboard': { desc: 'A pegboard of spoons and spinners, and a little box of hand-tied flies: olive Woolly Buggers and egg-sucking leeches. Somebody local ties good flies.', take: "'You got a rod?' Hazel asks without looking up. You don't. You put the flies back." },
         'rain gear, raingear': 'Rubber rain gear in two colors: orange, and also orange.',
         'crossword, pencil, pocketknife': "Hazel's crossword, nearly done, in pencil. She sharpens the pencil with a pocketknife between clues.",
-        'porch, door': 'The porch and the door, east, back out to the road.'
+        'porch, door': 'The porch and the door, south, back out to the road.'
       },
       cove_harbor: {
         'boats, skiffs, crabbers, slips, floats': 'Skiffs and crabbers in their slips, crab pots stacked on the floats, and every boat tied up with the kind of knots that come from knowing exactly what the wind can do.',
@@ -1650,8 +1656,8 @@
       ford: { listen: 'The river, loud enough to drown out your own thoughts.', smell: 'Cold water and salmon rot.', sit: 'You sit on a log on the gravel bar and watch the cabin across the river. Nothing moves over there.' },
       cabin: { listen: 'Nothing. The river outside, and the drip from the eaves. A cabin nobody is in anymore.', smell: 'Old propane and cold coffee.' },
       dog_creek: { listen: 'The creek chattering over gravel beside the road. A salmon slapping in the shallows. The cub, complaining about something. Somewhere ahead, a dog barks in town.', smell: 'Creek water, dead salmon and wet bear. Bear country.' },
-      luck_lake: { listen: 'The loon, long and wavering, from out in the middle of the lake. Rain on the shelter roof.', smell: 'Cold lake water and wet cedar.', sit: 'You sit at the picnic table under the shelter. Rain ticks on the roof. Somebody carved D.H. + M.H. 1979 into the plank next to your hand.' },
-      sweetwater_turnoff: { listen: 'Rain in the alders. Far off, a logging truck downshifting on a hill.', smell: 'Mud and wet alder.' },
+      luck_lake: { listen: 'The loon, long and wavering, from out in the middle of the lake. Eagle Creek chattering into the lake beside the beach. Rain on the shelter roof.', smell: 'Cold lake water and wet cedar.', sit: 'You sit at the picnic table under the shelter. Rain ticks on the roof. Somebody carved D.H. + M.H. 1979 into the plank next to your hand.' },
+      sweetwater_turnoff: { listen: 'Coffman Creek under the road. Rain in the alders. Far off, a logging truck downshifting on a hill.', smell: 'Mud, wet alder and the tide flats in the lagoon.' },
       sweetwater_landing: { listen: 'Water lapping at the gravel. Across the lake, very faintly, someone splitting wood.', smell: 'Lake water and, from the far shore, woodsmoke.' },
       sweetwater_lake: { listen: 'Oar drips. Your own breathing. Somewhere far off, a loon.', smell: 'Clean cold water and woodsmoke.', sit: "You're already sitting, in a small aluminum boat, in the middle of a lake. Life comes at you fast." },
       sweetwater_cabin: { listen: 'The woodstove ticking. The kettle starting to sing. Dale breathing like a man trying very hard to seem relaxed.', smell: 'Woodsmoke, coffee and wool socks.' },
@@ -1686,8 +1692,8 @@
       // Prince of Wales Island is huge; this is the middle of it, so the
       // outline runs off the top and bottom of the sheet.
       coast: [
-        [-0.7, -5.6], [1.5, -5.4], [2.6, -4.75], [3.5, -4.55], [4.4, -4.5], [5.3, -4.55], [5.9, -4.4], [6.6, -3.8],
-        [7.7, -3.6], [8.1, -2.8], [8.0, -1.2], [7.85, -0.4], [8.0, 0.5],
+        [-0.7, -5.6], [1.5, -5.4], [2.6, -4.8], [3.5, -4.6], [4.5, -4.5], [5.6, -3.65], [6.6, -2.85],
+        [7.6, -2.35], [8.1, -1.7], [8.0, -1.2], [7.85, -0.4], [8.0, 0.5],
         [7.5, 1.2], [6.8, 1.7], [6.75, 2.4], [7.2, 3.0], [7.6, 4.0], [7.3, 5.0],
         [7.7, 6.0], [7.4, 7.0], [7.7, 8.0], [7.4, 9.2], [3.5, 9.6], [-0.4, 9.2],
         [-0.65, 8.0], [-0.45, 7.2], [-0.6, 6.4], [-0.55, 5.2], [-0.55, 4.4], [-0.55, 3.6],
@@ -1695,15 +1701,16 @@
         [-0.55, -1.8], [-0.4, -2.9], [-0.75, -4.0], [-0.6, -5.2]
       ],
       lakes: [
-        { x: 5.05, y: -1.15, rx: 0.5, ry: 0.26, rotate: -12, label: 'Luck L.', lx: 5.05, ly: -0.72 },
-        { x: 6.0, y: -2.0, rx: 0.78, ry: 0.4, rotate: 0, label: 'Sweetwater L.', lx: 6.0, ly: -1.45 }
+        { x: 4.78, y: -0.92, rx: 0.17, ry: 0.42, rotate: 18, label: 'Luck L.', lx: 5.25, ly: -0.82 },
+        { x: 2.0, y: -2.05, rx: 0.78, ry: 0.45, rotate: 0, label: 'Sweetwater L.', lx: 2.0, ly: -1.42 }
       ],
       islets: [
         { x: -1.35, y: 5.55, rx: 0.32, ry: 0.28, label: 'Fish Egg I.' }
       ],
       rivers: [
         { label: 'Thorne R.', lx: 5.55, ly: 1.05, pts: [[5.3, 1.6], [5.9, 1.25], [6.4, 0.6], [6.5, 0.0], [6.75, -0.5], [7.3, -0.6], [7.95, -0.55]] },
-        { label: 'Dog Cr.', lx: 4.9, ly: -3.45, pts: [[4.55, -2.6], [4.5, -2.85], [4.5, -3.3], [4.52, -3.8], [4.45, -4.52]] },
+        { label: 'Dog Cr.', lx: 4.85, ly: -2.45, pts: [[4.6, -1.55], [4.5, -2.1], [4.5, -2.7], [4.52, -3.6], [4.48, -4.5]] },
+        { label: 'Eagle Cr.', lx: 5.6, ly: -1.5, pts: [[5.7, -1.85], [5.2, -1.55], [4.85, -1.35]] },
         { label: 'Harris R.', lx: 5.6, ly: 3.75, pts: [[4.8, 1.35], [4.6, 2.0], [4.75, 2.7], [5.4, 3.25], [6.3, 3.5], [7.25, 3.2]] }
       ],
       labels: [
@@ -1711,7 +1718,7 @@
         { text: 'CLARENCE STRAIT', x: 8.25, y: 4.6, size: 18, rotate: 90, cls: 'water' },
         { text: 'BUCARELI BAY', x: -1.75, y: 2.4, size: 18, rotate: -90, cls: 'water' },
         { text: 'Thorne Bay', x: 8.3, y: -0.2, size: 14, rotate: 90, cls: 'water' },
-        { text: 'Coffman Cove', x: 4.4, y: -4.72, size: 14, rotate: 0, cls: 'water' }
+        { text: 'Coffman Cove', x: 5.5, y: -4.35, size: 14, rotate: -38, cls: 'water' }
       ]
     };
 
@@ -1738,8 +1745,8 @@
           if (g.state.loc === 'cabin') return 'Somebody left in a hurry. Read what they left on the table.';
           return 'The cabin on the topo map is on the Thorne. From the highway, take Thorne Bay Road north to the trailhead, then go east along the trail and across the river.';
         }
-        if (!g.inInv('oars')) return 'Rick took the oars from the Sweetwater skiff. Hazel at the general store in Coffman Cove (north past Luck Lake and down along Dog Creek, then west from town) might have another pair. TALK TO HAZEL.';
-        return 'Take the Sweetwater turnoff east off the Coffman Cove road, walk down to the landing, and ROW EAST across the lake to the cabin.';
+        if (!g.inInv('oars')) return 'Rick took the oars from the Sweetwater skiff. Hazel at the general store in Coffman Cove (north past Luck Lake and down along Dog Creek, then north from the middle of town) might have another pair. TALK TO HAZEL.';
+        return 'Take NF-3030 west out of Coffman Cove to the Sweetwater sign, go down the spur to the landing, and ROW WEST across the lake to the cabin.';
       }
       if (!g.flag('dale_confessed')) return 'Talk to Dale. Show him the napkin if he stonewalls you.';
       return 'Go to the State Troopers post in Klawock and ACCUSE whoever is responsible. Maybe more than one person.';

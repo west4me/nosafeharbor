@@ -45,21 +45,21 @@ earlier commands. The **Theme** button switches between amber and green.
 ## Map
 
 ```
-                General Store ── Coffman Cove ── Cove Harbor
-                                      │
-                                  Dog Creek
-                                      │
-                             Sweetwater Turnoff ── Landing ~~ Lake ~~ Sweetwater Cabin
-                                      │                    (row!)
-                                  Luck Lake
-                                      │
-                                  Trailhead ── Old-Growth Trail ── River Crossing ── Thorne Cabin
-                                      │          (dark!)           (deep!)
-                               Thorne Bay Road
-                                      │
-  Totem Park                  Hollis–Klawock Hwy ──────────── Hollis Ferry (start)
-       │                              │
-   Klawock ───────────────────────────┘
+                                  General Store
+                                        │
+       Sweetwater Turnoff ────────── Coffman Cove ── Cove Harbor
+              │                         │
+ Cabin ~~ Lake ~~ Landing           Dog Creek
+       (row!)                           │
+                                    Luck Lake
+                                        │
+                                    Trailhead ── Old-Growth Trail ── River Crossing ── Thorne Cabin
+                                        │          (dark!)           (deep!)
+                                 Thorne Bay Road
+                                        │
+  Totem Park                    Hollis–Klawock Hwy ──────────── Hollis Ferry (start)
+       │                                │
+   Klawock ─────────────────────────────┘
    │     └─ Trooper Post (west)
    │
  Craig (Front St) ── Riptide Tavern (east)
