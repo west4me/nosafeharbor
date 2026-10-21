@@ -17,7 +17,7 @@
   const geo = root.NSH && root.NSH.geo ? root.NSH.geo
     : (typeof require === 'function' ? require('./geodata.js').geo : null);
 
-  const STUB_PX = 70; // how far a "?" stub runs along an unexplored road
+  const STUB_PX = 140; // how far a "?" stub runs along an unexplored road (about 5 km)
 
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -158,6 +158,55 @@
     return baseCache.svg;
   }
 
+  // The pencil line for each unexplored exit: a stretch of the real road, or a short dash toward the place.
+  function stubLines(game, model) {
+    const P = (id) => project(game.rooms[id].map.at);
+    return model.stubs.map((s) => {
+      const from = P(s.from);
+      const route = s.road && geo.routes[s.key];
+      if (route) return lead(route.line, from, STUB_PX);
+      const to = P(s.to);
+      const len = Math.hypot(to[0] - from[0], to[1] - from[1]);
+      const f = Math.min(1, Math.min(STUB_PX * 0.6, len * 0.6) / (len || 1));
+      return [from, [from[0] + (to[0] - from[0]) * f, from[1] + (to[1] - from[1]) * f]];
+    });
+  }
+
+  // The part of the sheet worth looking at: everywhere you've been, where you are, and where
+  // the unexplored roads lead off, with some margin. Returned as an SVG viewBox [x, y, w, h]
+  // shaped to the panel (aspect = width / height), never smaller than about 20 km across.
+  function mapView(game, aspect) {
+    const model = mapModel(game);
+    const pts = model.rooms.map((r) => project(r.at));
+    for (const line of stubLines(game, model)) pts.push(line[line.length - 1]);
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
+    const PAD = 110;
+    const MIN = 20 * geo.view.pxPerKm;
+    let [x0, x1, y0, y1] = [Math.min(...xs) - PAD, Math.max(...xs) + PAD, Math.min(...ys) - PAD, Math.max(...ys) + PAD];
+    let w = Math.max(x1 - x0, MIN);
+    let h = Math.max(y1 - y0, MIN / Math.max(aspect, 0.4));
+    if (w / h < aspect) w = h * aspect; else h = w / aspect;
+    // Never wider or taller than the sheet; then keep the frame on the sheet.
+    const fit = Math.min(geo.width / w, geo.height / h, 1);
+    w *= fit; h *= fit;
+    // If everything won't fit (the island is tall, screens are wide), keep you in the middle.
+    const here = model.hereId ? project(game.rooms[model.hereId].map.at) : null;
+    let x = fit < 1 && here ? here[0] - w / 2 : (x0 + x1) / 2 - w / 2;
+    let y = fit < 1 && here ? here[1] - h / 2 : (y0 + y1) / 2 - h / 2;
+    x = Math.max(0, Math.min(x, geo.width - w));
+    y = Math.max(0, Math.min(y, geo.height - h));
+    return [Math.round(x), Math.round(y), Math.round(w), Math.round(h)];
+  }
+
+  // The whole sheet, shaped to the panel.
+  function wholeView(aspect) {
+    let w = geo.width;
+    let h = geo.height;
+    if (w / h < aspect) w = h * aspect; else h = w / aspect;
+    return [Math.round((geo.width - w) / 2), Math.round((geo.height - h) / 2), Math.round(w), Math.round(h)];
+  }
+
   // Lake and river names from the USGS data. Skip any that would land on another name,
   // and any that just repeat the name of a place you've already pinned.
   function featureNames(game, model) {
@@ -227,23 +276,13 @@
     }
     // Ways you haven't tried: a dashed start down the road, and a question mark.
     const marks = [];
-    for (const s of model.stubs) {
-      const from = P(s.from);
-      let pts;
-      const route = s.road && geo.routes[s.key];
-      if (route) pts = lead(route.line, from, STUB_PX);
-      else {
-        const to = P(s.to);
-        const len = Math.hypot(to[0] - from[0], to[1] - from[1]);
-        const f = Math.min(1, Math.min(STUB_PX * 0.6, len * 0.6) / (len || 1));
-        pts = [from, [from[0] + (to[0] - from[0]) * f, from[1] + (to[1] - from[1]) * f]];
-      }
-      out.push(`<path d="${pathOf(pts.flat())}" stroke-width="2.2" stroke-dasharray="5 5"/>`);
+    for (const pts of stubLines(game, model)) {
+      out.push(`<path d="${pathOf(pts.flat())}" stroke-width="3" stroke-dasharray="7 5"/>`);
       marks.push(pts[pts.length - 1]);
     }
     out.push('</g>');
     for (const [x, y] of marks) {
-      out.push(`<circle cx="${x}" cy="${y}" r="9" fill="#fbf8ef" opacity="0.85"/><text class="map-q" x="${x}" y="${y + 6}" font-size="17" text-anchor="middle">?</text>`);
+      out.push(`<circle cx="${x}" cy="${y}" r="12" fill="#fffdf6" stroke="#2f2f2f" stroke-width="1.6"/><text class="map-q" x="${x}" y="${y + 7}" font-size="20" text-anchor="middle">?</text>`);
     }
 
     // Pins: one pencil dot per spot you've stood, then a label block per site.
@@ -287,9 +326,12 @@
     // You are here.
     if (model.hereId && byId[model.hereId]) {
       const [x, y] = P(model.hereId);
-      out.push(`<g id="map-you-are-here" filter="url(#map-pencil)" fill="none" stroke="#c0392b" stroke-linecap="round">
-  <circle cx="${x}" cy="${y}" r="17" stroke-width="3.2"/>
-  <path d="M${x + 12},${y - 25} l10,10 m0,-10 l-10,10" stroke-width="3"/>
+      out.push(`<g id="map-you-are-here">
+  <g filter="url(#map-pencil)" fill="none" stroke="#c0392b" stroke-linecap="round">
+    <circle cx="${x}" cy="${y}" r="17" stroke-width="3.4"/>
+    <path d="M${x + 12},${y - 25} l10,10 m0,-10 l-10,10" stroke-width="3"/>
+  </g>
+  <text class="map-you-text" x="${x}" y="${y + 40}" font-size="16" text-anchor="middle">YOU ARE HERE</text>
 </g>`);
     }
 
@@ -334,5 +376,7 @@
   root.NSH.renderMap = renderMap;
   root.NSH.mapModel = mapModel;
   root.NSH.project = project;
-  if (typeof module === 'object' && module.exports) module.exports = { renderMap, mapModel, project };
+  root.NSH.mapView = mapView;
+  root.NSH.wholeView = wholeView;
+  if (typeof module === 'object' && module.exports) module.exports = { renderMap, mapModel, project, mapView, wholeView };
 })(typeof window !== 'undefined' ? window : globalThis);

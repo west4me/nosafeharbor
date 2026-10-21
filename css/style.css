@@ -205,24 +205,32 @@ html, body {
 #map-where::before { content: "◯ "; color: #c0392b; font-weight: 700; }
 #map-where strong { color: #c0392b; }
 
-#map-close {
+#map-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+#map-tip { font-size: 0.75rem; color: #555; margin-right: 4px; }
+
+#map-tools button {
   font: inherit;
   font-size: 0.8rem;
-  background: transparent;
+  background: #fffdf6;
   color: #2f2f2f;
   border: 1px solid #9dbbdc;
   padding: 2px 10px;
+  min-width: 2.2em;
   cursor: pointer;
 }
+#map-tools button:hover, #map-tools button:focus-visible { border-color: #2f2f2f; outline: none; }
 
 #map-scroll {
   flex: 1;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
 }
 
-/* Below 720px the sheet keeps its size and you pan around it. */
-.map-svg { display: block; width: 100%; min-width: 720px; height: auto; }
+/* The sheet fills the panel; which part of it shows is the SVG viewBox (pan and zoom). */
+.map-svg { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.map-svg.dragging { cursor: grabbing; }
+@media (max-width: 560px) { #map-tip { display: none; } }
 
 .map-svg text {
   font-family: "Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive;
@@ -254,6 +262,7 @@ html, body {
 .map-svg .map-site-name { font-weight: 700; fill: #1f1f1f; }
 .map-svg .map-site-room { fill: #2a2a2a; }
 .map-svg .map-here-text { fill: #a5281b; font-weight: 700; }
+.map-svg .map-you-text { fill: #a5281b; font-weight: 700; letter-spacing: 1px; stroke-width: 5px; }
 .map-svg .map-legend-text { fill: #222; }
 
 #quick #map-toggle { color: var(--bright); border-color: var(--dim); }

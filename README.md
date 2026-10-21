@@ -39,7 +39,9 @@ Prince of Wales Island on graph paper (one square = one kilometer), drawn from r
 actual coastline, lakes, rivers and roads. Like mapping Zork on graph paper, your own pencil work goes on
 top. Every place you've been gets a pin (towns list the spots inside them), the real road routes you've
 driven are inked in, trails and rowing are dotted, unexplored roads trail off into a `?`, and a red
-circle marks where you are. Keep typing with it open and it fills in as you go. `Esc` folds it back up.
+circle marks where you are. It opens framed around where you've been; drag to move, scroll (or + / −) to
+zoom, **Fit** to re-center on your travels, **Whole island** to see it all. Keep typing with it open and it
+fills in as you go. `Esc` folds it back up.
 
 Chain commands with periods (`open glovebox. take flashlight`). Up/down arrows recall
 earlier commands. The **Theme** button switches between amber and green.

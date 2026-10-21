@@ -25,7 +25,14 @@
       <section id="map-panel" aria-label="Map" hidden>
         <div id="map-bar">
           <span id="map-where"></span>
-          <button id="map-close" type="button" title="Fold up the map (Esc)">Close map ✕</button>
+          <span id="map-tools">
+            <span id="map-tip">Drag to move · scroll to zoom</span>
+            <button type="button" data-zoom="in" title="Zoom in" aria-label="Zoom in">+</button>
+            <button type="button" data-zoom="out" title="Zoom out" aria-label="Zoom out">−</button>
+            <button type="button" data-zoom="fit" title="Show where you've been">Fit</button>
+            <button type="button" data-zoom="all" title="Show the whole sheet">Whole island</button>
+            <button id="map-close" type="button" title="Fold up the map (Esc)">Close ✕</button>
+          </span>
         </div>
         <div id="map-scroll"></div>
       </section>

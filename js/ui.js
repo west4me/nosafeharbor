@@ -44,7 +44,21 @@
     if (!mapPanel.hidden) drawMap();
   }
 
-  // ---- graph-paper map
+  // ---- the field map
+  // The SVG is the whole sheet; the viewBox picks which part shows. Until you pan or zoom,
+  // the map frames itself around where you've been ("follow" mode). FIT goes back to that.
+  let mapViewBox = null;
+  let followMe = true;
+
+  function panelAspect() {
+    return Math.max(0.3, mapScroll.clientWidth / Math.max(1, mapScroll.clientHeight));
+  }
+
+  function applyView() {
+    const svg = mapScroll.querySelector('svg');
+    if (svg && mapViewBox) svg.setAttribute('viewBox', mapViewBox.join(' '));
+  }
+
   function drawMap() {
     mapScroll.innerHTML = window.NSH.renderMap(game);
     mapWhere.textContent = '';
@@ -52,21 +66,81 @@
     const strong = document.createElement('strong');
     strong.textContent = game.status().location;
     mapWhere.append(strong);
-    const here = mapScroll.querySelector('#map-you-are-here');
-    // The sheet can be taller (and on phones wider) than the panel; keep your room in view.
-    if (here && (mapScroll.scrollWidth > mapScroll.clientWidth + 4 || mapScroll.scrollHeight > mapScroll.clientHeight + 4)) {
-      const box = here.getBoundingClientRect();
-      const panel = mapScroll.getBoundingClientRect();
-      mapScroll.scrollLeft += box.left + box.width / 2 - (panel.left + panel.width / 2);
-      mapScroll.scrollTop += box.top + box.height / 2 - (panel.top + panel.height / 2);
-    }
+    if (followMe || !mapViewBox) mapViewBox = window.NSH.mapView(game, panelAspect());
+    applyView();
   }
+
+  // Zoom by a factor around a point on the sheet (defaults to the middle of the view).
+  function zoomBy(f, cx, cy) {
+    const [x, y, w, h] = mapViewBox;
+    const whole = window.NSH.wholeView(panelAspect());
+    const nw = Math.min(Math.max(w * f, 160), whole[2]);
+    const k = nw / w;
+    const px = cx === undefined ? x + w / 2 : cx;
+    const py = cy === undefined ? y + h / 2 : cy;
+    mapViewBox = [px - (px - x) * k, py - (py - y) * k, nw, h * k];
+    followMe = false;
+    applyView();
+  }
+
+  document.getElementById('map-tools').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-zoom]');
+    if (!btn) return;
+    const z = btn.dataset.zoom;
+    if (z === 'in') zoomBy(1 / 1.5);
+    else if (z === 'out') zoomBy(1.5);
+    else if (z === 'fit') { followMe = true; mapViewBox = window.NSH.mapView(game, panelAspect()); applyView(); }
+    else if (z === 'all') { followMe = false; mapViewBox = window.NSH.wholeView(panelAspect()); applyView(); }
+    input.focus();
+  });
+
+  // Scroll to zoom around the pointer; drag to pan.
+  function sheetPoint(clientX, clientY) {
+    const r = mapScroll.getBoundingClientRect();
+    const [x, y, w, h] = mapViewBox;
+    const s = Math.max(w / r.width, h / r.height); // the SVG letterboxes ("meet"), so use the larger scale
+    const ox = (r.width - w / s) / 2;
+    const oy = (r.height - h / s) / 2;
+    return [x + (clientX - r.left - ox) * s, y + (clientY - r.top - oy) * s, s];
+  }
+
+  mapScroll.addEventListener('wheel', (e) => {
+    if (!mapViewBox) return;
+    e.preventDefault();
+    const [px, py] = sheetPoint(e.clientX, e.clientY);
+    zoomBy(e.deltaY > 0 ? 1.2 : 1 / 1.2, px, py);
+  }, { passive: false });
+
+  let drag = null;
+  mapScroll.addEventListener('pointerdown', (e) => {
+    if (!mapViewBox) return;
+    drag = { x: e.clientX, y: e.clientY, box: mapViewBox.slice(), scale: sheetPoint(e.clientX, e.clientY)[2] };
+    mapScroll.setPointerCapture(e.pointerId);
+    const svg = mapScroll.querySelector('svg');
+    if (svg) svg.classList.add('dragging');
+  });
+  mapScroll.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const dx = (e.clientX - drag.x) * drag.scale;
+    const dy = (e.clientY - drag.y) * drag.scale;
+    if (Math.abs(dx) + Math.abs(dy) > 2) followMe = false;
+    mapViewBox = [drag.box[0] - dx, drag.box[1] - dy, drag.box[2], drag.box[3]];
+    applyView();
+  });
+  const endDrag = () => {
+    drag = null;
+    const svg = mapScroll.querySelector('svg');
+    if (svg) svg.classList.remove('dragging');
+  };
+  mapScroll.addEventListener('pointerup', endDrag);
+  mapScroll.addEventListener('pointercancel', endDrag);
+  window.addEventListener('resize', () => { if (!mapPanel.hidden && followMe) drawMap(); });
 
   function toggleMap(force) {
     const open = force === undefined ? mapPanel.hidden : force;
     mapPanel.hidden = !open;
     mapToggle.setAttribute('aria-pressed', String(open));
-    if (open) drawMap();
+    if (open) { followMe = true; drawMap(); }
     input.focus();
   }
 

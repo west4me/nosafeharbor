@@ -353,6 +353,23 @@ test('a trail only ever seen in the dark is labeled Dark!', () => {
   assert.equal(mapModel(g).rooms.find((r) => r.id === 'river_trail').label, 'Old-Growth Trail');
 });
 
+test('the map frames where you are and where the roads lead, not the whole sheet', () => {
+  const { mapView, wholeView } = require('../js/map.js');
+  const g = newGame();
+  const inside = (v, [x, y]) => x >= v[0] && x <= v[0] + v[2] && y >= v[1] && y <= v[1] + v[3];
+  const start = mapView(g, 1.3);
+  assert.ok(inside(start, project(g.rooms.ferry.map.at)), 'you are in the frame');
+  assert.ok(start[2] < geo.width * 0.75, 'the opening view is zoomed in, not the whole island');
+  assert.ok(Math.abs(start[2] / start[3] - 1.3) < 0.02, 'shaped to the panel');
+  assert.ok(start[0] >= 0 && start[1] >= 0 && start[0] + start[2] <= geo.width + 1 && start[1] + start[3] <= geo.height + 1, 'on the sheet');
+  runAll(g, [...KEYS, 'w', 'w', 'ne', 'n', 'ne']);
+  // On a tall panel the whole trip fits; on a wide one there's no room, so the frame keeps you in view.
+  const tall = mapView(g, 0.6);
+  for (const id of ['ferry', 'klawock', 'coffman_cove']) assert.ok(inside(tall, project(g.rooms[id].map.at)), `${id} is in the frame`);
+  assert.ok(inside(mapView(g, 1.8), project(g.rooms.coffman_cove.map.at)), 'you stay in the frame on a wide panel');
+  assert.ok(wholeView(1.3)[2] >= geo.width);
+});
+
 test('MAP command signals the UI without using a turn', () => {
   const g = newGame();
   const blocks = g.command('map');

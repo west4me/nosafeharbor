@@ -1835,7 +1835,7 @@
     // lakes, rivers, roads) is in js/geodata.js, built from USGS data by
     // tools/build_geodata.py.
     const mapSites = {
-      hollis: { name: 'Hollis Ferry', label: [10, 4, 'start'] },
+      hollis: { name: 'Hollis Ferry', label: [-14, -12, 'end'] },
       harris: { name: 'Harris River Bridge', label: [0, 26, 'middle'] },
       klawock: { name: 'Klawock', label: [12, -6, 'start'] },
       craig: { name: 'Craig', label: [-12, -6, 'end'] },
