@@ -11,6 +11,7 @@ const assert = require('node:assert/strict');
 const { buildWorld } = require('../js/world.js');
 const { Game } = require('../js/engine.js');
 const { renderMap, mapModel } = require('../js/map.js');
+const { renderNotebook, notebookModel } = require('../js/notebook.js');
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
@@ -566,6 +567,57 @@ test('history and people of the island show up where they belong', () => {
   g.flag('cal_talked', true);
   assert.match(run(g, 'ask cal about wolves'), /Alexander Archipelago/);
   assert.match(run(g, 'ask cal about bears'), /black bear/);
+});
+
+test('the notebook logs what you do and keeps leads up to date', () => {
+  const g = newGame();
+  let m = notebookModel(g);
+  assert.deepEqual(m.openLeads, ['Read the case file.']);
+  assert.match(run(g, 'read case file'), /New lead in your notebook: See the harbormaster/);
+  m = notebookModel(g);
+  assert.ok(m.doneLeads.includes('Read the case file.'));
+  assert.ok(m.openLeads.some((t) => /harbormaster/.test(t)));
+  runAll(g, [...KEYS, 'w', 'w', 's', 'w', 'n', 'talk to joe', 'ask joe about weather']);
+  m = notebookModel(g);
+  assert.ok(m.people.some((p) => p.name === 'Joe Kitka' && /harbormaster/i.test(p.role)));
+  assert.ok(m.places.includes('Klawock'));
+  const ev = m.log.find((e) => e.kind === 'evidence');
+  assert.match(ev.text, /flat calm/);
+  assert.match(m.theory, /doesn't add up/);
+  assert.ok(m.summary.some((l) => /flat calm/.test(l)));
+  assert.ok(!m.openLeads.some((t) => /harbormaster/.test(t)));
+  // Turn numbers in the log match the status bar.
+  assert.equal(ev.turn, g.state.turns);
+  assert.match(run(g, 'notes'), /OPEN LEADS/);
+});
+
+test('the notebook renders, and every lead is closed by the end', () => {
+  const g = newGame();
+  const html0 = renderNotebook(g);
+  assert.match(html0, /CASE NOTEBOOK/);
+  assert.equal((html0.match(/nb-missing/g) || []).length, 12);
+  runAll(g, WALKTHROUGH);
+  const m = notebookModel(g);
+  assert.deepEqual(m.openLeads, []);
+  assert.equal(m.evidence.length, m.evidenceTotal);
+  assert.match(m.theory, /Case closed/);
+  assert.doesNotMatch(renderNotebook(g), /nb-missing|undefined|NaN/);
+  // Opening the notebook is a UI event, not a turn.
+  const t = g.state.turns;
+  g.command('notebook');
+  assert.equal(g.state.turns, t);
+});
+
+test('old saves without a notebook still load and get their leads', () => {
+  const g = newGame();
+  runAll(g, ['read case file', ...KEYS]);
+  const saved = JSON.parse(JSON.stringify(g.state));
+  delete saved.log; delete saved.met; delete saved.leads;
+  g.storage.set('nosafeharbor-save-v2', JSON.stringify(saved));
+  run(g, 'load');
+  assert.deepEqual(g.state.log, []);
+  assert.equal(g.state.leads.keys, 'done');
+  assert.equal(g.state.leads.joe, 'open');
 });
 
 test('no rowing to Sweetwater without oars, and Hazel has a spare pair', () => {

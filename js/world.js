@@ -1134,6 +1134,7 @@
     const npcs = {
       marnie: {
         name: 'Marnie Haugen', loc: 'kitchen',
+        role: "Dale's wife. Cooks at the lodge.",
         names: ['marnie', 'marnie haugen', 'mrs haugen', 'wife', 'woman'],
         here: 'Marnie Haugen is kneading bread dough like she would rather do anything than think.',
         desc: "Dale's wife of forty years. Gray braid, flour to the elbows and red eyes she'd deny if you mentioned them.",
@@ -1173,6 +1174,7 @@
 
       rick: {
         name: 'Rick Sorensen', loc: 'lodge',
+        role: "Dale's business partner, and the new beneficiary.",
         names: ['rick', 'rick sorensen', 'sorensen', 'richard', 'partner', 'man'],
         here: "Rick Sorensen, Dale's business partner, sits by the fire in a too-new flannel shirt, staring into the flames with the expression of a man who rehearsed it in the mirror.",
         desc: "Fifty-ish, good teeth, expensive haircut, mud-spattered boots. His hands won't stay still.",
@@ -1203,6 +1205,7 @@
 
       joe: {
         name: 'Joe Kitka', loc: 'harbormaster',
+        role: 'Craig harbormaster. Found the skiff.',
         names: ['joe', 'joe kitka', 'kitka', 'harbormaster', 'harbor master'],
         here: 'Joe Kitka, the harbormaster, a broad man in faded rain gear, is drinking coffee out of a mug that says WORLD\'S OKAYEST GRANDPA.',
         desc: 'Sixty, steady, and weathered by fifty winters on the water. He looks at you like he looks at the sky: checking for trouble. There is a silver bracelet on his wrist, engraved with an eagle.',
@@ -1245,6 +1248,7 @@
 
       kenzie: {
         name: 'Kenzie', loc: 'fuel_dock',
+        role: 'Runs the Craig fuel dock. Notices things.',
         names: ['kenzie', 'attendant', 'teenager', 'girl', 'kid'],
         here: 'A teenage attendant in an oversized float coat is scrolling her phone in the shack doorway. Her name tag says KENZIE.',
         desc: 'Sixteen, bored and wearing a float coat three sizes too big. Paying more attention than she lets on.',
@@ -1269,6 +1273,7 @@
 
       cal: {
         name: 'Cal Brenner', loc: 'tavern',
+        role: 'Fishing guide at the Riptide. Knows the rivers.',
         names: ['cal', 'cal brenner', 'brenner', 'guide', 'fisherman'],
         here: (g) => (g.flag('cal_talked')
           ? 'At the end of the bar, Cal Brenner is working slowly through the beer you bought him, looking marginally less put-upon.'
@@ -1306,6 +1311,7 @@
 
       bonnie: {
         name: 'Bonnie', loc: 'tavern',
+        role: 'Bartender at the Riptide Tavern.',
         names: ['bonnie', 'bartender', 'barkeep', 'barmaid'],
         here: 'Bonnie the bartender polishes a glass that was clean ten minutes ago.',
         desc: 'Sixty, silver bob, forearms like a deckhand. She has heard every story twice.',
@@ -1324,6 +1330,7 @@
 
       walt: {
         name: 'Walt', loc: 'totem_park',
+        role: 'Tlingit carver at the Klawock Totem Park.',
         names: ['walt', 'walter', 'carver', 'old man', 'elder'],
         here: 'An older man in a canvas apron is shaping the cedar log with an adze, curls of red wood piling up around his boots.',
         desc: "Seventy-something, with a carver's forearms and a fisherman's squint. Tlingit, Klawock born and raised. He knows this island the way you know your own kitchen.",
@@ -1364,6 +1371,7 @@
 
       hazel: {
         name: 'Hazel', loc: 'cove_store',
+        role: 'Runs the Coffman Cove store. Knows the north end.',
         names: ['hazel', 'storekeeper', 'clerk', 'owner', 'shopkeeper'],
         here: 'Hazel, who has run this store for thirty years and knows everything that happens north of the Thorne, is doing a crossword behind the counter with a pencil she sharpens with a pocketknife.',
         desc: 'Seventies, sharp-eyed, wool vest, reading glasses on a beaded chain. She has been watching you since before you came in.',
@@ -1413,6 +1421,7 @@
 
       reyes: {
         name: 'Sgt. Anna Reyes', loc: 'trooper',
+        role: 'Alaska State Trooper, Klawock post.',
         names: ['reyes', 'anna reyes', 'sergeant', 'sgt', 'sgt reyes', 'sergeant reyes', 'trooper', 'anna', 'officer'],
         here: 'Sergeant Anna Reyes sits behind the front desk, reading a report as though it personally offended her.',
         desc: "Fifty, compact and still in the way of someone who has been lied to by experts.",
@@ -1441,6 +1450,7 @@
 
       dale: {
         name: 'Dale Haugen', loc: 'sweetwater_cabin',
+        role: 'The insured. Very much not drowned.',
         names: ['dale', 'dale haugen', 'haugen', 'man', 'bill', 'stranger'],
         here: (g) => g.flag('dale_confessed')
           ? 'Dale Haugen sits at the plank table with both hands around a cold cup of coffee, looking like a man who has finally put down something heavy.'
@@ -1939,6 +1949,57 @@
       { text: 'Fish Egg I.', at: [-133.188, 55.497], size: 15, rotate: 0, cls: 'water' }
     ];
 
+    // ---------------------------------------------------------------- the case notebook
+    // Leads show up in the notebook once you'd know about them, and tick themselves off when they're done.
+    const leads = [
+      { id: 'case_file', text: 'Read the case file.', show: () => true, done: (g) => g.flag('read_case_file') },
+      { id: 'keys', text: 'Get the rental truck keys from the lockbox at the Hollis ferry terminal.', show: (g) => g.flag('read_case_file'), done: (g) => hasKeys(g) },
+      { id: 'joe', text: 'See the harbormaster in Craig. He found the skiff.', show: (g) => g.flag('read_case_file'), done: (g) => g.has('calm_night') },
+      { id: 'marnie', text: "Talk to Dale's wife, Marnie, at the Harbor Light Lodge south of Craig.", show: (g) => g.flag('read_case_file') && (g.has('calm_night') || g.state.visited.lodge), done: (g) => g.flag('got_key') },
+      { id: 'skiff', text: 'Look over the Kittiwake in the lodge boathouse.', show: (g) => g.flag('got_report') || g.state.visited.lodge, done: (g) => g.has('lanyard') },
+      { id: 'office', text: "Go through Dale's office at the lodge.", show: (g) => g.flag('got_key'), done: (g) => g.has('photo') && g.has('topo_map') },
+      { id: 'safe', text: "Open Dale's office safe. It has a three-number dial.", show: (g) => g.state.visited.office || g.has('photo'), done: (g) => !g.itemState('safe').locked },
+      { id: 'propane', text: 'Who bought propane and groceries? Try the Craig fuel dock.', show: (g) => g.has('topo_map'), done: (g) => g.has('receipt') },
+      { id: 'cal', text: 'Get Cal Brenner at the Riptide to talk. He looks thirsty.', show: (g) => g.state.visited.tavern, done: (g) => g.has('cal_tip') },
+      { id: 'thorne', text: 'Check the cabin on the Thorne River: Big Salt Road to Control Lake, then the Thorne Bay Road.', show: (g) => g.has('topo_map') || g.flag('knows_cabin') || g.has('cal_tip'), done: (g) => g.state.visited.cabin || g.has('rick_note') || g.has('found_dale') },
+      { id: 'light', text: "Find a light. It's black as night under the old growth.", show: (g) => g.state.visited.river_trail, done: (g) => g.isOwned('flashlight') },
+      { id: 'waders', text: 'The Thorne is running high. Find some waders.', show: (g) => g.state.visited.ford, done: (g) => g.isOwned('waders') || g.state.visited.cabin },
+      { id: 'sweetwater', text: 'Get to the Forest Service cabin on Sweetwater Lake, near Coffman Cove.', show: (g) => g.has('rick_note') || g.flag('knows_sweetwater'), done: (g) => g.has('found_dale') },
+      { id: 'hazel', text: 'Talk to Hazel at the Coffman Cove store.', show: (g) => g.state.visited.coffman_cove, done: (g) => g.flag('hazel_talked') },
+      { id: 'oars', text: 'Find oars for the Sweetwater skiff.', show: (g) => g.state.visited.sweetwater_landing || g.has('rick_note'), done: (g) => g.inInv('oars') || g.has('found_dale') },
+      { id: 'dale', text: 'Get the whole story out of Dale.', show: (g) => g.has('found_dale'), done: (g) => g.flag('dale_confessed') },
+      { id: 'report', text: 'Report it to Sgt. Reyes at the Troopers post in Klawock.', show: (g) => g.flag('dale_confessed'), done: (g) => g.has('solved') }
+    ];
+
+    // Your working theory, rewritten as the evidence comes in.
+    function theory(g) {
+      if (g.has('solved')) return 'Case closed. Dale Haugen faked his own drowning, and Rick Sorensen helped him do it, for a $1.5 million payout.';
+      if (g.has('found_dale')) return "Dale Haugen is alive. He faked his own death, and Rick's been hiding him. Now prove it to the Troopers.";
+      if (g.has('rick_note') || g.has('hazel_tip')) return "Somebody is alive out there, and Rick Sorensen is keeping them fed. Odds are it's Dale.";
+      if (g.has('napkin')) return "Insurance fraud. Dale and Rick planned to split 'the payout' 60/40. So where is Dale?";
+      if (g.has('lanyard') || g.has('rod_missing')) return 'This was no accident. Somebody staged that skiff.';
+      if (g.has('calm_night')) return "A forty-year boatman, a flat calm night and no body. It doesn't add up.";
+      return "Dale Haugen went out in his skiff and never came back. Accident? That's what you're here to find out.";
+    }
+
+    // What you know so far, one line per thing you've learned, in story order.
+    function summary(g) {
+      const lines = [];
+      lines.push("Dale Haugen, 61, vanished off Fish Egg Island on October 11. His skiff was found swamped; no body. Three months ago he changed his life insurance beneficiary from his wife, Marnie, to his partner, Rick Sorensen. Payout: $1.5 million.");
+      if (g.has('calm_night')) lines.push('The night he vanished was flat calm. Dale had run boats for forty years.');
+      if (g.has('lanyard')) lines.push("The skiff's drain plug was unscrewed, and his kill switch wasn't on his wrist. Staged.");
+      if (g.has('rod_missing')) lines.push("His father's 1952 Winston is gone from the rack. Dead men don't pack their favorite rod.");
+      if (g.has('foreclosure')) lines.push('The lodge is $214,000 behind. The bank forecloses December 1.');
+      if (g.has('napkin')) lines.push("A napkin in Dale's hand: 'R — 60/40 after the payout.'");
+      if (g.has('receipt')) lines.push('Rick bought propane and gas in cash the morning after Dale drowned.');
+      if (g.has('cal_tip') || g.has('topo_map')) lines.push("Rick keeps driving up the Thorne Bay Road, and Dale's topo map has a cabin circled on the Thorne.");
+      if (g.has('rick_note')) lines.push("Rick moved 'D' from the Thorne cabin to Sweetwater Lake.");
+      if (g.has('hazel_tip')) lines.push('Rick buys groceries for two in Coffman Cove, and he borrowed oars for the Sweetwater skiff.');
+      if (g.has('found_dale')) lines.push('Found Dale Haugen alive in the Sweetwater cabin.');
+      if (g.has('solved')) lines.push('Reported the whole thing to Sgt. Reyes.');
+      return lines;
+    }
+
     // ---------------------------------------------------------------- hints
     function hint(g) {
       const st = g.state;
@@ -1987,7 +2048,7 @@
       title: 'No Safe Harbor',
       start: 'ferry',
       maxScore: Object.values(clues).reduce((s, c) => s + c.points, 0),
-      intro, clues, rooms, items, npcs, hint, mapSites, mapLabels,
+      intro, clues, rooms, items, npcs, hint, mapSites, mapLabels, leads, theory, summary,
       // "in" from wherever your truck is parked.
       // IN gets you into your truck, wherever it's parked, unless the place has a building you'd walk into.
       extraExits: (g, room) => {

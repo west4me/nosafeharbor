@@ -17,6 +17,9 @@
   const mapScroll = document.getElementById('map-scroll');
   const mapWhere = document.getElementById('map-where');
   const mapToggle = document.getElementById('map-toggle');
+  const nbPanel = document.getElementById('notebook-panel');
+  const nbBody = document.getElementById('notebook-body');
+  const nbToggle = document.getElementById('notebook-toggle');
 
   // localStorage can throw (private mode, blocked storage), so wrap it.
   const storage = {
@@ -32,6 +35,7 @@
     for (const b of blocks) {
       if (b.cls === 'event') {
         if (b.event === 'map') toggleMap();
+        if (b.event === 'notebook') toggleNotebook();
         continue;
       }
       const p = document.createElement('p');
@@ -42,6 +46,8 @@
     out.scrollTop = out.scrollHeight;
     updateStatus();
     if (!mapPanel.hidden) drawMap();
+    if (!nbPanel.hidden) drawNotebook();
+    updateNotebookBadge();
   }
 
   // ---- the field map
@@ -138,16 +144,51 @@
 
   function toggleMap(force) {
     const open = force === undefined ? mapPanel.hidden : force;
+    if (open) toggleNotebook(false);
     mapPanel.hidden = !open;
     mapToggle.setAttribute('aria-pressed', String(open));
     if (open) { followMe = true; drawMap(); }
     input.focus();
   }
 
+  // ---- the case notebook
+  // The button shows how many entries you haven't looked at yet.
+  let nbSeen = 0;
+  const logLength = () => (game.state.log || []).length;
+
+  function drawNotebook() {
+    const top = nbBody.scrollTop;
+    nbBody.innerHTML = window.NSH.renderNotebook(game);
+    nbBody.scrollTop = top;
+    nbSeen = logLength();
+  }
+
+  function updateNotebookBadge() {
+    if (nbSeen > logLength()) nbSeen = logLength(); // after a restart or a load
+    const fresh = nbPanel.hidden ? logLength() - nbSeen : 0;
+    nbToggle.textContent = fresh > 0 ? `Notebook (${fresh} new)` : 'Notebook';
+    nbToggle.classList.toggle('has-new', fresh > 0);
+  }
+
+  function toggleNotebook(force) {
+    const open = force === undefined ? nbPanel.hidden : force;
+    if (open === !nbPanel.hidden) return;
+    if (open) toggleMap(false);
+    nbPanel.hidden = !open;
+    nbToggle.setAttribute('aria-pressed', String(open));
+    if (open) { drawNotebook(); nbBody.scrollTop = 0; }
+    updateNotebookBadge();
+    input.focus();
+  }
+
+  nbToggle.addEventListener('click', () => toggleNotebook());
+  document.getElementById('notebook-close').addEventListener('click', () => toggleNotebook(false));
+
   mapToggle.addEventListener('click', () => toggleMap());
   document.getElementById('map-close').addEventListener('click', () => toggleMap(false));
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !mapPanel.hidden) toggleMap(false);
+    if (e.key === 'Escape' && !nbPanel.hidden) toggleNotebook(false);
   });
 
   function echo(cmd) {

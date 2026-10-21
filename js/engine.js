@@ -97,7 +97,9 @@
         n.names = n.names.map((x) => x.toLowerCase());
       }
       // visited = rooms you've stood in; lit = rooms you've actually seen (for the map).
-      this.state = { version: 2, loc: w.start, items, flags: {}, found: [], score: 0, turns: 0, visited: { [w.start]: true }, lit: {}, over: false };
+      // log, met and leads feed the case notebook.
+      this.state = { version: 2, loc: w.start, items, flags: {}, found: [], score: 0, turns: 0, visited: { [w.start]: true }, lit: {}, over: false, log: [], met: {}, leads: {} };
+      this.updateLeads(true);
     }
 
     start() {
@@ -150,8 +152,49 @@
       if (!c) throw new Error('Unknown clue: ' + clueId);
       this.state.found.push(clueId);
       this.state.score += c.points;
+      this.logEvent('evidence', c.title);
       this.pending.push(`[Journal updated: ${c.title}. +${c.points} points]`);
       return true;
+    }
+
+    // ------------------------------------------------------------ the case notebook
+    // A running log of what you've done, newest last. Turn numbers match the status bar after the move.
+    logEvent(kind, text) {
+      const log = this.state.log || (this.state.log = []);
+      log.push({ turn: this.state.turns + 1, kind, text });
+      if (log.length > 300) log.splice(0, log.length - 300);
+    }
+
+    meet(npc) {
+      const met = this.state.met || (this.state.met = {});
+      if (met[npc.id]) return;
+      met[npc.id] = true;
+      this.logEvent('person', npc.role ? `${npc.name}: ${npc.role}` : npc.name);
+    }
+
+    // Open new leads and close finished ones. Silent when setting up a game or restoring a save.
+    updateLeads(silent) {
+      const st = this.state.leads || (this.state.leads = {});
+      for (const lead of this.world.leads || []) {
+        if (st[lead.id] === 'done') continue;
+        const now = lead.done(this) ? 'done' : lead.show(this) ? 'open' : null;
+        if (!now || now === st[lead.id]) continue;
+        const wasOpen = st[lead.id] === 'open';
+        st[lead.id] = now;
+        // A lead you finished before you ever heard of it just quietly counts as done.
+        if (silent || (now === 'done' && !wasOpen)) continue;
+        if (now === 'open') {
+          this.pending.push(`[New lead in your notebook: ${lead.text}]`);
+          this.logEvent('lead', lead.text);
+        } else {
+          this.logEvent('done', lead.text);
+        }
+      }
+    }
+
+    openLeads() {
+      const st = this.state.leads || {};
+      return (this.world.leads || []).filter((l) => st[l.id] === 'open');
     }
 
     itemState(id) {
@@ -300,6 +343,7 @@
           break;
         }
         const counted = this.dispatch(part);
+        this.updateLeads();
         if (counted !== false) this.state.turns++;
         if (this.pending.length) {
           for (const p of this.pending) this.print(p, 'clue');
@@ -324,7 +368,8 @@
       if (/^(i|inv|inventory|invent)$/.test(cmd)) return this.inventory();
       if (/^(map|m|show map|open map|view map|close map|hide map|fold map|unfold map)$/.test(cmd)) { this.emit('map'); return false; }
       if (/^(score|points)$/.test(cmd)) { this.print(this.scoreLine()); return false; }
-      if (/^(notes|journal|clues|evidence|notebook|case notes|read notes|read journal)$/.test(cmd)) return this.notes();
+      if (/^(notebook|open notebook|case notebook|close notebook|j)$/.test(cmd)) { this.emit('notebook'); return false; }
+      if (/^(notes|journal|clues|evidence|case notes|read notes|read journal|leads)$/.test(cmd)) return this.notes();
       if (/^(help|h|\?|commands|instructions)$/.test(cmd)) return this.help();
       if (/^(hint|hints|clue)$/.test(cmd)) { this.print(this.world.hint(this), 'hint'); return false; }
       if (/^save( game)?$/.test(cmd)) return this.save();
@@ -570,6 +615,7 @@
       this.state.loc = roomId;
       const first = !this.state.visited[roomId];
       this.state.visited[roomId] = true;
+      if (first && this.rooms[roomId].map) this.logEvent('place', this.rooms[roomId].name);
       if (quiet) {
         if (!this.isDark()) this.state.lit[roomId] = true;
       } else {
@@ -595,14 +641,16 @@
     }
 
     notes() {
+      const leads = this.openLeads().map((l) => '  [ ] ' + l.text);
+      const leadText = leads.length ? '\n\nOPEN LEADS\n' + leads.join('\n') : '';
       if (!this.state.found.length) {
-        this.print('Your journal is empty. Get to work.');
+        this.print('Your journal is empty. Get to work.' + leadText);
         return false;
       }
       const lines = this.state.found
         .filter((id) => id !== 'solved')
         .map((id, i) => `${i + 1}. ${this.clues[id].title}\n   ${this.clues[id].note}`);
-      this.print('CASE JOURNAL — Claim #NM-1187\n\n' + lines.join('\n\n'), 'journal');
+      this.print('CASE JOURNAL — Claim #NM-1187\n\n' + lines.join('\n\n') + leadText, 'journal');
       return false;
     }
 
@@ -621,7 +669,8 @@
         "            THANK person (or GUNALCHÉESH in Tlingit, HÁW'AA in Haida)",
         'THE CASE    NOTES (your journal), SCORE, HINT,',
         '            ACCUSE person (at the State Troopers post)',
-        'GAME        MAP (your graph-paper map), SAVE, LOAD, RESTART',
+        'GAME        MAP (your graph-paper map), NOTEBOOK (progress, leads, evidence),',
+        '            NOTES (the same, in text), SAVE, LOAD, RESTART',
         '',
         'You can chain commands with periods: TAKE PHOTO. READ IT.',
         'Press the up and down arrow keys to recall earlier commands.'
@@ -796,6 +845,7 @@
       const e = this.find(phrase);
       if (!e) return;
       if (e.kind !== 'npc') { this.print(`You talk to the ${e.name}. It's a good listener.`); return; }
+      this.meet(e);
       this.print(this.t(e.talk), 'speech');
     }
 
@@ -811,6 +861,7 @@
         if (here.length > 1) { this.print(`Thank whom? ${listJoin(here.map((n) => n.name))} are here.`); return false; }
         npc = here[0];
       }
+      this.meet(npc);
       const lang = /gunalcheesh/.test(word) ? 'tlingit' : /^haw ?aa/.test(word) ? 'haida' : null;
       const r = typeof npc.thanks === 'function' ? npc.thanks(this, lang) : npc.thanks;
       this.print(r || `${npc.name} nods. 'Sure thing.'`, 'speech');
@@ -827,6 +878,7 @@
     ask(personPhrase, topicPhrase) {
       const npc = this.find(personPhrase, { items: false });
       if (!npc) return;
+      if (npc.kind === 'npc') this.meet(npc);
       const topic = clean(topicPhrase);
       const tw = topic.split(' ');
       for (const entry of npc.topics || []) {
@@ -866,6 +918,7 @@
       const npc = this.find(npcPhrase, { items: false });
       if (!npc) return;
       if (npc.kind !== 'npc') { this.print("That isn't a person."); return; }
+      this.meet(npc);
       if (verb === 'give' && npc.give && npc.give[it.id]) { this.print(this.t(npc.give[it.id]), 'speech'); return; }
       const resp = npc.show && npc.show[it.id];
       if (resp) {
@@ -970,6 +1023,11 @@
       Object.assign(this.state, rest);
       // Saves from before the map existed: treat every visited room as seen.
       if (!saved.lit) this.state.lit = Object.assign({}, this.state.visited);
+      // Saves from before the notebook: start its log fresh and work out the leads from the evidence.
+      if (!saved.log) this.state.log = [];
+      if (!saved.met) this.state.met = {};
+      if (!saved.leads) this.state.leads = {};
+      this.updateLeads(true);
       this.print('Game restored.', 'meta');
       this.describe(true);
       return false;

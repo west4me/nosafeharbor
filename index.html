@@ -36,6 +36,14 @@
         </div>
         <div id="map-scroll"></div>
       </section>
+
+      <section id="notebook-panel" aria-label="Case notebook" hidden>
+        <div id="notebook-bar">
+          <span>Your case notebook. It fills in as you play.</span>
+          <button id="notebook-close" type="button" title="Close the notebook (Esc)">Close ✕</button>
+        </div>
+        <div id="notebook-body"></div>
+      </section>
     </div>
 
     <form id="cmd-form" autocomplete="off">
@@ -47,7 +55,7 @@
       <button type="button" id="map-toggle" aria-pressed="false">Map</button>
       <button type="button" data-cmd="look">Look</button>
       <button type="button" data-cmd="inventory">Inventory</button>
-      <button type="button" data-cmd="notes">Notes</button>
+      <button type="button" id="notebook-toggle" aria-pressed="false">Notebook</button>
       <button type="button" data-cmd="hint">Hint</button>
       <button type="button" data-cmd="help">Help</button>
       <button type="button" data-cmd="save">Save</button>
@@ -60,6 +68,7 @@
   <script src="js/engine.js"></script>
   <script src="js/geodata.js"></script>
   <script src="js/map.js"></script>
+  <script src="js/notebook.js"></script>
   <script src="js/ui.js"></script>
 </body>
 </html>
