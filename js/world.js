@@ -19,6 +19,68 @@
     const hasKeys = (g) => g.inInv('truck_keys') || g.itemAt('truck_keys', 'truck_cab');
     const truckLoc = (g) => g.itemState('truck').loc;
 
+    // Turning the key. The first start of the trip is the memorable one.
+    function startLine(g) {
+      if (!g.flag('started_once')) {
+        g.flag('started_once', true);
+        return 'You turn the key. The engine coughs, thinks about it, catches on the second try and settles into a rattle.';
+      }
+      return 'You turn the key and the engine rattles to life.';
+    }
+
+    function startEngine(g) {
+      if (g.state.loc !== 'truck_cab') return 'Get in first. (GET IN TRUCK)';
+      if (!hasKeys(g)) return "You'd need the keys for that.";
+      if (g.flag('engine_on')) return "It's already running. Where to? Try DRIVE WEST (or any direction the road goes), or DRIVE TO a place you've been.";
+      g.flag('engine_on', true);
+      return startLine(g) + " Where to? Try DRIVE WEST (or any direction the road goes), or DRIVE TO a place you've been.";
+    }
+
+    function stopEngine(g) {
+      if (g.state.loc !== 'truck_cab') return "It isn't running.";
+      if (!g.flag('engine_on')) return "The engine's already off.";
+      g.flag('engine_on', false);
+      return 'You turn the key back. The engine shudders and quits. Rain fills in the quiet.';
+    }
+
+    // Stepping out of the cab, on foot, from wherever the truck is parked.
+    function leaveCab(g) {
+      if (g.flag('engine_on')) {
+        g.flag('engine_on', false);
+        g.print('You kill the engine and climb out.', 'travel');
+      } else {
+        g.print('You climb out of the pickup.', 'travel');
+      }
+      return null;
+    }
+
+    // Leaving the Sweetwater cabin by skiff. Forgot Hazel's oars? The Forest Service pair is by the door.
+    function pushOff(g) {
+      if (!g.inInv('oars')) {
+        g.flag('fs_oars_taken', true);
+        g.print("You don't have Hazel's oars, so you take the Forest Service pair from beside the door. Dale watches you go and doesn't say a word. You climb into the skiff and push off.", 'travel');
+      } else {
+        g.print('You climb back into the skiff and push off from the float.', 'travel');
+      }
+      return null;
+    }
+
+    // Getting into the truck: unlock it on the way if you have the keys.
+    function truckDoor(g) {
+      if (g.flag('truck_unlocked')) return null;
+      if (!hasKeys(g)) return "The truck's locked. Rental companies are trusting, but not that trusting. The keys must be around here somewhere.";
+      g.flag('truck_unlocked', true);
+      g.print('(You thumb the key fob. The locks clunk open.)');
+      return null;
+    }
+
+    function getInTruck(g) {
+      const block = truckDoor(g);
+      if (block) return block;
+      g.moveTo('truck_cab');
+      return true;
+    }
+
     function road(to, text) {
       return {
         to,
@@ -34,11 +96,24 @@
               : "You'd need the truck keys for that.";
           }
           if (!g.flag('truck_unlocked')) g.flag('truck_unlocked', true);
-          // Mention climbing in unless you're already behind the wheel (in the cab, or mid-trip).
-          const climb = !inCab && !g.drivingNow ? 'You climb into the pickup and turn the key. ' : '';
+          // Narrate getting in and starting up only when it actually happens: not when you're
+          // already behind the wheel with the engine running, and not mid-trip.
+          let lead = '';
+          if (!g.drivingNow) {
+            if (!inCab) lead += 'You climb into the pickup. ';
+            if (!g.flag('engine_on')) lead += startLine(g) + ' ';
+          }
+          let tail = '';
+          if (g.isWorn('waders') && !g.flag('waders_drive_joke')) {
+            g.flag('waders_drive_joke', true);
+            tail = " You are driving in chest waders. On this island, nobody will look twice.";
+          }
           g.drivingNow = true;
           g.moveItem('truck', to);
-          g.print(climb + text, 'travel');
+          // You arrive parked, with the engine off and ticking.
+          g.flag('engine_on', false);
+          g.state.flags.parked_turn = g.state.turns;
+          g.print(lead + text + tail, 'travel');
           return null;
         }
       };
@@ -134,11 +209,11 @@
           }
           return `You punch in ${code}. The keypad gives an unhappy beep and blinks red.`;
         },
-        desc: (g) => (g.state.visited.hwy
+        desc: (g) => (g.state.visited.hwy || g.state.turns > 3
           ? 'The Hollis ferry dock, empty and gray, with Clarence Strait chopping away beyond it. Spruce and hemlock crowd the hill above the small terminal building and the gravel lot. The road runs west into the trees.'
           : 'The inter-island ferry groans away from the dock behind you, back across Clarence Strait toward Ketchikan. Rain blows in sideways off the water, fine as mist and twice as wet. Spruce and hemlock crowd the hill above a small gray terminal building and a gravel lot. The only road out runs west into the trees.'),
         exits: {
-          west: road('hwy', "The engine catches on the second try. You pull out of the ferry lot and head west, wipers slapping, into a tunnel of dripping spruce. A few miles in, the road crosses the Harris River, and you pull onto the shoulder by the bridge.")
+          west: road('hwy', "You pull out of the ferry lot and head west, wipers slapping, into a tunnel of dripping spruce. A few miles in, the road crosses the Harris River, and you pull onto the shoulder by the bridge.")
         }
       },
 
@@ -149,15 +224,21 @@
         desc: (g) => "You're in the driver's seat of your rental pickup: cracked vinyl, a windshield with a star-shaped crack, and a salmon-shaped air freshener that smells like neither pine nor salmon. The glovebox is in front of the passenger seat. Rain drums on the roof. Through the windshield: " + g.rooms[truckLoc(g)].name + ".\n\nYou can DRIVE any direction the road goes, DRIVE TO a place you've been, or get OUT.",
         // From the cab you can drive (or step out and walk) anywhere the parking spot leads.
         exitsFn: (g) => {
-          const ex = Object.assign({}, g.rooms[truckLoc(g)].exits);
-          delete ex.in;
-          ex.out = { to: (gg) => truckLoc(gg) };
+          const ex = {};
+          for (const [dir, exit] of Object.entries(g.rooms[truckLoc(g)].exits)) {
+            if (dir === 'in' || dir === 'out') continue;
+            // Roads you drive. Anything else, you get out and walk.
+            ex[dir] = typeof exit === 'object' && exit.drive
+              ? exit
+              : { to: typeof exit === 'string' ? exit : exit.to, guard: (gg) => leaveCab(gg) };
+          }
+          ex.out = { to: (gg) => truckLoc(gg), guard: (gg) => leaveCab(gg) };
           return ex;
         },
-        exits: { out: { to: (g) => truckLoc(g) } },
+        exits: { out: { to: (g) => truckLoc(g), guard: (g) => leaveCab(g) } },
         noExit: "The road doesn't go that way.",
         sit: "You're already sitting. It's the best part of the job.",
-        listen: 'Rain drumming on the roof. The engine ticking as it cools.',
+        listen: (g) => (g.flag('engine_on') ? 'The engine rattling along, one cylinder not quite convinced. Rain drumming on the roof.' : 'Rain drumming on the roof. The engine ticking as it cools.'),
         smell: 'Old coffee, wet dog (there is no dog) and air freshener.',
         scenery: {
           'windshield, crack, window, glass': (g) => `A star-shaped crack in the lower corner, slowly working its way across. Through the glass: ${g.rooms[truckLoc(g)].name}.`,
@@ -169,11 +250,20 @@
             push: "You find the one station that comes in: a call-in swap show. 'Lost: one brown dog, answers to Halibut.' You turn it back off.",
             listen: 'Static, then a swap show, then static.'
           },
-          'ignition, engine, steering wheel, wheel, dashboard, dash, gauges': 'The steering wheel is worn smooth at ten and two. The gas gauge says three-quarters, which on this island means "enough, probably."',
+          'ignition, engine, steering wheel, wheel, dashboard, dash, gauges, key': {
+            desc: (g) => 'The steering wheel is worn smooth at ten and two. The gas gauge says three-quarters, which on this island means "enough, probably." ' + (g.flag('engine_on') ? 'The engine is running.' : 'The engine is off.'),
+            turnon: (g) => startEngine(g),
+            turnoff: (g) => stopEngine(g),
+            push: (g) => startEngine(g)
+          },
           'cup holder, old cup, coffee cup': { desc: "Someone's old coffee cup, abandoned. There's a fuzzy island growing in it. You leave it alone.", drink: 'No. Absolutely not.' },
           'rearview mirror, mirror': 'You look tired. Rental-car tired.',
           'floor, floor mat, mats, ticket stub, stub': 'Gravel, a ferry ticket stub and a single Cheerio.',
-          'truck, pickup, rental, cab': "Your home away from home: a rental pickup that smells like old coffee and has opinions about second gear.",
+          'truck, pickup, rental, cab': {
+            desc: "Your home away from home: a rental pickup that smells like old coffee and has opinions about second gear.",
+            turnon: (g) => startEngine(g),
+            turnoff: (g) => stopEngine(g)
+          },
           'roof, rain': 'Rain drumming on the roof, steady as a snare drum. It is oddly cozy in here.'
         }
       },
@@ -294,7 +384,7 @@
         map: { x: 3, y: -2, label: ['Sweetwater', 'Landing'] },
         name: 'Sweetwater Lake Landing',
         aliases: ['sweetwater landing', 'landing', 'sweetwater', 'boat landing'],
-        desc: "The spur ends in a muddy turnaround. A short trail, maybe two hundred feet of roots and puddles, drops through the trees to a gravel landing on Sweetwater Lake. A Forest Service skiff lies upside down on the bank. Across a half mile of still water to the west, smoke rises from the stovepipe of a small log cabin. The spur leads back north to the road.",
+        desc: (g) => "The spur ends in a muddy turnaround. A short trail, maybe two hundred feet of roots and puddles, drops through the trees to a gravel landing on Sweetwater Lake. " + (g.flag('skiff_used') ? 'The Forest Service skiff is pulled up on the gravel, right side up, where you left it.' : 'A Forest Service skiff lies upside down on the bank.') + " Across a half mile of still water to the west, smoke rises from the stovepipe of a small log cabin. The spur leads back north to the road.",
         exits: {
           north: road('sweetwater_turnoff', 'You climb back up the trail, turn the truck around in the mud on the fourth try, and bounce back up the spur to NF-3030.'),
           west: {
@@ -303,7 +393,10 @@
               if (!g.inInv('oars')) {
                 return "You could flip the skiff, but somebody has taken the oars. Paddling half a mile of October lake with your hands is a good way to end up in Joe Kitka's next incident report.";
               }
-              g.print('You flip the skiff, drag it into the shallows, drop the oars into the oarlocks and push off. The lake is black and glassy, and every stroke sounds enormous.', 'travel');
+              g.print(g.flag('skiff_used')
+                ? 'You push the skiff back into the shallows, drop the oars into the oarlocks and push off.'
+                : 'You flip the skiff, drag it into the shallows, drop the oars into the oarlocks and push off. The lake is black and glassy, and every stroke sounds enormous.', 'travel');
+              g.flag('skiff_used', true);
               return null;
             }
           }
@@ -329,12 +422,12 @@
         map: { x: 1, y: -2, label: ['Sweetwater', 'Cabin'] },
         name: 'Sweetwater Lake Cabin',
         aliases: ['sweetwater cabin', 'sweetwater lake cabin'],
-        desc: (g) => "A twelve-by-fourteen cabin of pre-cut cedar logs above the lake, with wooden bunks, a table and benches, and a woodstove ticking with heat. Somebody has moved in for the long haul: a sleeping bag on the lower bunk, groceries stacked under the table and paperbacks on the windowsill. A pair of oars leans by the door. " +
+        desc: (g) => "A twelve-by-fourteen cabin of pre-cut cedar logs above the lake, with wooden bunks, a table and benches, and a woodstove ticking with heat. Somebody has moved in for the long haul: a sleeping bag on the lower bunk, groceries stacked under the table and paperbacks on the windowsill. " + (g.flag('fs_oars_taken') ? '' : 'A pair of oars leans by the door. ') +
           (g.itemAt('winston', 'sweetwater_cabin') ? 'In the corner, leaning in a place of honor, is a bamboo fly rod. ' : '') +
           'The float and the skiff are back down to the east.',
         exits: {
-          east: { to: 'sweetwater_lake', guard: (g) => { g.print('You climb back into the skiff and push off from the float.', 'travel'); return null; } },
-          out: { to: 'sweetwater_lake', guard: (g) => { g.print('You climb back into the skiff and push off from the float.', 'travel'); return null; } }
+          east: { to: 'sweetwater_lake', guard: (g) => pushOff(g) },
+          out: { to: 'sweetwater_lake', guard: (g) => pushOff(g) }
         },
         row: (g) => { g.go('east'); return true; },
         onEnter: (g) => { g.clue('found_dale'); }
@@ -346,6 +439,7 @@
         aliases: ['coffman cove', 'coffman'],
         desc: "The road ends where the trees give up and Clarence Strait begins. Coffman Cove started out as a logging camp and has never quite stopped looking like one: houses and trailers scattered along the cove, woodpiles under blue tarps, a school, a community hall, and more skiffs parked in yards than trucks. Dog Creek runs out through the middle of town into the cove. The general store is down by the water to the north, and the harbor is down the hill to the east. NF-3030 heads west out of town toward Sweetwater Lake, and back south along Dog Creek.",
         exits: {
+          in: 'cove_store',
           south: road('dog_creek', 'You head south out of town along Dog Creek and pull over where the road runs right beside the water.'),
           west: road('sweetwater_turnoff', 'You head west out of town on NF-3030, across Coffman Creek where it runs into the lagoon, and pull over at a brown Forest Service sign.'),
           north: 'cove_store',
@@ -382,6 +476,7 @@
         aliases: ['klawock', 'town'],
         desc: "The highway comes down out of the hills into Klawock, a small town on a wide inlet where woodsmoke mixes with the smell of low tide. Klawock is one of the oldest communities on the island. Up the hill to the north stand the carved poles of the totem park. The Alaska State Troopers post is a low building to the west. The highway runs east back toward Hollis and south to Craig.",
         exits: {
+          in: 'trooper',
           east: road('hwy', 'You head east out of Klawock and back into the hills. Twenty minutes of curves and muskeg later, you pull over at the Harris River bridge.'),
           north: 'totem_park',
           west: 'trooper',
@@ -412,6 +507,7 @@
         aliases: ['craig', 'front street', 'downtown'],
         desc: "Craig is the biggest town on the island, which means two grocery stores, three bars and a lot of boats. Front Street runs along the water past bait shops and a cannery that's seen better decades. The harbor is to the west. The neon OPEN sign of the Riptide Tavern buzzes to the east. The road climbs north back to Klawock, and a gravel road heads south along the shore toward the Harbor Light Lodge.",
         exits: {
+          in: 'tavern',
           north: road('klawock', 'North out of Craig with the water on your left and the hills on your right. Fifteen minutes later you coast into Klawock.'),
           west: 'harbor',
           east: 'tavern',
@@ -466,6 +562,8 @@
         aliases: ['lodge road', 'shore road'],
         desc: "A gravel road hugs the shore south of town. Across the water, the dark hump of Fish Egg Island sits low under the clouds, ringed with kelp. Somewhere out there, the Kittiwake was found drifting. The road leads north back to Craig and south to the Harbor Light Lodge.",
         exits: {
+          in: 'harbormaster',
+          in: 'lodge',
           north: road('craig', 'You head back north along the shore and into Craig, parking on Front Street between a crab-pot trailer and a truck with a bumper sticker that says MY OTHER CAR IS A SKIFF.'),
           south: 'lodge'
         }
@@ -586,24 +684,26 @@
       truck: {
         name: 'rental truck', short: 'your rental pickup', loc: 'ferry', fixed: true, listed: true,
         names: ['truck', 'pickup', 'rental', 'rental truck', 'pickup truck', 'car', 'vehicle', 'truck door', 'tailgate'],
-        roomDesc: (g) => (g.state.loc === 'ferry' && !g.flag('truck_unlocked')
-          ? 'Your rental pickup sits in the gravel lot, beaded with rain.'
-          : 'Your rental pickup is parked here, ticking as it cools.'),
+        roomDesc: (g) => {
+          if (!g.flag('started_once')) return 'Your rental pickup sits in the gravel lot, beaded with rain.';
+          return g.state.flags.parked_turn === g.state.turns
+            ? 'Your rental pickup is parked here, ticking as it cools.'
+            : 'Your rental pickup is parked here, beaded with rain.';
+        },
         desc: (g) => "A white pickup with a cracked windshield, mud up to the door handles and 140,000 miles of island gravel on it. A faded ISLAND AUTO RENTAL sticker is peeling off the tailgate. " +
           (g.flag('truck_unlocked') ? "It's unlocked. GET IN to drive." : 'The doors are locked. Through the window you can see a glovebox and a salmon-shaped air freshener.'),
         fixedMsg: "It's a truck. You drive it, you don't carry it.",
         verbs: {
-          enter: (g) => { g.go('in'); return true; },
-          open: (g) => { g.go('in'); return true; },
+          enter: (g) => getInTruck(g),
+          open: (g) => getInTruck(g),
           unlock: (g) => {
             if (g.flag('truck_unlocked')) return "It's already unlocked.";
             if (!hasKeys(g)) return "You'll need the keys. Rental companies are trusting, but not that trusting.";
             g.flag('truck_unlocked', true);
             return 'You thumb the fob. The locks clunk open and the lights blink.';
           },
-          turnon: (g) => (g.state.loc === 'truck_cab'
-            ? "The engine turns over, coughs and settles into a rattle. Where to? (Try DRIVE WEST, or DRIVE TO a place you've been.)"
-            : 'Get in first.'),
+          turnon: (g) => startEngine(g),
+          turnoff: (g) => stopEngine(g),
           push: 'You give the tire a kick. Solid. The tire, not your foot.',
           knock: 'You knock on the door. Nobody is home. You are the person who would be home.',
           touch: 'Wet. Cold. Mud.'
@@ -613,7 +713,14 @@
         name: 'truck keys', short: 'a set of truck keys', loc: 'lockbox',
         names: ['keys', 'truck keys', 'truck key', 'key fob', 'fob', 'car keys', 'car key', 'rental keys'],
         desc: 'A Ford key on a plastic ISLAND AUTO RENTAL fob, plus a bottle opener shaped like a halibut. Island priorities.',
-        verbs: { use: (g) => g.doVerb('unlock', 'truck') }
+        verbs: {
+          use: (g) => g.doVerb('unlock', 'truck'),
+          drop: (g) => {
+            if (g.state.loc !== 'truck_cab') return false;
+            g.moveItem('truck_keys', 'truck_cab');
+            return 'You leave the keys in the ignition. On this island, that is practically a tradition.';
+          }
+        }
       },
       lockbox: {
         name: 'lockbox', short: 'a lockbox', loc: 'ferry', fixed: true,
@@ -630,7 +737,7 @@
         name: 'glovebox', short: 'a glovebox', loc: 'truck_cab', fixed: true,
         names: ['glovebox', 'glove box', 'glove compartment', 'compartment'],
         container: true, openable: true, open: false,
-        desc: "The truck's glovebox."
+        desc: (g) => "The truck's glovebox, held shut by a latch and a strip of duct tape. It's " + (g.itemState('glovebox').open ? 'open.' : 'closed.')
       },
       flashlight: {
         name: 'flashlight', short: 'a flashlight', loc: 'glovebox',
@@ -722,12 +829,15 @@
         name: 'oars', short: 'a pair of oars', loc: null,
         names: ['oars', 'oar', 'pair of oars', 'spare oars', 'hazels oars'],
         desc: 'A pair of spruce oars, worn pale at the grips, with HAZEL burned into each blade.',
-        verbs: { use: (g) => (g.state.loc === 'sweetwater_landing' ? (g.go('west'), true) : "There's nothing here to row.") }
+        verbs: {
+          use: (g) => (g.state.loc === 'sweetwater_landing' ? (g.go('west'), true) : "There's nothing here to row."),
+          drop: (g) => (g.state.loc === 'sweetwater_lake' ? 'You are not letting go of your only oars in the middle of a lake.' : false)
+        }
       },
       fs_skiff: {
         name: 'Forest Service skiff', loc: 'sweetwater_landing', fixed: true,
         names: ['skiff', 'forest service skiff', 'boat', 'oarlocks', 'chain', 'padlock'],
-        desc: (g) => 'A 14-foot aluminum Forest Service skiff, upside down on two logs and chained to a tree with an open padlock. A sign screwed to the transom: USDA FOREST SERVICE — PFDs NOT PROVIDED. The oarlocks are there. ' + (g.inInv('oars') ? "The oars weren't, but you brought Hazel's." : 'The oars are not.'),
+        desc: (g) => 'A 14-foot aluminum Forest Service skiff, ' + (g.flag('skiff_used') ? 'pulled up on the gravel where you left it, its chain trailing to a tree and an open padlock.' : 'upside down on two logs and chained to a tree with an open padlock.') + ' A sign screwed to the transom: USDA FOREST SERVICE — PFDs NOT PROVIDED. The oarlocks are there. ' + (g.inInv('oars') ? "The oars weren't, but you brought Hazel's." : 'The oars are not.'),
         fixedMsg: "It's a boat. You row it. (Try ROW or WEST.)",
         verbs: { enter: (g) => { g.go('west'); return true; }, push: (g) => { g.go('west'); return true; } }
       },
@@ -991,8 +1101,10 @@
       },
       crab_pots: {
         name: 'crab pots', loc: 'boathouse', fixed: true,
-        names: ['pots', 'crab pots', 'life jackets', 'jackets', 'rafters'],
-        desc: 'Crab pots, life jackets and a lifetime of gear, all hung with care.'
+        names: ['pots', 'crab pots', 'crab pot', 'life jackets', 'life jacket', 'jackets', 'jacket', 'pfd', 'rafters'],
+        desc: 'Crab pots, life jackets and a lifetime of gear, all hung with care. The life jackets are faded HARBOR LIGHT LODGE orange.',
+        fixedMsg: "You leave the lodge's gear where it hangs. Marnie would notice. Marnie notices everything.",
+        verbs: { wear: "You leave the lodge's gear where it hangs. Marnie would notice. Marnie notices everything." }
       },
       fish_egg: {
         name: 'Fish Egg Island', loc: 'lodge_road', fixed: true,
@@ -1037,7 +1149,8 @@
           foreclosure: "Marnie reads the bank notice and goes pale under the flour. 'December? He never... he never said anything.'",
           photo: "'Thorne River, three springs ago. Fourteen pounds. He talked about that fish like it was a grandchild.'",
           receipt: "'Rick bought propane? We heat this place with oil.'",
-          badge: "'Yes, I know who you are.'"
+          badge: "'Yes, I know who you are.'",
+          office_key: "'Keep it until you're done,' Marnie says. 'I don't want it back in my pocket yet.'"
         }
       },
 
@@ -1125,7 +1238,9 @@
       cal: {
         name: 'Cal Brenner', loc: 'tavern',
         names: ['cal', 'cal brenner', 'brenner', 'guide', 'fisherman'],
-        here: 'At the end of the bar, a sunburned fishing guide named Cal Brenner is nursing the last inch of a beer.',
+        here: (g) => (g.flag('cal_talked')
+          ? 'At the end of the bar, Cal Brenner is working slowly through the beer you bought him, looking marginally less put-upon.'
+          : 'At the end of the bar, a sunburned fishing guide named Cal Brenner is nursing the last inch of a beer.'),
         desc: 'Wiry, sun-wrecked and missing the tip of one finger. His hands have tied ten thousand knots.',
         talk: (g) => {
           if (!g.flag('cal_talked')) {
@@ -1159,7 +1274,7 @@
         desc: 'Sixty, silver bob, forearms like a deckhand. She has heard every story twice.',
         talk: () => "'What'll it be, hon? We've got beer and we've got beer.' (Try BUY BEER.)",
         topics: [
-          { k: ['dale'], r: "'Dale and Rick sat right there two weeks back, heads together over a napkin like they were planning D-Day. Then they tipped big. Dale never tips big.'" },
+          { k: ['dale'], r: "'Dale and Rick sat right there back in September, heads together over a napkin like they were planning D-Day. Then they tipped big. Dale never tips big.'" },
           { k: ['rick'], r: "'Rick tips like a tourist. Lately he tips like a tourist who knows something.'" },
           { k: ['cal'], r: "'Cal's good people when he's dry. Buy him one and he'll tell you anything.'" },
           { k: ['napkin', 'napkins'], r: "'We've got a whole stack of them. Why?'" }
@@ -1229,7 +1344,15 @@
           napkin: "Hazel reads it and lets out a breath through her nose. 'Sixty-forty. Dale always did think he was the smart one.'",
           photo: "'That's Dale, all right. With a fish, of course. You'd never catch him without one.'",
           topo_map: "'That's the Thorne cabin. Whoever was in it, Rick moved last week. Sweetwater now, I'd bet.' She shrugs. 'Small island.'",
-          rick_note: "Hazel reads it twice. 'Burn this.' She snorts. 'Nobody on this island has ever burned anything they were told to.'"
+          rick_note: "Hazel reads it twice. 'Burn this.' She snorts. 'Nobody on this island has ever burned anything they were told to.'",
+          oars: "'Those are mine, all right. My initials and everything.'"
+        },
+        give: {
+          oars: (g) => {
+            if (!g.has('found_dale')) return "'Keep them till you're done out there,' Hazel says. 'Then bring them back.'";
+            g.moveItem('oars', null);
+            return "Hazel takes the oars, checks both blades like she's counting fingers, and slides them back under the counter. 'Two of everything,' she says, satisfied. 'Go on. Go finish it.'";
+          }
         }
       },
 
@@ -1264,7 +1387,9 @@
       dale: {
         name: 'Dale Haugen', loc: 'sweetwater_cabin',
         names: ['dale', 'dale haugen', 'haugen', 'man', 'bill', 'stranger'],
-        here: "A man with a week of gray stubble sits at the plank table, a cup of coffee halfway to his mouth. He looks exactly like the photo in your case file, minus the drowning.",
+        here: (g) => g.flag('dale_confessed')
+          ? 'Dale Haugen sits at the plank table with both hands around a cold cup of coffee, looking like a man who has finally put down something heavy.'
+          : "A man with a week of gray stubble sits at the plank table, a cup of coffee halfway to his mouth. If you've seen even one photo on the walls of the Harbor Light Lodge, you know exactly who he is. He looks very well for a drowned man.",
         desc: "Sixty-one, fit, sunburned and very much alive. He keeps glancing at the bamboo rod in the corner, like a man checking on a sleeping kid.",
         talk: (g) => daleTalk(g, false),
         topics: [
@@ -1356,10 +1481,23 @@
         : "'Rick's the beneficiary. That makes him lucky, not guilty. Bring me something solid.'";
     }
 
+    // What you tell Reyes, in the order the evidence usually turns up.
+    function recap(g) {
+      const said = {
+        calm_night: 'the flat calm', lanyard: 'the pulled plug and the unworn kill switch', rod_missing: 'the empty slot on the rod rack',
+        foreclosure: "the bank's notice", napkin: 'the napkin', receipt: 'the propane', cal_tip: "Rick's trips up the Thorne road",
+        rick_note: 'the note in the empty Thorne cabin', hazel_tip: "Hazel's borrowed oars"
+      };
+      const parts = Object.keys(said).filter((c) => g.has(c)).map((c) => said[c]);
+      parts.push('finally, Dale himself, alive and well in the cabin on Sweetwater Lake');
+      if (parts.length === 1) return parts[0];
+      return parts.slice(0, -1).join(', ') + ' and, ' + parts[parts.length - 1];
+    }
+
     function endingBest(g) {
       return [
-        "Reyes listens to all of it: the flat calm, the pulled plug, the unworn kill switch, the empty slot on the rod rack, the napkin, the propane, the empty cabin on the Thorne and, finally, the cabin on Sweetwater Lake. When you finish, she's quiet for a moment. Then she picks up the phone.",
-        "By dark, Dale Haugen is sitting in the holding cell, sheepish and very much alive. He keeps his word and tells it straight. Rick Sorensen is picked up at the Klawock airstrip trying to catch the morning floatplane to Ketchikan, with a duffel bag and a story that falls apart in about four minutes.",
+        `Reyes listens to all of it: ${recap(g)}. When you finish, she's quiet for a moment. Then she picks up the phone.`,
+        "By dark, Dale Haugen is sitting in the holding cell, sheepish and very much alive. He keeps his word and tells it straight. Rick Sorensen is picked up at the Klawock airstrip trying to catch the last floatplane to Ketchikan, with a duffel bag and a story that falls apart in about four minutes.",
         'Claim #NM-1187 is denied. The fraud referral goes to the state. Your supervisor writes back: "Told you to look hard. Did you fall in a river?" You did not.',
         "Three weeks later a postcard shows up on your desk with a photo of the Harbor Light Lodge. 'Bank gave me until spring to refinance. Kitchen's still mine. — M.' And underneath, in smaller letters: 'The Winston is back on the rack. He asked me to keep it for him.'",
         '*** THE CASE IS CLOSED ***'
@@ -1463,7 +1601,7 @@
         'lake, luck lake, water, drop-off, drop off': 'Long, narrow, deep and still, stretching away south between the hills. Cutthroat dimple the surface along the drop-off. Locals swear there is a thirty-inch Dolly Varden in here somewhere.',
         'eagle creek, creek, mouth': 'Eagle Creek slides into the lake right beside the beach, clear over gravel, with a fan of sand at its mouth. Every cutthroat in the lake knows where the food comes from.',
         'rock beach, beach, rocks, stones, stone': { desc: 'Flat gray stones, perfect for skipping.', take: 'You pick out a flat stone and skip it across the lake. Six skips. You have a feeling somebody around here could do seven.' },
-        'picnic shelter, shelter, picnic table, table, bench, carving, initials, heart': { desc: 'A covered picnic shelter with a heavy plank table, carved over the years with initials. One set is old and deep, inside a crooked heart: D.H. + M.H. 1979.', sit: 'You sit at the picnic table under the shelter. Rain ticks on the roof. Somebody carved D.H. + M.H. 1979 into the plank next to your hand.' },
+        'picnic shelter, shelter, picnic table, table, bench, carving, initials, heart': { desc: 'A covered picnic shelter with a heavy plank table, carved over the years with initials. One set is old and deep, inside a crooked heart: D.H. + M.H. 1986.', sit: 'You sit at the picnic table under the shelter. Rain ticks on the roof. Somebody carved D.H. + M.H. 1986 into the plank next to your hand.' },
         'outhouse, crescent moon, door': { desc: 'A Forest Service outhouse with a crescent moon cut in the door. Surprisingly clean, for an outhouse.', open: 'You open the door. Somebody has left a 1997 issue of Field & Stream in there. You close the door and leave the magazine for the next guy.', enter: 'You have a case to solve. You can hold it.' },
         'loon, common loon': { desc: 'A common loon, checkerboard black and white, riding low out in the middle of the lake. It lets out that long, wavering call that makes the whole lake sound lonely.', listen: 'That call. It goes right through you.' },
         'hills, clouds': 'The clouds sit right down on the hills around the lake. Somewhere up there it is already snowing.'
@@ -1497,7 +1635,7 @@
         'paperbacks, books, book, paperback, field guide, windowsill': { desc: "Louis L'Amour, a Ken Follett and a well-thumbed Field Guide to Caribbean Reef Fishes. Somebody is planning a move somewhere warm.", text: 'A Field Guide to Caribbean Reef Fishes. Dog-eared at BONEFISH. Somebody has underlined "Belize."' },
         'groceries, food, canned chili, chili, saltines, eggs': "Canned chili, coffee, saltines and a carton of eggs from the Coffman Cove store. Enough for a few more days. Rick's due back with more.",
         'bunks, bunk, sleeping bag, bag': 'Wooden bunks, no mattresses. A good down sleeping bag on the bottom one, with a wool blanket folded on top. A man settling in.',
-        'forest service oars, door, oars by the door': "A pair of oars stenciled USDA FOREST SERVICE, leaning by the door. So that's where they went.",
+        'forest service oars, door, oars by the door': (g) => (g.flag('fs_oars_taken') ? 'The rough plank door. The Forest Service oars are down in the skiff now.' : "A pair of oars stenciled USDA FOREST SERVICE, leaning by the door. So that's where they went."),
         'window': 'Rain on the glass, the lake beyond, and the landing too far away to see clearly. Which was the whole idea.',
         'float': 'A little float of planks and barrels at the bottom of the path. The skiff is tied to it.',
         'cabin, walls, logs, cedar': 'Pre-cut cedar logs, tight and fragrant, twelve by fourteen. A Forest Service plaque: SWEETWATER LAKE CABIN. RESERVE ONLINE. Nobody did.'
@@ -1611,17 +1749,17 @@
       lodge_road: {
         'road, gravel road': 'Gravel, puddles and the occasional slug.',
         'shore, beach, rocks, boulders': 'A rocky beach and kelp-slick boulders. The tide is coming in.',
-        'lodge sign, sign, carved sign': 'A carved wooden sign: HARBOR LIGHT LODGE, GUIDED FISHING, EST. 1984. Under it are two empty screw holes, as if another sign hung there and was taken down.',
+        'lodge sign, sign, carved sign': 'A carved wooden sign: HARBOR LIGHT LODGE, GUIDED FISHING, EST. 1990. Under it are two empty screw holes, as if another sign hung there and was taken down.',
         'slug, slugs, banana slug': { desc: 'A banana slug the length of a hot dog, going nowhere slowly. Relatable.', touch: 'Slime. Lots of it. Why did you do that?' }
       },
       lodge: {
         'couches, couch, sofa, leather couches': { desc: 'Leather couches gone soft and shiny with use. The kind you sink into and lose a whole afternoon.', sit: 'You sink into a couch. It is dangerously comfortable. Rick shifts in his chair and watches you.' },
-        'guestbook, guest book, book, stand': { desc: 'A leather guestbook on a stand by the door.', text: 'Forty years of guests. "Best trip of my life!" — the Hendersons, Ohio. "Dale is a FISH WHISPERER." "Came for the kings, stayed for Marnie\'s bread."\nThe entries thin out over the last few years. The last one is from August. Nobody has signed since.' },
+        'guestbook, guest book, book, stand': { desc: 'A leather guestbook on a stand by the door.', text: 'Thirty-five years of guests. "Best trip of my life!" — the Hendersons, Ohio. "Dale is a FISH WHISPERER." "Came for the kings, stayed for Marnie\'s bread."\nThe entries thin out over the last few years. The last one is from August. Nobody has signed since.' },
         'photos, pictures, wall photos, guests': 'Framed photos line the wall: grinning guests holding up kings, silvers and halibut, with Dale in the background of most of them, sunburned and pleased. The newest ones are a few years old.',
         'mantel': 'River rock and a cedar beam. The king salmon presides.',
         'chair, armchair': "Rick's in it.",
         'windows, window': 'Big windows facing across the water to Fish Egg Island.',
-        'room, timber frame, beams, timber, ceiling': 'Big hand-hewn timbers overhead, dark with years of woodsmoke. Dale built this room himself, the plaque by the fireplace says, in 1984.',
+        'room, timber frame, beams, timber, ceiling': 'Big hand-hewn timbers overhead, dark with years of woodsmoke. Dale built this room himself, the plaque by the fireplace says, in 1990.',
         'kitchen door, front door, doors, path': 'The kitchen is through the door to the east, the boathouse is down the path to the south, and the front door opens north onto the road.'
       },
       kitchen: {
@@ -1656,26 +1794,26 @@
       ford: { listen: 'The river, loud enough to drown out your own thoughts.', smell: 'Cold water and salmon rot.', sit: 'You sit on a log on the gravel bar and watch the cabin across the river. Nothing moves over there.' },
       cabin: { listen: 'Nothing. The river outside, and the drip from the eaves. A cabin nobody is in anymore.', smell: 'Old propane and cold coffee.' },
       dog_creek: { listen: 'The creek chattering over gravel beside the road. A salmon slapping in the shallows. The cub, complaining about something. Somewhere ahead, a dog barks in town.', smell: 'Creek water, dead salmon and wet bear. Bear country.' },
-      luck_lake: { listen: 'The loon, long and wavering, from out in the middle of the lake. Eagle Creek chattering into the lake beside the beach. Rain on the shelter roof.', smell: 'Cold lake water and wet cedar.', sit: 'You sit at the picnic table under the shelter. Rain ticks on the roof. Somebody carved D.H. + M.H. 1979 into the plank next to your hand.' },
+      luck_lake: { listen: 'The loon, long and wavering, from out in the middle of the lake. Eagle Creek chattering into the lake beside the beach. Rain on the shelter roof.', smell: 'Cold lake water and wet cedar.', sit: 'You sit at the picnic table under the shelter. Rain ticks on the roof. Somebody carved D.H. + M.H. 1986 into the plank next to your hand.' },
       sweetwater_turnoff: { listen: 'Coffman Creek under the road. Rain in the alders. Far off, a logging truck downshifting on a hill.', smell: 'Mud, wet alder and the tide flats in the lagoon.' },
       sweetwater_landing: { listen: 'Water lapping at the gravel. Across the lake, very faintly, someone splitting wood.', smell: 'Lake water and, from the far shore, woodsmoke.' },
       sweetwater_lake: { listen: 'Oar drips. Your own breathing. Somewhere far off, a loon.', smell: 'Clean cold water and woodsmoke.', sit: "You're already sitting, in a small aluminum boat, in the middle of a lake. Life comes at you fast." },
-      sweetwater_cabin: { listen: 'The woodstove ticking. The kettle starting to sing. Dale breathing like a man trying very hard to seem relaxed.', smell: 'Woodsmoke, coffee and wool socks.' },
+      sweetwater_cabin: { sit: 'You sit on the bench across from Dale. Neither of you says anything for a while.', listen: 'The woodstove ticking. The kettle starting to sing. Dale breathing like a man trying very hard to seem relaxed.', smell: 'Woodsmoke, coffee and wool socks.' },
       coffman_cove: { listen: 'Gulls, a chainsaw somewhere up the hill, and a screen door slapping shut.', smell: 'Woodsmoke, salt water and somebody frying bacon.' },
       cove_store: { listen: "The woodstove ticking. Hazel's pencil scratching. A radio playing the swap show out of Ketchikan.", smell: 'Woodsmoke, coffee, bait and new rubber boots.', sit: "You sit on the bench by the woodstove. Hazel looks at you over her glasses. 'Take your time.' It's the nicest thing anyone has said to you all week." },
       cove_harbor: { listen: "Halyards, gulls, and the lab's tags jingling as he trots the floats.", smell: 'Salt, diesel and crab bait.' },
       klawock: { listen: 'Ravens arguing over a dumpster. A skiff outboard droning out on the inlet.', smell: 'Woodsmoke and low tide.' },
       totem_park: { listen: 'The adze biting cedar, steady as a heartbeat.', smell: 'Fresh-cut cedar.', sit: 'You sit on the low wall at the edge of the park and look out over the inlet. The poles look out with you. It is very peaceful.' },
-      trooper: { listen: "Fluorescent hum. A police scanner muttering about a deer on the Hydaburg road.", smell: 'Burnt coffee and floor wax.' },
+      trooper: { sit: 'You sit in the plastic visitor chair. It is exactly as uncomfortable as it looks. Reyes seems to approve.', listen: "Fluorescent hum. A police scanner muttering about a deer on the Hydaburg road.", smell: 'Burnt coffee and floor wax.' },
       craig: { listen: "Gulls, a forklift beeping at the cannery, and somebody's truck stereo playing country.", smell: 'Fish, diesel, and frying oil from somewhere.' },
       harbor: { listen: 'Halyards slapping masts. Gulls. A bilge pump kicking on and off.', smell: 'Salt, fish and two-stroke exhaust.' },
       harbormaster: { listen: "The VHF: '...Craig harbor, this is the Marlene, coming in with a bent prop and a bad attitude, over.'", smell: 'Coffee and wet rain gear.' },
       fuel_dock: { listen: "The fuel pump ticking. Something tinny playing on Kenzie's phone.", smell: 'Gasoline and herring.' },
-      tavern: { listen: 'Johnny Cash, low. Ice rattling. Cal sighing at his empty bottle.', smell: 'Fryer oil, beer and wet wool.' },
+      tavern: { sit: 'You take a stool at the bar. Bonnie gives you a look that says you had better order something.', listen: 'Johnny Cash, low. Ice rattling. Cal sighing at his empty bottle.', smell: 'Fryer oil, beer and wet wool.' },
       lodge_road: { listen: 'Waves on the rocks. A raven doing an impression of a car alarm.', smell: 'Kelp and salt.' },
-      lodge: { listen: 'The fire popping. Rick clearing his throat a lot.', smell: 'Woodsmoke, leather and old fish stories.' },
-      kitchen: { listen: 'The cooler humming. Dough slapping the counter.', smell: 'Fresh bread and coffee. For a second you forget why you are here.' },
-      office: { listen: 'Rain on the window. The house settling.', smell: 'Pipe tobacco and old paper.' },
+      lodge: { sit: 'You sink into a couch. It is dangerously comfortable. Rick shifts in his chair and watches you.', listen: 'The fire popping. Rick clearing his throat a lot.', smell: 'Woodsmoke, leather and old fish stories.' },
+      kitchen: { sit: "You pull a stool up to the steel counter. Marnie slides a heel of warm bread in front of you without a word.", listen: 'The cooler humming. Dough slapping the counter.', smell: 'Fresh bread and coffee. For a second you forget why you are here.' },
+      office: { sit: "You sit in Dale's chair. It's too big for you in all the wrong ways.", listen: 'Rain on the window. The house settling.', smell: 'Pipe tobacco and old paper.' },
       boathouse: { listen: 'Water slapping the pilings. The whole building creaking like a ship.', smell: 'Two-stroke oil, seaweed and wet rope.' }
     };
 
@@ -1772,24 +1910,16 @@
       maxScore: Object.values(clues).reduce((s, c) => s + c.points, 0),
       intro, clues, rooms, items, npcs, hint, mapGeo,
       // "in" from wherever your truck is parked.
+      // IN gets you into your truck, wherever it's parked, unless the place has a building you'd walk into.
       extraExits: (g, room) => {
-        if (room.id === 'truck_cab' || truckLoc(g) !== room.id) return null;
-        return {
-          in: {
-            to: 'truck_cab',
-            guard: (gg) => {
-              if (gg.flag('truck_unlocked')) return null;
-              if (!hasKeys(gg)) return "The truck's locked. Rental companies are trusting, but not that trusting. The keys must be around here somewhere.";
-              gg.flag('truck_unlocked', true);
-              gg.print('(You thumb the key fob. The locks clunk open.)');
-              return null;
-            }
-          }
-        };
+        if (room.id === 'truck_cab' || truckLoc(g) !== room.id || room.exits.in) return null;
+        return { in: { to: 'truck_cab', guard: (gg) => truckDoor(gg) } };
       },
+      // START TRUCK, or a bare DRIVE.
       driveHelp: (g) => (g.state.loc === 'truck_cab'
-        ? "The engine rattles. Where to? Try DRIVE WEST (or any direction the road goes), or DRIVE TO a place you've already been, like DRIVE TO CRAIG."
+        ? startEngine(g)
         : "Get in the truck first (GET IN TRUCK), or just say where: DRIVE WEST, or DRIVE TO a place you've been."),
+      stopEngine: (g) => stopEngine(g),
       timeText: 'Late afternoon, late October. The light goes early this time of year, and it was never really here to begin with.',
       ranks: [
         [100, 'Master Investigator of the Tongass'],

@@ -457,9 +457,159 @@ test('no rowing to Sweetwater without oars, and Hazel has a spare pair', () => {
 test('Luck Lake remembers Dale and Marnie', () => {
   const g = newGame();
   g.state.loc = 'luck_lake';
-  assert.match(run(g, 'x picnic table'), /D\.H\. \+ M\.H\. 1979/);
+  assert.match(run(g, 'x picnic table'), /D\.H\. \+ M\.H\. 1986/);
   g.state.loc = 'kitchen';
   assert.match(run(g, 'ask marnie about luck lake'), /married on the beach at Luck Lake/);
+});
+
+// ------------------------------------------------------------------ continuity
+
+const BAD_TEXT = /undefined|\[object|NaN|null\b/;
+
+// Run a command and fail on garbled output. Documents are allowed their aligned columns;
+// everything else shouldn't have doubled spaces mid-sentence (a sign of a missing word).
+function runClean(g, cmd, where = '') {
+  const blocks = g.command(cmd);
+  const out = blocks.map((b) => b.text).join('\n');
+  assert.ok(out.length > 0 || blocks.some((b) => b.event), `no response to "${cmd}"${where}`);
+  assert.doesNotMatch(out, BAD_TEXT, `"${cmd}"${where}: ${out}`);
+  for (const b of blocks) {
+    if (b.cls === 'document' || b.cls === 'journal' || b.cls === 'help' || b.cls === 'intro') continue;
+    assert.doesNotMatch(b.text, /\S  \S/, `doubled space after "${cmd}"${where}: ${b.text}`);
+  }
+  return out;
+}
+
+test('starting the truck is narrated once, not again when you drive', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'get in truck']);
+  assert.match(run(g, 'start truck'), /second try/);
+  assert.match(run(g, 'start truck'), /already running/);
+  const drive = run(g, 'drive west');
+  assert.doesNotMatch(drive, /turn the key|second try|climb into/);
+  assert.match(drive, /ticking as it cools/);
+  assert.match(run(g, 'look'), /parked here, beaded with rain/); // a turn later, it has cooled
+  const again = run(g, 'drive east');
+  assert.match(again, /climb into the pickup\. You turn the key and the engine rattles to life\./);
+  assert.doesNotMatch(again, /second try/); // the first start only happens once
+});
+
+test('getting out kills the engine, and a running engine is noticed', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'get in truck', 'start truck']);
+  assert.match(run(g, 'listen'), /engine rattling/);
+  assert.match(run(g, 'get out'), /kill the engine and climb out/);
+  assert.equal(g.flag('engine_on'), false);
+  runAll(g, ['get in truck', 'start truck']);
+  assert.match(run(g, 'turn off engine'), /shudders and quits/);
+  assert.match(run(g, 'get out'), /You climb out of the pickup/);
+});
+
+test('keys left in the cab stay in the ignition and still work', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'get in truck']);
+  assert.match(run(g, 'drop keys'), /ignition/);
+  run(g, 'get out');
+  assert.match(run(g, 'w'), /Harris River/);
+});
+
+test('the ferry only pulls away at the very start', () => {
+  const g = newGame();
+  assert.match(run(g, 'look'), /groans away/);
+  runAll(g, ['x badge', 'x phone', 'listen', 'smell']);
+  assert.doesNotMatch(run(g, 'look'), /groans away/);
+});
+
+test('life jackets in the boathouse can be looked at', () => {
+  const g = newGame();
+  g.state.loc = 'boathouse';
+  assert.match(run(g, 'x life jacket'), /HARBOR LIGHT LODGE orange/);
+  assert.match(run(g, 'wear life jacket'), /Marnie notices everything/);
+});
+
+test('oars: no dropping them mid-lake, a spare pair at the cabin, and Hazel gets hers back', () => {
+  const g = newGame();
+  g.state.loc = 'cove_store';
+  run(g, 'talk to hazel');
+  assert.match(run(g, 'give oars to hazel'), /till you're done/);
+  assert.ok(g.inInv('oars'));
+  g.state.loc = 'sweetwater_lake';
+  assert.match(run(g, 'drop oars'), /not letting go/);
+  run(g, 'w');
+  assert.equal(g.state.loc, 'sweetwater_cabin');
+  run(g, 'drop oars');
+  assert.match(run(g, 'look'), /oars leans by the door/);
+  assert.match(run(g, 'e'), /Forest Service pair/);
+  g.state.loc = 'sweetwater_cabin';
+  assert.doesNotMatch(run(g, 'look'), /oars leans by the door/);
+  run(g, 'take oars');
+  g.state.loc = 'cove_store';
+  assert.match(run(g, 'give oars to hazel'), /Two of everything/);
+  assert.equal(g.inInv('oars'), false);
+});
+
+test('the ending only recaps evidence you actually found', () => {
+  const g = newGame();
+  // Skip the Thorne trail entirely: Hazel, Sweetwater, then Reyes.
+  runAll(g, [...KEYS, 'w', 'n', 'n', 'n', 'n', 'n', 'n', 'talk to hazel', 's', 'w', 's', 'w', 'w', 'drive to klawock', 'w']);
+  const out = run(g, 'accuse dale and rick');
+  assert.match(out, /THE CASE IS CLOSED/);
+  assert.match(out, /Hazel's borrowed oars/);
+  assert.doesNotMatch(out, /Thorne cabin|rod rack|napkin, /);
+});
+
+test('IN walks into the obvious building, and GET IN TRUCK still means the truck', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'w', 's', 's']);
+  assert.equal(g.state.loc, 'lodge_road');
+  run(g, 'get in truck');
+  assert.equal(g.state.loc, 'truck_cab');
+  run(g, 'get out');
+  run(g, 'in');
+  assert.equal(g.state.loc, 'lodge');
+  g.state.loc = 'tavern';
+  assert.match(run(g, 'sit'), /stool at the bar/);
+});
+
+test('no garbled text anywhere in a full playthrough', () => {
+  const g = newGame();
+  for (const c of [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'e', 'drive to klawock', 'n', 's', 'w', WALKTHROUGH[WALKTHROUGH.length - 1]]) {
+    runClean(g, c);
+  }
+});
+
+test('fuzz: every common verb on every thing in every room behaves', () => {
+  const VERBS = ['x', 'take', 'read', 'open', 'close', 'touch', 'smell', 'listen to', 'sit on', 'eat', 'drink', 'push', 'climb', 'wear', 'turn on', 'turn off', 'knock on', 'enter', 'use', 'unlock'];
+  const ROOM_VERBS = ['look', 'listen', 'smell', 'sit', 'wait', 'fish', 'row', 'drive', 'start truck', 'get out', 'hint', 'time', 'weather', 'n', 's', 'e', 'w', 'in', 'out'];
+  let tried = 0;
+  for (const roomId of Object.keys(newGame().rooms)) {
+    for (const v of [...ROOM_VERBS, ...VERBS.map((verb) => verb + ' *')]) {
+      if (!v.endsWith(' *')) {
+        const g = newGame();
+        g.state.loc = roomId;
+        g.state.items.flashlight.loc = 'inv';
+        g.state.items.flashlight.on = true;
+        runClean(g, v, ` in ${roomId}`);
+        tried++;
+        continue;
+      }
+      const probe = newGame();
+      probe.state.loc = roomId;
+      probe.state.items.flashlight.loc = 'inv';
+      probe.state.items.flashlight.on = true;
+      const things = [...probe.visibleItems(), ...probe.visibleNpcs()];
+      for (const thing of things) {
+        const g = newGame();
+        g.state.loc = roomId;
+        g.state.items.flashlight.loc = 'inv';
+        g.state.items.flashlight.on = true;
+        const cmd = v.replace('*', thing.names[0]);
+        runClean(g, cmd, ` in ${roomId}`);
+        tried++;
+      }
+    }
+  }
+  assert.ok(tried > 5000, `only ${tried} combinations tried`);
 });
 
 // ------------------------------------------------------------------ runner

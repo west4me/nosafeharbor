@@ -345,9 +345,13 @@
       }
       if ((m = cmd.match(/^(?:enter|go in|go into|go inside|get in|get into|climb in|climb into|hop in|hop into|sit in) (.+)$/))) return this.enter(m[1]);
       if (/^(enter|go in|get in|climb in|hop in)$/.test(cmd)) return this.go('in');
-      if (/^(drive|start (?:truck|engine|car|pickup)|start up (?:truck|car|pickup)|start it|drive (?:truck|car|pickup))$/.test(cmd)) {
+      if (/^(drive|start|start (?:the )?(?:truck|engine|car|pickup)|start up(?: (?:truck|car|pickup))?|start it|drive (?:truck|car|pickup)|turn (?:the )?key)$/.test(cmd)) {
         this.print(this.t(this.world.driveHelp) || 'Drive where?');
-        return false;
+        return;
+      }
+      if (/^(stop|stop (?:the )?(?:truck|engine|car)|kill (?:the )?(?:engine|truck|motor)|shut off (?:the )?(?:engine|truck)|park)$/.test(cmd) && this.world.stopEngine) {
+        this.print(this.world.stopEngine(this));
+        return;
       }
       if ((m = cmd.match(/^(?:cross|ford|wade)(?: across)?(?: the)?(?: (.+))?$/))) return this.crossRiver();
 
@@ -613,7 +617,7 @@
     runHandler(it, verb, ...args) {
       const h = it.verbs && it.verbs[verb];
       if (!h) return false;
-      const r = h(this, ...args);
+      const r = typeof h === 'function' ? h(this, ...args) : h;
       if (typeof r === 'string') { this.print(r); return true; }
       return r === true;
     }
@@ -687,6 +691,7 @@
     wear(phrase) {
       const e = this.find(phrase, { npcs: false });
       if (!e) return;
+      if (this.runHandler(e, 'wear')) return;
       if (!e.wearable) { this.print("That's not something you can wear."); return; }
       const st = this.state.items[e.id];
       if (st.worn) { this.print("You're already wearing them."); return; }
