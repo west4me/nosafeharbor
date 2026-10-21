@@ -30,6 +30,10 @@
 html, body {
   margin: 0;
   height: 100%;
+  overflow: hidden; /* the transcript scrolls, the page never does */
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font);
@@ -40,12 +44,18 @@ html, body {
 #app {
   display: flex;
   flex-direction: column;
+  /* Pinned to the visible part of the screen (ui.js tracks it as the phone keyboard opens and closes). */
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--app-top, 0);
   height: 100vh;
-  height: 100dvh;
+  height: var(--app-h, 100dvh);
   max-width: 960px;
   margin: 0 auto;
   padding: 0 16px;
-  position: relative;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
 }
 
 /* Subtle scanlines. */
@@ -135,6 +145,7 @@ html, body {
 #cmd {
   flex: 1;
   min-width: 0;
+  font-size: 16px; /* below 16px, iPhones zoom the whole page when you tap the input */
   background: transparent;
   border: 0;
   outline: none;
@@ -165,9 +176,23 @@ html, body {
 #quick button:focus-visible,
 #theme-toggle:focus-visible { color: var(--bright); border-color: var(--dim); outline: none; }
 
+#cmd::placeholder { color: var(--dim); opacity: 0.8; }
+
 @media (max-width: 560px) {
   html, body { font-size: 15px; }
-  #status { font-size: 0.8rem; }
+  #app { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+  #status { font-size: 0.78rem; padding: 6px 10px; margin-top: 6px; flex-wrap: nowrap; }
+  #status-loc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #status-right { flex: none; gap: 6px; }
+  #status .lbl { display: none; }
+  #theme-toggle { padding: 2px 6px; }
+  #output { padding: 10px 2px; }
+  #output .intro::first-line { font-size: 1.3em; letter-spacing: 0.1em; }
+  /* One row of buttons that scrolls sideways, instead of two rows eating the screen. */
+  #quick { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  #quick::-webkit-scrollbar { display: none; }
+  #quick button { flex: none; padding: 6px 10px; }
+  #cmd-form { padding: 8px 0; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -234,7 +259,12 @@ html, body {
 #map-scroll { touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 #map-scroll.dragging { cursor: grabbing; }
 .map-svg text { user-select: none; -webkit-user-select: none; }
-@media (max-width: 560px) { #map-tip { display: none; } }
+@media (max-width: 560px) {
+  #map-tip { display: none; }
+  #map-bar { flex-wrap: wrap; padding: 4px 8px; font-size: 0.8rem; gap: 4px; }
+  #map-tools { gap: 4px; }
+  #map-tools button { font-size: 0.72rem; padding: 2px 7px; }
+}
 
 .map-svg text {
   font-family: "Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive;

@@ -28,6 +28,30 @@
   };
 
   const game = new window.NSH.Game(window.NSH.buildWorld, { storage });
+
+  // On phones and tablets, focusing the input pops up the on-screen keyboard and hides half the
+  // game, so only do it for you on a computer. On a touchscreen you tap the input when you're ready.
+  const touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  function focusInput() {
+    if (!touch) input.focus();
+  }
+  if (touch) input.placeholder = 'Tap here to type a command';
+
+  // Fit the game to the part of the screen you can actually see. On a phone the keyboard covers
+  // the bottom of the page; keep the status bar, the story and the input all on screen above it.
+  const appEl = document.getElementById('app');
+  function fitViewport() {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    appEl.style.setProperty('--app-h', vv.height + 'px');
+    appEl.style.setProperty('--app-top', vv.offsetTop + 'px');
+    out.scrollTop = out.scrollHeight;
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', fitViewport);
+    window.visualViewport.addEventListener('scroll', fitViewport);
+    fitViewport();
+  }
   const history = [];
   let histPos = 0;
 
@@ -42,6 +66,18 @@
     p.textContent = text;
     out.appendChild(p);
     transcript.push({ text, cls });
+    return p;
+  }
+
+  // Show the newest reply from its start: if it's taller than the screen (a long room description
+  // on a phone), line its first line up with the top, so you read down instead of landing mid-way.
+  function scrollToReply(first) {
+    const top = first ? first.offsetTop - out.offsetTop : 0;
+    if (first && out.scrollHeight - top > out.clientHeight) {
+      out.scrollTop = top - 8;
+    } else {
+      out.scrollTop = out.scrollHeight;
+    }
   }
 
   function saveTranscript() {
@@ -49,17 +85,18 @@
     storage.set(TRANSCRIPT_KEY, JSON.stringify(transcript));
   }
 
-  function render(blocks) {
+  function render(blocks, first) {
     for (const b of blocks) {
       if (b.cls === 'event') {
         if (b.event === 'map') toggleMap();
         if (b.event === 'notebook') toggleNotebook();
         continue;
       }
-      addLine(b.text, b.cls, true);
+      const p = addLine(b.text, b.cls, true);
+      if (!first) first = p;
     }
     saveTranscript();
-    out.scrollTop = out.scrollHeight;
+    scrollToReply(first);
     updateStatus();
     if (!mapPanel.hidden) drawMap();
     if (!nbPanel.hidden) drawNotebook();
@@ -141,7 +178,7 @@
   // Open by default on a big screen; folded up on a phone, where it would cover too much map.
   const keyPref = storage.get('nosafeharbor-map-key');
   setLegend(keyPref ? keyPref === 'open' : window.innerWidth >= 700);
-  legendToggle.addEventListener('click', () => { setLegend(legendBody.hidden); input.focus(); });
+  legendToggle.addEventListener('click', () => { setLegend(legendBody.hidden); focusInput(); });
 
   // Two stacked layers: the printed sheet (drawn once) and your pencil work (redrawn every move).
   function drawMap() {
@@ -181,7 +218,7 @@
     else if (z === 'out') zoomBy(1.5);
     else if (z === 'fit') { followMe = true; mapViewBox = window.NSH.mapView(game, panelAspect()); applyView(); }
     else if (z === 'all') { followMe = false; mapViewBox = window.NSH.wholeView(panelAspect()); applyView(); }
-    input.focus();
+    focusInput();
   });
 
   // Scroll to zoom around the pointer; drag to pan.
@@ -236,7 +273,7 @@
     mapPanel.hidden = !open;
     mapToggle.setAttribute('aria-pressed', String(open));
     if (open) { followMe = true; drawMap(); }
-    input.focus();
+    focusInput();
   }
 
   // ---- the case notebook
@@ -266,7 +303,7 @@
     nbToggle.setAttribute('aria-pressed', String(open));
     if (open) { drawNotebook(); nbBody.scrollTop = 0; }
     updateNotebookBadge();
-    input.focus();
+    focusInput();
   }
 
   nbToggle.addEventListener('click', () => toggleNotebook());
@@ -280,14 +317,15 @@
   });
 
   function echo(cmd) {
-    addLine('> ' + cmd, 'echo', false);
+    return addLine('> ' + cmd, 'echo', false);
   }
 
   function updateStatus() {
     const s = game.status();
     statusLoc.textContent = s.location;
-    statusScore.textContent = `Score: ${s.score}/${s.maxScore}`;
-    statusTurns.textContent = `Turns: ${s.turns}`;
+    // The labels fold away on a phone (CSS), leaving "45/100 · 12".
+    statusScore.innerHTML = `<span class="lbl">Score: </span>${s.score}/${s.maxScore}`;
+    statusTurns.innerHTML = `<span class="lbl">Turns: </span>${s.turns}`;
     document.title = s.over ? 'No Safe Harbor: Case Closed' : `No Safe Harbor: ${s.location}`;
   }
 
@@ -296,8 +334,7 @@
     if (!cmd) return;
     history.push(cmd);
     histPos = history.length;
-    echo(cmd);
-    render(game.command(cmd));
+    render(game.command(cmd), echo(cmd));
   }
 
   form.addEventListener('submit', (e) => {
@@ -323,12 +360,12 @@
     const btn = e.target.closest('button[data-cmd]');
     if (!btn) return;
     submit(btn.dataset.cmd);
-    input.focus();
+    focusInput();
   });
 
   // Clicking the transcript puts the cursor back in the input, unless the user is selecting text.
   out.addEventListener('click', () => {
-    if (!window.getSelection || String(window.getSelection()) === '') input.focus();
+    if (!window.getSelection || String(window.getSelection()) === '') focusInput();
   });
 
   // Theme: amber (default) or green, remembered per browser.
@@ -341,7 +378,7 @@
   themeBtn.addEventListener('click', () => {
     const now = document.documentElement.getAttribute('data-theme') === 'green' ? 'amber' : 'green';
     setTheme(now);
-    input.focus();
+    focusInput();
   });
 
   // ---- start screen: continue the autosaved case, or open a new one
@@ -362,7 +399,7 @@
 
   function closeStart() {
     startScreen.hidden = true;
-    input.focus();
+    focusInput();
   }
 
   function newCase() {
