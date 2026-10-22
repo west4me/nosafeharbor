@@ -2087,33 +2087,66 @@
     }
 
     // ---------------------------------------------------------------- hints
+    // Turn-by-turn directions from wherever you are now, so a hint never assumes where you're standing.
+    function directions(g, to) {
+      const from = g.state.loc === 'truck_cab' ? truckLoc(g) : g.state.loc;
+      if (from === to) return '';
+      const prev = { [from]: null };
+      const queue = [from];
+      while (queue.length) {
+        const here = queue.shift();
+        if (here === to) break;
+        for (const [dir, exit] of Object.entries(g.rooms[here].exits || {})) {
+          const next = typeof exit === 'string' ? exit : exit.to;
+          if (typeof next !== 'string' || next === 'truck_cab' || dir === 'in' || dir === 'out' || next in prev) continue;
+          prev[next] = { here, dir };
+          queue.push(next);
+        }
+      }
+      if (!(to in prev)) return '';
+      const steps = [];
+      for (let r = to; prev[r]; r = prev[r].here) steps.unshift(`${prev[r].dir.toUpperCase()} to ${g.rooms[r].name}`);
+      return `From here: ${steps.join(', then ')}.`;
+    }
+
+    // Why to go, how to get there from here, then what to do there.
+    const goDo = (g, to, text) => {
+      const dirs = directions(g, to);
+      if (!dirs) return text;
+      const cut = text.indexOf('. ');
+      return cut < 0 ? `${text} ${dirs}` : `${text.slice(0, cut + 1)} ${dirs} ${text.slice(cut + 2)}`;
+    };
+
     function hint(g) {
       const st = g.state;
       if (!st.flags.read_case_file) return 'Start by reading your case file: READ FILE.';
-      if (!hasKeys(g)) return "Your truck keys are in the Island Auto lockbox on the terminal wall at the Hollis ferry. The code is the last four digits of your claim number (it's on the case file). Try ENTER and the code.";
-      if (!g.has('calm_night')) return "The harbormaster in Craig found the skiff. Drive west, west, then south to Craig, then walk west to the harbor and north to his office. TALK TO JOE, then read what he gives you or ASK JOE ABOUT WEATHER.";
-      if (!g.flag('got_key')) return 'Visit the Harbor Light Lodge, south of Craig. Talk to Marnie in the kitchen.';
-      if (!g.has('lanyard')) return 'The Kittiwake is in the lodge boathouse, south of the great room. Examine the skiff.';
-      if (!g.has('rod_missing')) return 'Take a careful look at the rod rack in the lodge great room.';
-      if (!g.has('photo')) return "Something on Dale's desk might be more than decoration. Try READ PHOTO.";
-      if (g.itemState('safe').locked) return "The back of the photo has three numbers on it, and the safe has a three-number dial. Try DIAL followed by those numbers.";
-      if (!g.has('napkin') || !g.has('foreclosure')) return 'Read everything in the safe.';
-      if (!g.has('topo_map')) return "Open the desk drawer in Dale's office and read what you find.";
-      if (!g.has('receipt')) return 'The fuel dock is west of the Craig harbor. Ask the attendant about Rick, and search the trash barrel.';
-      if (!g.isOwned('waders')) return 'Cal at the Riptide Tavern (east of Front Street in Craig) knows the rivers. He looks thirsty. BUY BEER, then GIVE BEER TO CAL.';
-      if (!g.isOwned('flashlight')) return 'Check the glovebox of your rental truck. GET IN TRUCK, then OPEN GLOVEBOX.';
+      if (!hasKeys(g)) return goDo(g, 'ferry', "Your truck keys are in the Island Auto lockbox on the Hollis ferry terminal wall. The code is the last four digits of your claim number (it's on the case file). Try ENTER and the code.");
+      if (!g.has('calm_night')) return goDo(g, 'harbormaster', 'The harbormaster in Craig found the skiff. TALK TO JOE, then read what he gives you or ASK JOE ABOUT WEATHER.');
+      if (!g.flag('got_key')) return goDo(g, 'kitchen', 'Visit the Harbor Light Lodge, south of Craig, and TALK TO MARNIE in the kitchen.');
+      if (!g.has('lanyard')) return goDo(g, 'boathouse', 'The Kittiwake is in the lodge boathouse. EXAMINE SKIFF.');
+      if (!g.has('rod_missing')) return goDo(g, 'lodge', 'Take a careful look at the rod rack in the lodge great room.');
+      if (!g.has('photo')) return goDo(g, 'office', "Something on Dale's desk might be more than decoration. Try READ PHOTO.");
+      if (g.itemState('safe').locked) return goDo(g, 'office', "The back of the photo has three numbers on it, and the safe in Dale's office has a three-number dial. Try DIAL followed by those numbers.");
+      if (!g.has('napkin') || !g.has('foreclosure')) return goDo(g, 'office', "Read everything in Dale's safe.");
+      if (!g.has('topo_map')) return goDo(g, 'office', "Open the desk drawer in Dale's office and read what you find.");
+      if (!g.has('receipt')) return goDo(g, 'fuel_dock', 'Ask the fuel dock attendant in Craig about Rick, and search the trash barrel.');
+      if (!g.isOwned('waders')) return goDo(g, 'tavern', 'Cal at the Riptide Tavern in Craig knows the rivers. He looks thirsty. BUY BEER, then GIVE BEER TO CAL.');
+      if (!g.isOwned('flashlight')) {
+        return g.state.loc === 'truck_cab' ? 'Check the glovebox: OPEN GLOVEBOX.'
+          : goDo(g, truckLoc(g), 'Check the glovebox of your rental truck. GET IN TRUCK, then OPEN GLOVEBOX.');
+      }
       if (!g.has('found_dale')) {
         if (!g.has('rick_note') && !g.flag('knows_sweetwater')) {
-          if (!g.itemState('flashlight').on) return 'Turn on the flashlight before you head under the old growth: TURN ON FLASHLIGHT.';
-          if (!g.isWorn('waders')) return 'You will need to WEAR WADERS to cross the Thorne.';
           if (g.state.loc === 'cabin') return 'Somebody left in a hurry. Read what they left on the table.';
-          return 'The cabin on the topo map is on the Thorne. From Klawock, take Big Salt Road NORTHEAST to Control Lake, then EAST on the Thorne Bay Road to the trailhead. Follow the trail NORTHEAST and across the river.';
+          if (!g.itemState('flashlight').on && ['trailhead', 'river_trail'].includes(g.state.loc)) return 'Turn on the flashlight before you head under the old growth: TURN ON FLASHLIGHT.';
+          if (!g.isWorn('waders') && g.state.loc === 'ford') return 'You will need to WEAR WADERS to cross the Thorne.';
+          return goDo(g, 'cabin', "The cabin on the topo map is across the Thorne River. You'll want your flashlight on under the old growth and your waders on at the river.");
         }
-        if (!g.inInv('oars')) return 'Rick took the oars from the Sweetwater skiff. Hazel at the general store in Coffman Cove (north from Control Lake, past Sweetwater Lake, then north from the middle of town) might have another pair. TALK TO HAZEL.';
-        return 'The Sweetwater pullout is on the Coffman Cove Loop. Walk WEST down the trail to the landing, then ROW NORTH up the shore to the cabin.';
+        if (!g.inInv('oars')) return goDo(g, 'cove_store', 'Rick took the oars from the Sweetwater skiff. Hazel at the general store in Coffman Cove might have another pair. TALK TO HAZEL.');
+        return goDo(g, 'sweetwater_cabin', 'The cabin is up the shore of Sweetwater Lake. You row the last stretch.');
       }
-      if (!g.flag('dale_confessed')) return 'Talk to Dale. Show him the napkin if he stonewalls you.';
-      return 'Go to the State Troopers post in Klawock and ACCUSE whoever is responsible. Maybe more than one person.';
+      if (!g.flag('dale_confessed')) return goDo(g, 'sweetwater_cabin', 'Talk to Dale. Show him the napkin if he stonewalls you.');
+      return goDo(g, 'trooper', 'Go to the State Troopers post in Klawock and ACCUSE whoever is responsible. Maybe more than one person.');
     }
 
     // ------------------------------------------------------------ intro etc.

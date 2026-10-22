@@ -231,6 +231,31 @@ test('game refuses commands after the case is closed, except restart', () => {
   assert.equal(g.state.score, 0);
 });
 
+test('hint directions start from where you are, and get you there', () => {
+  // Before you've seen the harbormaster, the hint leads to his office. Try it from every place on the island.
+  const probe = newGame();
+  for (const rid of Object.keys(probe.rooms)) {
+    if (rid === 'truck_cab') continue;
+    const g = newGame();
+    runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight', 'get out']);
+    g.moveItem('waders', 'inv'); g.state.items.waders.worn = true;
+    g.moveItem('oars', 'inv');
+    g.state.loc = rid;
+    g.moveItem('truck', ['river_trail', 'ford', 'cabin'].includes(rid) ? 'trailhead'
+      : ['sweetwater_landing', 'sweetwater_lake', 'sweetwater_cabin'].includes(rid) ? 'sweetwater_turnoff'
+      : ['lodge', 'kitchen', 'office', 'boathouse'].includes(rid) ? 'lodge_road'
+      : ['harbor', 'harbormaster', 'fuel_dock', 'tavern'].includes(rid) ? 'craig'
+      : ['trooper', 'totem_park'].includes(rid) ? 'klawock'
+      : ['cove_store', 'cove_harbor'].includes(rid) ? 'coffman_cove' : rid);
+    const h = run(g, 'hint');
+    const m = h.match(/From here: (.*?)\. /);
+    if (rid === 'harbormaster') { assert.ok(!m, h); continue; }
+    assert.ok(m, `${rid}: ${h}`);
+    for (const step of m[1].split(', then ')) run(g, step.split(' ')[0].toLowerCase());
+    assert.equal(g.state.loc, 'harbormaster', `${rid}: ${h}`);
+  }
+});
+
 test('hint is always available and never empty', () => {
   const g = newGame();
   for (const c of WALKTHROUGH.slice(0, -1)) {
