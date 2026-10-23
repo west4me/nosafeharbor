@@ -576,7 +576,7 @@
       },
 
       harbor: {
-        map: { at: [-133.1448, 55.4758], site: 'craig' },
+        map: { at: [-133.1429, 55.4761], site: 'craig' },
         name: 'South Cove Harbor',
         aliases: ['harbor', 'docks', 'floats', 'south cove'],
         desc: 'Seiners, trollers and skiffs rock gently in their slips along the floats and finger piers. One slip near the ramp sits empty. Gulls argue on the pilings. North, at the head of the ramp where the highway crosses the causeway, is the harbormaster\'s office. The fuel dock is north of town, out J.T. Brown Drive. Front Street is back west on Craig Island.',

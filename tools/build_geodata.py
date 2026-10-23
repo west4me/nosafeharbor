@@ -58,6 +58,16 @@ def parts(g):
     return [] if g.is_empty else list(getattr(g, 'geoms', [g]))
 
 
+def flat_fine(coords):
+    """Like flat(), to a tenth of a map pixel (about 4 m), for the street-level town maps."""
+    out = []
+    for lon, lat in coords:
+        p = [round(v, 1) for v in px(lon, lat)]
+        if not out or p != out[-1]:
+            out.append(p)
+    return [v for p in out for v in p]
+
+
 def flat(coords, step=1):
     """[[x, y], ...] in pixels, rounded; drops consecutive duplicates."""
     out = []
@@ -202,24 +212,29 @@ for town, bb in TOWNS.items():
         merged = shapely.line_merge(shapely.union_all(geoms)) if geoms else shapely.GeometryCollection()
         for ln in parts(shapely.simplify(merged.intersection(box), tol)):
             if ln.geom_type == 'LineString' and len(ln.coords) > 1:
-                out.append(flat(ln.coords))
+                out.append(flat_fine(ln.coords))
         return out
-    sea_t = []
-    for poly in parts(shapely.simplify(sea.intersection(box), 0.00002, preserve_topology=True)):
-        if poly.geom_type == 'Polygon':
-            sea_t.append([flat(poly.exterior.coords)] + [flat(h.coords) for h in poly.interiors])
+    def fine_polys(geom):
+        out = []
+        for poly in parts(shapely.simplify(geom.intersection(box), 0.000008, preserve_topology=True)):
+            if poly.geom_type == 'Polygon':
+                out.append([flat_fine(poly.exterior.coords)] + [flat_fine(h.coords) for h in poly.interiors])
+        return out
+    sea_t = fine_polys(sea)
+    # Foreshore: the tide flats and beaches that go dry at low water (NHD FType 364).
+    shore_t = fine_polys(shapely.union_all([a['geom'] for a in area if a['ftype'] == 364 and a['geom'].intersects(box)]))
     t_roads = [r for r in roads if r['geom'].intersects(box)]
     by_name = {}
     for r in t_roads:
         by_name.setdefault((street_name(r['name']), is_main(r)), []).append(r['geom'])
     streets = []
     for (name, main), geoms in by_name.items():
-        for line in clip_lines(geoms, 0.00002):
+        for line in clip_lines(geoms, 0.000008):
             streets.append({'name': name, 'main': main, 'line': line})
-    creeks = clip_lines([f['geom'] for f in flows if f['geom'].intersects(box)], 0.00002)
+    creeks = clip_lines([f['geom'] for f in flows if f['geom'].intersects(box)], 0.000008)
     x0, y1 = px(bb[0], bb[1])
     x1, y0 = px(bb[2], bb[3])
-    detail.append({'town': town, 'box': [x0, y0, x1, y1], 'sea': sea_t, 'streets': streets, 'creeks': creeks})
+    detail.append({'town': town, 'box': [x0, y0, x1, y1], 'sea': sea_t, 'flats': shore_t, 'streets': streets, 'creeks': creeks})
     print(f'  detail {town}: {len(streets)} street lines, {sum(len(r) for p in sea_t for r in p) // 2} shore pts', file=sys.stderr)
 
 geo = {

@@ -183,6 +183,7 @@
       const sea = polyPath(t.sea);
       out.push(`<path d="${sea}" fill="#e3edf7" fill-rule="evenodd"/>`);
       out.push(`<path d="${sea}" fill="url(#map-water-fine)" fill-rule="evenodd" opacity="0.55"/>`);
+      if (t.flats && t.flats.length) out.push(`<path d="${polyPath(t.flats)}" fill="#cfe0d6" fill-rule="evenodd" opacity="0.85"/>`);
       out.push(`<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="url(#map-grid)"/>`);
       out.push(`<path d="${sea}" fill="none" stroke="#3d4a5c" stroke-width="1.2" fill-rule="evenodd"/>`);
       out.push(`<g fill="none" stroke-linecap="round" stroke-linejoin="round">`);
