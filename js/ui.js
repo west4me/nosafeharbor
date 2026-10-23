@@ -321,27 +321,71 @@
     zoomBy(Math.exp(dy * 0.0012), px, py, true);
   }, { passive: false });
 
+  // One finger (or the mouse) drags; two fingers pinch to zoom and pan together.
   let drag = null;
+  let pinch = null;
+  const fingers = new Map();
+  const pairOf = () => {
+    const [a, b] = [...fingers.values()];
+    return { mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, d: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)) };
+  };
+  function startDrag(x, y) {
+    drag = { x, y, box: mapViewBox.slice(), scale: sheetPoint(x, y)[2] };
+  }
+  function startPinch() {
+    const p = pairOf();
+    const [sx, sy] = sheetPoint(p.mx, p.my);
+    pinch = { d: p.d, sx, sy, box: mapViewBox.slice() };
+    drag = null;
+  }
   mapScroll.addEventListener('pointerdown', (e) => {
     if (!mapViewBox) return;
     e.preventDefault(); // no text selection while dragging the map
-    drag = { x: e.clientX, y: e.clientY, box: mapViewBox.slice(), scale: sheetPoint(e.clientX, e.clientY)[2] };
+    fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     mapScroll.setPointerCapture(e.pointerId);
     mapScroll.classList.add('dragging');
+    if (fingers.size === 2) startPinch();
+    else if (fingers.size === 1) startDrag(e.clientX, e.clientY);
   });
   mapScroll.addEventListener('pointermove', (e) => {
-    if (!drag) return;
-    const dx = (e.clientX - drag.x) * drag.scale;
-    const dy = (e.clientY - drag.y) * drag.scale;
-    if (Math.abs(dx) + Math.abs(dy) > 2) followMe = false;
-    mapViewBox = [drag.box[0] - dx, drag.box[1] - dy, drag.box[2], drag.box[3]];
-    // Move the drawn map at most once a frame, however fast the mouse reports.
-    if (!dragFrame) dragFrame = requestAnimationFrame(() => { dragFrame = 0; if (drag) previewView(); });
+    if (!fingers.has(e.pointerId)) return;
+    fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && fingers.size >= 2) {
+      // Scale by how far the fingers spread, and keep the spot that was between them under them.
+      const p = pairOf();
+      const whole = window.NSH.wholeView(panelAspect());
+      const nw = Math.min(Math.max(pinch.box[2] * pinch.d / p.d, 30), whole[2]);
+      const k = nw / pinch.box[2];
+      const nh = pinch.box[3] * k;
+      const r = mapScroll.getBoundingClientRect();
+      const s = Math.max(nw / r.width, nh / r.height);
+      const ox = (r.width - nw / s) / 2;
+      const oy = (r.height - nh / s) / 2;
+      mapViewBox = [pinch.sx - (p.mx - r.left - ox) * s, pinch.sy - (p.my - r.top - oy) * s, nw, nh];
+      followMe = false;
+    } else if (drag) {
+      const dx = (e.clientX - drag.x) * drag.scale;
+      const dy = (e.clientY - drag.y) * drag.scale;
+      if (Math.abs(dx) + Math.abs(dy) > 2) followMe = false;
+      mapViewBox = [drag.box[0] - dx, drag.box[1] - dy, drag.box[2], drag.box[3]];
+    } else return;
+    // Move the drawn map at most once a frame, however fast the pointer reports.
+    if (!dragFrame) dragFrame = requestAnimationFrame(() => { dragFrame = 0; if (drag || pinch) previewView(); });
   });
   let dragFrame = 0;
-  const endDrag = () => {
-    if (drag) applyView();
+  const endDrag = (e) => {
+    if (!fingers.delete(e.pointerId)) return;
+    if (pinch && fingers.size === 1) {
+      // Lifting one finger of a pinch: carry on dragging with the other.
+      pinch = null;
+      const [f] = fingers.values();
+      startDrag(f.x, f.y);
+      return;
+    }
+    if (fingers.size) return;
+    if (drag || pinch) applyView();
     drag = null;
+    pinch = null;
     mapScroll.classList.remove('dragging');
   };
   mapScroll.addEventListener('pointerup', endDrag);
