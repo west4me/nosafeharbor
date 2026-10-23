@@ -333,7 +333,7 @@ html, body {
   font-family: Georgia, "Times New Roman", serif;
   font-style: italic;
 }
-.map-svg .map-label-island { fill: #7f8ea3; letter-spacing: 5px; font-weight: 700; font-style: normal; stroke-width: 5px; }
+.map-svg .map-label-island { fill: #7f8ea3; letter-spacing: 4px; font-weight: 700; font-style: normal; stroke-width: 5px; }
 .map-svg .map-label-water { fill: #2f5b8c; letter-spacing: 1.5px; }
 .map-svg .map-label-river { fill: #1f5596; }
 .map-svg .map-label-lake { fill: #1f5596; }
@@ -344,7 +344,6 @@ html, body {
 .map-svg .map-here-text { fill: #a5281b; font-weight: 700; }
 .map-svg .map-you-text { font-weight: 700; letter-spacing: 1px; }
 .map-svg .map-label-town { font-family: Georgia, "Times New Roman", serif; font-weight: 700; fill: #1f1f1f; }
-.map-svg.far .map-label-island { font-size: calc(30px * var(--k, 1)); }
 .map-svg .map-you-text { fill: #fffdf6; stroke: none; font-family: Arial, "Helvetica Neue", sans-serif; }
 .map-svg .map-pin { transform-box: fill-box; transform-origin: 50% 100%; transform: scale(var(--k, 1)); }
 /* Zoomed way out: keep towns, roads you've driven and your pin; hide the small print. */

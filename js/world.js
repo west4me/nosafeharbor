@@ -2043,7 +2043,7 @@
     ];
 
     const mapLabels = [
-      { text: 'PRINCE OF WALES ISLAND', at: [-132.98, 55.76], size: 34, rotate: -62, cls: 'island' },
+      { text: 'PRINCE OF WALES ISLAND', at: [-132.98, 55.76], size: 22, rotate: -62, cls: 'island' },
       { text: 'CLARENCE STRAIT', at: [-132.60, 55.86], size: 22, rotate: -58, cls: 'water' },
       { text: 'Klawock Inlet', at: [-133.168, 55.530], size: 17, rotate: -62, cls: 'water' },
       { text: 'San Alberto Bay', at: [-133.215, 55.505], size: 17, rotate: -75, cls: 'water' },
