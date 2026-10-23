@@ -94,8 +94,12 @@ The game follows the island's real roads:
 ```
 
 Real places: Hollis, Klawock, Craig, Control Lake, the Thorne River, Sweetwater Lake, Coffman Cove,
-Dog Creek, Luck Lake and every road between them. Made up: the people, the Harbor Light Lodge,
-the businesses, and the cabin on the Thorne.
+Dog Creek, Luck Lake and every road between them. In town, places sit where they really are: Front
+Street on Craig Island, South Cove Harbor, the Craig harbormaster's office at the Craig–Klawock Highway
+and West Hamilton Drive, the Craig fuel dock out J.T. Brown Drive, Klawock's totem park on the hill
+above town, and the Coffman Cove harbor on Harbor Avenue. Zoom in on the map and you get the towns'
+real street maps, from USGS data. Made up: the people, the Harbor Light Lodge, the Riptide Tavern, the
+Coffman Cove general store, the cabin on the Thorne and the exact spot of the Troopers post.
 
 ### The island's people and history
 

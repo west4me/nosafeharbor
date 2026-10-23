@@ -42,14 +42,14 @@ const WALKTHROUGH = [
   // Hollis: keys, then the flashlight from the glovebox
   ...KEYS, 'get in truck', 'open glovebox', 'take flashlight',
   // To Craig harbormaster
-  'w', 'w', 's', 'w', 'n',
+  'w', 'w', 's', 'e', 'n',
   'talk to joe', 'read report', 'ask joe about weather',
   // Fuel dock
-  's', 'w', 'ask kenzie about rick', 'search barrel', 'take receipt', 'read receipt',
+  'n', 'ask kenzie about rick', 'search barrel', 'take receipt', 'read receipt',
   // Tavern
-  'e', 'e', 'e', 'buy beer', 'give beer to cal',
+  's', 's', 'w', 'w', 'buy beer', 'give beer to cal',
   // Lodge
-  'w', 's', 's', 'talk to rick', 'examine rod rack',
+  'e', 's', 's', 'talk to rick', 'examine rod rack',
   'e', 'talk to marnie', 'ask marnie about rod', 'w',
   's', 'examine skiff', 'n',
   'w', 'take photo', 'read photo', 'dial 14 3 28',
@@ -164,8 +164,8 @@ test('wrong safe combination keeps it shut', () => {
 
 test('Dale stonewalls without enough evidence', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'w', 's', 'e', 'buy beer', 'give beer to cal',
-    'w', 'n', 'ne', 'n', 'ne', 'n', 'talk to hazel', 's', 'sw', 'w', 'n', 'n']);
+  runAll(g, [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight', 'w', 'w', 's', 'w', 'buy beer', 'give beer to cal',
+    'e', 'n', 'ne', 'n', 'ne', 'n', 'talk to hazel', 's', 'sw', 'w', 'n', 'n']);
   assert.equal(g.state.loc, 'sweetwater_cabin');
   assert.match(run(g, 'talk to dale'), /Name's Bill/);
   assert.equal(g.flag('dale_confessed'), false);
@@ -188,7 +188,7 @@ test('accusing outside the trooper post is redirected', () => {
 
 test('warrant ending is reachable without finding Dale', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 's', 'w', 'w', 'take receipt', 'read receipt', 'e', 'e', 's', 's', 'e', 'talk to marnie', 'w', 'w',
+  runAll(g, [...KEYS, 'w', 'w', 's', 'e', 'n', 'n', 'take receipt', 'read receipt', 's', 's', 'w', 's', 's', 'e', 'talk to marnie', 'w', 'w',
     'take photo', 'read photo', 'dial 14 3 28', 'take napkin', 'read napkin', 'e', 'n', 'n', 'n', 'w']);
   const out = run(g, 'accuse rick and dale');
   assert.match(out, /warrant/);
@@ -258,7 +258,7 @@ test('hint directions start from where you are, and get you there', () => {
 
 test('when the game asks "did you mean...?", YES, NO or a pick answers it', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 's', 'w', 'n']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 'e', 'n']);
   assert.match(run(g, 'talk to jow'), /Did you mean Joe Kitka\?/);
   assert.match(run(g, 'yes'), /insurance investigator/);
   assert.ok(g.state.met.joe);
@@ -279,20 +279,20 @@ test('when the game asks "did you mean...?", YES, NO or a pick answers it', () =
   const which = run(h, 'take the');
   if (/Which do you mean/.test(which)) assert.ok(h.pendingAnswer);
   assert.match(run(h, 'get out'), /climb out/);
-  runAll(h, ['w', 'w', 's', 'w', 'n']);
+  runAll(h, ['w', 'w', 's', 'e', 'n']);
   assert.match(run(h, 'get in truck'), /parked back at Craig/);
 });
 
 test('"Talk to whom?", "Accuse whom?" and "Where to?" take a name or a place as the answer', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 's', 'e']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 'w']);
   assert.match(run(g, 'talk'), /Talk to whom\?/);
   assert.match(run(g, 'cal'), /Insurance\. Great/);
   assert.match(run(g, 'thanks'), /Thank whom\?/);
   assert.match(run(g, 'bonnie'), /.+/);
   assert.match(run(g, 'accuse'), /Accuse whom\?/);
   assert.match(run(g, 'rick'), /not a cop/);
-  runAll(g, ['w', 'get in truck']);
+  runAll(g, ['e', 'get in truck']);
   assert.match(run(g, 'start truck'), /Where to\?/);
   run(g, 'klawock');
   assert.equal(g.state.loc, 'klawock');
@@ -313,9 +313,11 @@ const { geo } = require('../js/geodata.js');
 const { project } = require('../js/map.js');
 
 // Even-odd point-in-polygon over the map's sea rings (in map pixels).
+// In a town with a street-level map, check against its detailed shoreline; elsewhere the island-wide one.
 function inSea([x, y]) {
   let inside = false;
-  for (const poly of geo.sea) {
+  const town = (geo.detail || []).find((t) => x >= t.box[0] && x <= t.box[2] && y >= t.box[1] && y <= t.box[3]);
+  for (const poly of town ? town.sea : geo.sea) {
     for (const r of poly) {
       for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
         const [xi, yi, xj, yj] = [r[i], r[i + 1], r[j], r[j + 1]];
@@ -401,10 +403,10 @@ test('map pencils in visited places and the real roads between them', () => {
   assert.equal(m.rooms.find((r) => r.here).id, 'craig');
   assert.deepEqual(m.edges.map((e) => e.key).sort(), ['craig|klawock', 'ferry|hwy', 'hwy|klawock']);
   assert.ok(m.edges.every((e) => e.road));
-  // Unexplored roads out of places you've been show up as stubs; rooms inside a town don't.
+  // Unexplored roads out of places you've been show up as stubs, and so do the streets in town.
   assert.ok(m.stubs.some((s) => s.from === 'klawock' && s.dir === 'northeast'));
   assert.ok(m.stubs.some((s) => s.from === 'craig' && s.dir === 'south'));
-  assert.ok(!m.stubs.some((s) => s.to === 'harbor' || s.to === 'totem_park'));
+  assert.ok(m.stubs.some((s) => s.from === 'craig' && s.to === 'harbor' && !s.road));
   // A town lists the spots inside it you've seen, with a "?" for the rest.
   const svg = renderMap(g);
   assert.match(svg, /Front Street/);
@@ -443,17 +445,23 @@ test('the map frames where you are and where the roads lead, not the whole sheet
   assert.ok(town[2] < 16 * geo.view.pxPerKm, 'close enough to read the sketch');
 });
 
-test("in town, the map sketches the streets and shows where the truck is; the text says too", () => {
+test("in town, the map has the real streets and shows where the truck is; the text says too", () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 's', 'w', 'n']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 'e', 'n']);
   const svg = renderMap(g);
-  assert.match(svg, /class="map-town-plan"/);
-  for (const name of ['Front Street', 'South Cove Harbor', 'Harbormaster']) assert.match(svg, new RegExp(`>${name}<`));
+  // Street-level USGS detail for the towns, with the real street names.
+  assert.match(svg, /class="map-detail"/);
+  for (const name of ['Front St', 'Main St', 'Cold Storage Rd', 'J T Brown Dr', 'Hamilton Dr']) assert.match(svg, new RegExp(`>${name}<`));
+  // Each place in town is labeled at its own spot, and the truck is drawn where it's parked.
+  for (const name of ['Front Street', 'South Cove Harbor', 'Harbormaster']) assert.match(svg, new RegExp(`map-room-tag[\\s\\S]*?>${name}<`));
   assert.match(svg, /class="map-truck"/);
+  // In town, Fit frames the town up close.
+  const { mapView } = require('../js/map.js');
+  assert.ok(mapView(g, 1.3)[2] < 6 * geo.view.pxPerKm);
   const look = run(g, 'look');
   assert.match(look, /Ways out: SOUTH to South Cove Harbor/);
-  assert.match(look, /Your truck is parked at Craig — Front Street \(SOUTH, then EAST\)/);
-  assert.match(run(g, 'where is my truck'), /SOUTH, then EAST/);
+  assert.match(look, /Your truck is parked at Craig — Front Street \(SOUTH, then WEST\)/);
+  assert.match(run(g, 'where is my truck'), /SOUTH, then WEST/);
   run(g, 'walk to truck');
   assert.equal(g.state.loc, 'craig');
   assert.match(run(g, 'walk to truck'), /right here/);
@@ -471,7 +479,7 @@ test('MAP command signals the UI without using a turn', () => {
 test('full walkthrough plus a few detours fills in the whole map', () => {
   const g = newGame();
   // The fastest route skips the totem park, the Coffman Cove harbor, Dog Creek and Luck Lake, so detour before accusing.
-  runAll(g, [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'e', 'w', 's', 's', 'drive to klawock', 'n', 's', 'w', WALKTHROUGH[WALKTHROUGH.length - 1]]);
+  runAll(g, [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'w', 'e', 's', 's', 'drive to klawock', 'n', 's', 'w', WALKTHROUGH[WALKTHROUGH.length - 1]]);
   assert.equal(g.state.over, true);
   assert.match(renderMap(g), /explored 29 of 29/);
   assert.equal(mapModel(g).stubs.length, 0);
@@ -539,7 +547,7 @@ test('the truck follows you by road and stays put when you walk', () => {
   const g = newGame();
   runAll(g, [...KEYS, 'w', 'w', 's']);
   assert.equal(g.itemState('truck').loc, 'craig');
-  run(g, 'w'); // walk to the harbor
+  run(g, 'e'); // walk to the harbor
   assert.equal(g.itemState('truck').loc, 'craig');
   assert.match(run(g, 'look'), /South Cove Harbor/);
   assert.doesNotMatch(run(g, 'look'), /rental pickup is parked/);
@@ -547,7 +555,7 @@ test('the truck follows you by road and stays put when you walk', () => {
 
 test('DRIVE TO takes you to places you have been, by the shortest route', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 's', 'w']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 'e']);
   assert.match(run(g, 'drive to lodge'), /don't know the way/);
   const out = run(g, 'drive to hollis');
   assert.equal(g.state.loc, 'ferry');
@@ -595,7 +603,7 @@ test('the boathouse and cabin hold the survival-suit detail', () => {
 
 // Keys, flashlight and waders (from Cal in Craig), then Big Salt Road to Control Lake and east to the Thorne trailhead.
 const TO_TRAILHEAD = [...KEYS, 'get in truck', 'open glovebox', 'take flashlight', 'turn on flashlight',
-  'w', 'w', 's', 'e', 'buy beer', 'give beer to cal', 'w', 'n', 'ne', 'e'];
+  'w', 'w', 's', 'w', 'buy beer', 'give beer to cal', 'e', 'n', 'ne', 'e'];
 
 test('the Thorne cabin is empty, with a note pointing to Sweetwater', () => {
   const g = newGame();
@@ -615,7 +623,7 @@ test('the real road north: Control Lake to Sweetwater to Coffman Cove, then Dog 
   assert.match(run(g, 'n'), /can't go that way/); // the road north starts back at the junction
   assert.match(run(g, 'w'), /The North Prince of Wales Road heads north/);
   assert.match(run(g, 'n'), /twenty-eight miles/);
-  assert.match(run(g, 'ne'), /Dog Creek runs out through the middle of town/);
+  assert.match(run(g, 'ne'), /Dog Creek comes down its valley/);
   assert.match(run(g, 's'), /Dog Creek/);
   assert.match(run(g, 's'), /Luck Lake/);
   assert.equal(g.itemState('truck').loc, 'luck_lake');
@@ -694,7 +702,7 @@ test('the notebook logs what you do and keeps leads up to date', () => {
   m = notebookModel(g);
   assert.ok(m.doneLeads.includes('Read the case file.'));
   assert.ok(m.openLeads.some((t) => /harbormaster/.test(t)));
-  runAll(g, [...KEYS, 'w', 'w', 's', 'w', 'n', 'talk to joe', 'ask joe about weather']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 'e', 'n', 'talk to joe', 'ask joe about weather']);
   m = notebookModel(g);
   assert.ok(m.people.some((p) => p.name === 'Joe Kitka' && /harbormaster/i.test(p.role)));
   assert.ok(m.places.includes('Klawock'));

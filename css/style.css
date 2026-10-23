@@ -304,9 +304,7 @@ html, body {
 .map-svg .map-you-text { fill: #fffdf6; stroke: none; font-family: Arial, "Helvetica Neue", sans-serif; }
 .map-svg .map-pin { transform-box: fill-box; transform-origin: 50% 100%; transform: scale(var(--k, 1)); }
 /* Zoomed way out: keep towns, roads you've driven and your pin; hide the small print. */
-.map-svg .map-plan-farname { display: none; }
-.map-svg.far .map-plan-farname { display: inline; }
-.map-svg.far .map-site-room, .map-svg.far .map-site-card, .map-svg.far .map-town-plan, .map-svg.far .map-label-road,
+.map-svg.far .map-site-room, .map-svg.far .map-site-card, .map-svg.far .map-label-road,
 .map-svg.far .map-label-lake, .map-svg.far .map-label-river, .map-svg.far .map-you-tag { display: none; }
 .map-svg .map-label-road { font-family: Georgia, "Times New Roman", serif; font-style: italic; fill: #6b4a17; stroke-width: 3.5px; }
 @media (prefers-reduced-motion: no-preference) {
@@ -471,3 +469,20 @@ html, body {
 .start-card button.start-primary { background: var(--fg); color: var(--bg); font-weight: 700; border-color: var(--fg); }
 .start-card button:hover, .start-card button:focus-visible { outline: 2px solid var(--bright); outline-offset: 2px; }
 @media (max-width: 560px) { .start-card h1 { font-size: 1.5rem; letter-spacing: 0.15em; } }
+
+/* ---------- Map at any zoom
+   Lines are drawn in screen pixels, so they stay crisp from the whole island down to one street.
+   Marks inside .map-k are sized in screen pixels too (scaled by --px, one pixel in map units). */
+.map-svg path, .map-svg line, .map-svg rect, .map-svg circle, .map-svg polyline { vector-effect: non-scaling-stroke; }
+.map-svg .map-k { transform: scale(var(--px, 1)); }
+.map-svg .map-label-street { font-family: Georgia, "Times New Roman", serif; font-size: 11px; fill: #4b4336; stroke-width: 3px; }
+.map-svg .map-room-tag .map-site-room { font-size: 13px; font-weight: 700; stroke-width: 3.5px; }
+
+/* Town street maps only when zoomed in close; the island-wide roads step aside there. */
+.map-svg:not(.near) .map-detail { display: none; }
+.map-svg.near .map-coarse { mask: url(#map-town-holes); }
+.map-svg:not(.near) .map-room-tag { display: none; }
+.map-svg.near > rect.map-site-card, .map-svg.near > text.map-site-name, .map-svg.near > text.map-site-room,
+.map-svg.near .map-label-water, .map-svg.near .map-label-island, .map-svg.near .map-label-lake,
+.map-svg.near .map-label-river, .map-svg.near .map-label-road { display: none; }
+.map-svg.near [filter] { filter: none; }

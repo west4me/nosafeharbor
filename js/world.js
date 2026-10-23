@@ -487,7 +487,7 @@
         map: { at: [-132.8278, 56.0139], site: 'coffman' },
         name: 'Coffman Cove',
         aliases: ['coffman cove', 'coffman'],
-        desc: "The road ends where the trees give up and Clarence Strait begins. Coffman Cove started out as a logging camp and has never quite stopped looking like one: houses and trailers scattered along the cove, woodpiles under blue tarps, a school, a community hall, and more skiffs parked in yards than trucks. Dog Creek runs out through the middle of town into the cove. The general store is down by the water to the north, and the harbor is down the hill to the east. The Coffman Cove Road heads southwest toward Sweetwater Lake, and the loop road runs south up the Dog Creek valley.",
+        desc: "The road ends where the trees give up and Clarence Strait begins. Coffman Cove started out as a logging camp and has never quite stopped looking like one: houses and trailers scattered along the cove, woodpiles under blue tarps, a school, a community hall, and more skiffs parked in yards than trucks. Dog Creek comes down its valley and runs out onto the beach just east of town. The general store is up the street to the north, and the harbor is down Harbor Avenue to the west, on the cove. The Coffman Cove Road heads southwest toward Sweetwater Lake, and the loop road runs south up the Dog Creek valley.",
         exits: {
           in: 'cove_store',
           south: road('dog_creek', "You head south out of town and up the valley, the creek flashing through the alders.",
@@ -495,12 +495,12 @@
           southwest: road('sweetwater_turnoff', "Southwest out of town, across Coffman Creek where it runs into the lagoon, then seven miles of gravel until a big, dark lake opens up through the trees.",
             "You pull over at the turnoff for it, kill the engine and climb out to have a look."),
           north: 'cove_store',
-          east: 'cove_harbor'
+          west: 'cove_harbor'
         }
       },
 
       cove_store: {
-        map: { at: [-132.8278, 56.0139], site: 'coffman' },
+        map: { at: [-132.8285, 56.016], site: 'coffman' },
         name: 'Cove General Store',
         aliases: ['store', 'general store', 'cove store', 'shop'],
         desc: "A low building with a covered porch, a woodstove going in the middle of the floor, and narrow aisles of everything: canned goods, chainsaw chain, ammunition, birthday candles, rain gear and fishing tackle, plus a cooler of bait next to a cooler of milk. A coffee pot sits on the woodstove for anyone who wants it. By the register, a hand-lettered sign: COFFMAN COVE. POP.: ENOUGH. The door is south.",
@@ -514,11 +514,11 @@
       },
 
       cove_harbor: {
-        map: { at: [-132.8278, 56.0139], site: 'coffman' },
+        map: { at: [-132.8298, 56.0119], site: 'coffman' },
         name: 'Coffman Cove Harbor',
         aliases: ['cove harbor', 'coffman harbor', 'coffman cove harbor', 'boat harbor'],
-        desc: "A small boat harbor tucked behind a rock breakwater: a few dozen slips of skiffs and crabbers, and one old seiner that hasn't left the dock in a decade. Up the shore is the old ferry ramp where the inter-island ferry used to come in, now just a concrete apron and a gull convention. Beyond the breakwater, Clarence Strait runs gray all the way to the mountains on the far side. A black lab trots along the floats like he's the harbormaster. The road climbs back west into town.",
-        exits: { west: 'coffman_cove' },
+        desc: "A small boat harbor tucked behind a rock breakwater: a few dozen slips of skiffs and crabbers, and one old seiner that hasn't left the dock in a decade. Up the shore to the north is the old ferry terminal where the inter-island ferry used to come in, now mostly a concrete apron and a gull convention. Beyond the breakwater the cove opens out flat and sheltered toward the strait. A black lab trots along the floats like he's the harbormaster. Harbor Avenue climbs back east into town.",
+        exits: { east: 'coffman_cove' },
         fish: "A kid on the old ferry ramp hauls in a pink salmon and holds it up for you to see. You give him a thumbs up. You are jealous of a twelve-year-old."
       },
 
@@ -541,7 +541,7 @@
       },
 
       totem_park: {
-        map: { at: [-133.0958, 55.5522], site: 'klawock' },
+        map: { at: [-133.096, 55.5545], site: 'klawock' },
         name: 'Klawock Totem Park',
         aliases: ['totem park', 'park', 'totems', 'poles'],
         desc: "Totem poles line the hillside above the town and the inlet, more than twenty of them, red cedar weathered to silver-gray. Their figures watch the water: Raven, Eagle, Killer Whale, Wolf, Bear. The poles came from Tuxekan, the old winter village up the coast, and some have been recarved by Klawock hands as the old ones gave out. A wooden plaque stands at the foot of the path. Next to a carving shed at the edge of the park, a fresh cedar log rests on sawhorses, halfway to becoming something with wings. The path leads south back down into town.",
@@ -551,7 +551,7 @@
       },
 
       trooper: {
-        map: { at: [-133.0958, 55.5522], site: 'klawock' },
+        map: { at: [-133.0984, 55.5527], site: 'klawock' },
         name: 'Alaska State Troopers Post',
         aliases: ['troopers', 'trooper post', 'post', 'trooper', 'police'],
         desc: "A small, overheated office with a coffee maker that has seen things, a wall map of Prince of Wales Island stuck full of pins and an empty holding cell. The exit is east.",
@@ -560,51 +560,57 @@
       },
 
       craig: {
-        map: { at: [-133.1483, 55.4764], site: 'craig' },
+        map: { at: [-133.1507, 55.4773], site: 'craig' },
         name: 'Craig — Front Street',
         aliases: ['craig', 'front street', 'downtown'],
-        desc: "Craig is the biggest town on the island, which means two grocery stores, three bars and a lot of boats. Its old Tlingit name is Shaan Seet, and Fish Egg Island lies just offshore, where the herring have spawned every spring for longer than anyone remembers. Front Street runs along the water past bait shops and a cannery that's seen better decades. The harbor is to the west. The neon OPEN sign of the Riptide Tavern buzzes to the east. The road climbs north back to Klawock, and a gravel road heads south along the shore toward the Harbor Light Lodge.",
+        desc: "Craig is the biggest town on the island, which means two grocery stores, three bars and a lot of boats. Its old Tlingit name is Shaan Seet, and Fish Egg Island lies just offshore, where the herring have spawned every spring for longer than anyone remembers. Front Street sits on Craig Island, the old part of town, a few blocks of bait shops, a cannery that's seen better decades and houses with skiffs in the yard. East along Main Street and over the causeway is South Cove Harbor. The neon OPEN sign of the Riptide Tavern buzzes just up the street to the west. The highway heads out over the causeway and north to Klawock, and the road south past Shelter Cove leads toward the Harbor Light Lodge.",
         exits: {
           in: 'tavern',
           north: road('klawock', "North out of Craig with the water on your left and the hills on your right. Fifteen minutes later you coast into Klawock.",
             "You park in the middle of town and climb out."),
-          west: 'harbor',
-          east: 'tavern',
+          east: 'harbor',
+          west: 'tavern',
           south: road('lodge_road', "You head out of town past the last houses, spray flying from the potholes.",
             "A mile and a half along, a carved sign swings in the wind: HARBOR LIGHT LODGE. You park on the shoulder by the sign and climb out.")
         }
       },
 
       harbor: {
-        map: { at: [-133.1483, 55.4764], site: 'craig' },
+        map: { at: [-133.1448, 55.4758], site: 'craig' },
         name: 'South Cove Harbor',
         aliases: ['harbor', 'docks', 'floats', 'south cove'],
-        desc: 'Seiners, trollers and skiffs rock gently in their slips along the floats and finger piers. One slip near the ramp sits empty. Gulls argue on the pilings. North, at the head of the ramp, is a small office with HARBORMASTER painted on the door. The fuel dock is farther west along the floats. Front Street is back east.',
-        exits: { east: 'craig', north: 'harbormaster', west: 'fuel_dock' }
+        desc: 'Seiners, trollers and skiffs rock gently in their slips along the floats and finger piers. One slip near the ramp sits empty. Gulls argue on the pilings. North, at the head of the ramp where the highway crosses the causeway, is the harbormaster\'s office. The fuel dock is north of town, out J.T. Brown Drive. Front Street is back west on Craig Island.',
+        exits: { west: 'craig', north: 'harbormaster' }
       },
 
       harbormaster: {
-        map: { at: [-133.1483, 55.4764], site: 'craig' },
+        map: { at: [-133.1432, 55.4771], site: 'craig' },
         name: "Harbormaster's Office",
         aliases: ['harbormaster', 'office', "harbormaster's office"],
-        desc: 'A cramped office. A VHF radio crackles on the shelf and tide tables are taped to the window. A chart of the waters around Craig covers the desk, with a coffee ring right on Fish Egg Island. The door is south.',
-        exits: { south: 'harbor', out: 'harbor' }
+        desc: 'A cramped office. A VHF radio crackles on the shelf and tide tables are taped to the window. A chart of the waters around Craig covers the desk, with a coffee ring right on Fish Egg Island. The door opens south onto the harbor ramp. Out front, the highway runs north toward the fuel dock and Klawock.',
+        exits: {
+          south: 'harbor',
+          out: 'harbor',
+          north: { to: 'fuel_dock', guard: (g) => { g.print('A good half hour on foot: north along the highway around Crab Bay, then out J.T. Brown Drive past the seafood plant, in a steady rain.', 'travel'); return null; } }
+        }
       },
 
       fuel_dock: {
-        map: { at: [-133.1483, 55.4764], site: 'craig' },
+        map: { at: [-133.1405, 55.4886], site: 'craig' },
         name: 'Fuel Dock',
         aliases: ['fuel dock', 'fuel', 'gas dock'],
-        desc: 'A float at the end of the harbor with two fuel pumps, a caged rack of propane cylinders and a tiny shack selling ice, bait and chips. A rusty trash barrel stands next to the shack. The harbor floats lead back east.',
-        exits: { east: 'harbor' }
+        desc: 'A fuel float at the end of J.T. Brown Drive, north of downtown, tucked behind a seafood plant: two fuel pumps, a caged rack of propane cylinders and a tiny shack selling ice, bait and chips. A rusty trash barrel stands next to the shack. J.T. Brown Drive leads back south to the highway and the harbormaster\'s office.',
+        exits: {
+          south: { to: 'harbormaster', guard: (g) => { g.print('You walk back out J.T. Brown Drive and the half hour south along the highway, around Crab Bay, to the harbormaster\'s office.', 'travel'); return null; } }
+        }
       },
 
       tavern: {
-        map: { at: [-133.1483, 55.4764], site: 'craig' },
+        map: { at: [-133.1526, 55.4769], site: 'craig' },
         name: 'Riptide Tavern',
         aliases: ['tavern', 'riptide', 'bar', 'riptide tavern'],
-        desc: 'Dim and warm, smelling of fryer oil and wet wool. Glass fishing floats hang from the ceiling, stools line a long cedar bar, a jukebox glows in the corner under a muted TV, and the bulletin board by the door is buried in flyers for skiff sales and lost dogs. Front Street is out the door to the west.',
-        exits: { west: 'craig', out: 'craig' },
+        desc: 'Dim and warm, smelling of fryer oil and wet wool. Glass fishing floats hang from the ceiling, stools line a long cedar bar, a jukebox glows in the corner under a muted TV, and the bulletin board by the door is buried in flyers for skiff sales and lost dogs. Front Street is out the door to the east.',
+        exits: { east: 'craig', out: 'craig' },
         buy: (g, what) => {
           if (!/beer|ale|drink|round|bottle|amber|pint/.test(what)) {
             return "Bonnie looks at you. 'We've got beer. We've also got beer.'";
@@ -631,7 +637,7 @@
       },
 
       lodge: {
-        map: { at: [-133.1220, 55.4660], site: 'lodge' },
+        map: { at: [-133.122, 55.4652], site: 'lodge' },
         name: 'Harbor Light Lodge — Great Room',
         aliases: ['lodge', 'great room', 'harbor light lodge', 'harbor light'],
         desc: "A big timber-frame room with a river-rock fireplace, leather couches gone soft with use and a mounted king salmon over the mantel that looks surprised about the whole arrangement. A long wooden rod rack hangs on the wall near the door. Doors lead east to the kitchen and west to an office. A path runs south down to the boathouse, and the front door opens north onto the road.",
@@ -657,7 +663,7 @@
       },
 
       kitchen: {
-        map: { at: [-133.1220, 55.4660], site: 'lodge' },
+        map: { at: [-133.1214, 55.4652], site: 'lodge' },
         name: 'Lodge Kitchen',
         aliases: ['kitchen'],
         desc: 'A big working kitchen with steel counters, a six-burner range and a walk-in cooler humming in the corner. It smells like bread and coffee. The window over the sink looks out at Fish Egg Island. The great room is back west.',
@@ -665,7 +671,7 @@
       },
 
       office: {
-        map: { at: [-133.1220, 55.4660], site: 'lodge' },
+        map: { at: [-133.1226, 55.4652], site: 'lodge' },
         name: "Dale's Office",
         aliases: ['office', "dale's office", 'dales office'],
         desc: (g) => 'A small wood-paneled office with a window onto the water. A heavy oak desk sits under a green-shaded lamp' +
@@ -685,7 +691,7 @@
       },
 
       boathouse: {
-        map: { at: [-133.1220, 55.4660], site: 'lodge' },
+        map: { at: [-133.122, 55.4647], site: 'lodge' },
         name: 'Boathouse',
         aliases: ['boathouse', 'boat house'],
         desc: 'A drafty boathouse on pilings over the water, smelling of two-stroke oil and seaweed. Life jackets and crab pots hang from the rafters, and survival suits hang on a row of pegs by the door. An 18-foot aluminum skiff sits on a trailer in the middle of the floor, KITTIWAKE stenciled on her bow. A path leads north back up to the lodge.',
@@ -1781,7 +1787,7 @@
         'road, gravel road, nf-3030, coffman cove road': 'NF-3030: south up the Dog Creek valley toward Luck Lake, or southwest on the Coffman Cove Road toward Sweetwater Lake.',
         'lagoon, coffman creek': 'The lagoon behind town, where Coffman Creek runs in, tea-dark. Calm, shallow and full of birds.',
         'heron, great blue heron': 'A great blue heron in the shallows of the lagoon, pretending to be a stick. It has been standing there since before you arrived, and it will be standing there after you leave.',
-        'dog creek, creek, mouth, creek mouth': 'Dog Creek runs out right through the middle of town and fans across the gravel into the cove. At low tide the gulls stand in the riffle like they are waiting for a delivery. In the fall, they get one.'
+        'dog creek, creek, mouth, creek mouth': 'Dog Creek runs out just east of town and fans across the gravel onto the beach. At low tide the gulls stand in the riffle like they are waiting for a delivery. In the fall, they get one.'
       },
       cove_store: {
         'aisles, shelves, shelf, canned goods, chainsaw chain, ammunition, candles, birthday candles': 'Everything a person might need when the nearest town is an hour away on gravel: chainsaw chain next to birthday candles, ammunition next to oatmeal. There is a system. Hazel is the system.',
@@ -1799,7 +1805,7 @@
         'seiner, old seiner': "An old wooden seiner, its green paint gone chalky, that hasn't left the dock in a decade. Somebody still pumps its bilge every week. Somebody can't let it go.",
         'ferry ramp, old ferry ramp, ramp, apron, kid': 'The old ferry ramp. The inter-island ferry used to run a northern route in here, years ago. Now the ramp mostly hosts gulls and a kid with a spinning rod.',
         'breakwater, rocks': 'A breakwater of big gray rocks, with gulls standing on every one of them like it is assigned seating.',
-        'strait, clarence strait, water, mountains': 'Clarence Strait, gray and wide, with snow on the mountains on the far side. On a clear day you can see forever. This is not a clear day.',
+        'strait, clarence strait, water, mountains': 'Out past the mouth of the cove, Clarence Strait runs gray and wide, with snow on the mountains of Etolin Island on the far side. On a clear day you can see forever. This is not a clear day.',
         'black lab, lab, dog': { desc: 'A black lab in a red bandana, trotting the floats with the air of a dog who meets every boat. He sniffs your hand, approves of the truck smell, and goes back to work.', touch: 'He leans his whole weight into your leg and closes his eyes. You have made a friend for life, or at least until the next boat comes in.' },
         'gulls, gull': 'Gulls on the breakwater, the ramp, the pilings and the seiner. Coffman Cove has a lot of gulls, and they all have opinions.'
       },
@@ -1842,7 +1848,7 @@
         'boats': 'Boats everywhere: on trailers, in yards, on the water. Some of them even float.',
         'street, front street, pickups': 'Wet, potholed and lined with pickups, every one of them muddier than yours.',
         'neon sign, open sign, neon': 'OPEN, in buzzing red neon. The P flickers, so mostly it says O EN.',
-        'bars, bar': 'Three bars for a town this size. The Riptide, east of here, is the one with its sign lit.',
+        'bars, bar': 'Three bars for a town this size. The Riptide, just west of here, is the one with its sign lit.',
         'water, waterfront': 'The water along Front Street is crowded with boats and loud with gulls.',
         'eagles, eagle, bald eagle, light pole': 'Two bald eagles on a light pole, looking down on Craig like a pair of disappointed parents.'
       },

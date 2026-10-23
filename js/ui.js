@@ -134,8 +134,12 @@
     for (const svg of mapScroll.querySelectorAll('svg')) {
       svg.style.transform = '';
       svg.setAttribute('viewBox', mapViewBox.join(' '));
-      svg.style.setProperty('--k', Math.min(5, Math.max(1, s / 1.4)).toFixed(2));
+      // --k keeps names and the pin a steady size on screen; --px is one screen pixel in map units.
+      svg.style.setProperty('--k', Math.min(5, Math.max(0.02, s / 1.4)).toFixed(4));
+      svg.style.setProperty('--px', s.toFixed(4));
       svg.classList.toggle('far', s > 2.2);
+      // Zoomed in close: the towns' street maps come out.
+      svg.classList.toggle('near', s < 0.45);
     }
     shownBox = mapViewBox.slice();
     updateScale();
@@ -209,7 +213,7 @@
   function zoomBy(f, cx, cy, smooth) {
     const [x, y, w, h] = mapViewBox;
     const whole = window.NSH.wholeView(panelAspect());
-    const nw = Math.min(Math.max(w * f, 160), whole[2]);
+    const nw = Math.min(Math.max(w * f, 30), whole[2]); // close enough to read a town's street names
     const k = nw / w;
     const px = cx === undefined ? x + w / 2 : cx;
     const py = cy === undefined ? y + h / 2 : cy;

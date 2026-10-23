@@ -143,18 +143,23 @@
     out.push(`<path d="${lakes}" fill="url(#map-water)" fill-rule="evenodd" opacity="0.5"/>`);
     out.push(`<rect width="${W}" height="${H}" fill="url(#map-grid)"/>`);
     out.push(`<rect width="${W}" height="${H}" fill="url(#map-grid-major)"/>`);
-    out.push(`<path d="${sea}" fill="none" stroke="#3d4a5c" stroke-width="1.6" stroke-linejoin="round" fill-rule="evenodd"/>`);
-    out.push(`<path d="${lakes}" fill="none" stroke="#3f74ad" stroke-width="1.2" stroke-linejoin="round"/>`);
+    // Line widths are screen pixels (vector-effect, see the CSS), so lines stay crisp at any zoom.
+    out.push(`<path d="${sea}" fill="none" stroke="#3d4a5c" stroke-width="1.2" stroke-linejoin="round" fill-rule="evenodd"/>`);
+    out.push(`<path d="${lakes}" fill="none" stroke="#3f74ad" stroke-width="0.9" stroke-linejoin="round"/>`);
     out.push(`<g fill="none" stroke-linecap="round" stroke-linejoin="round">`);
-    for (const s of geo.streams) out.push(`<path d="${pathOf(s)}" stroke="#9ec0e4" stroke-width="0.9"/>`);
-    for (const rv of geo.rivers) for (const l of rv.lines) out.push(`<path d="${pathOf(l)}" stroke="#4f86c2" stroke-width="2.2"/>`);
-    out.push(`<path d="${geo.roads.forest.map((l) => pathOf(l)).join('')}" stroke="#cfc8ba" stroke-width="0.8" stroke-dasharray="3 3"/>`);
-    out.push(`<path d="${geo.roads.road.map((l) => pathOf(l)).join('')}" stroke="#b9b1a2" stroke-width="1.3"/>`);
+    for (const s of geo.streams) out.push(`<path d="${pathOf(s)}" stroke="#9ec0e4" stroke-width="0.7"/>`);
+    for (const rv of geo.rivers) for (const l of rv.lines) out.push(`<path d="${pathOf(l)}" stroke="#4f86c2" stroke-width="1.6"/>`);
+    out.push('</g>');
+    out.push(townDetail());
+    // The island-wide roads. Zoomed in on a town, they step aside there for its street map.
+    out.push(`<g class="map-coarse" fill="none" stroke-linecap="round" stroke-linejoin="round">`);
+    out.push(`<path d="${geo.roads.forest.map((l) => pathOf(l)).join('')}" stroke="#cfc8ba" stroke-width="0.7" stroke-dasharray="3 3"/>`);
+    out.push(`<path d="${geo.roads.road.map((l) => pathOf(l)).join('')}" stroke="#b9b1a2" stroke-width="1"/>`);
     // Main roads, and every road the story drives, printed like a road map: a dark casing with a yellow fill.
     const main = geo.roads.highway.concat(Object.values(geo.routes).map((r) => r.line));
     const mainPath = main.map((l) => pathOf(l)).join('');
-    out.push(`<path d="${mainPath}" stroke="#7a5a2b" stroke-width="5.6"/>`);
-    out.push(`<path d="${mainPath}" stroke="#f3cf6b" stroke-width="3.2"/>`);
+    out.push(`<path d="${mainPath}" stroke="#7a5a2b" stroke-width="4.2"/>`);
+    out.push(`<path d="${mainPath}" stroke="#f3cf6b" stroke-width="2.4"/>`);
     out.push('</g>');
     out.push(roadNames(game, main));
     for (const l of game.world.mapLabels || []) {
@@ -163,6 +168,62 @@
     }
     baseCache = { labels: game.world.mapLabels, svg: out.join('\n') };
     return baseCache.svg;
+  }
+
+  // Street maps of the towns, from the same USGS data at full detail: shoreline, creeks, every street,
+  // named. Hidden until you zoom in close (CSS: .near), when they replace the island-wide roads there.
+  function townDetail() {
+    const out = ['<g class="map-detail">'];
+    for (const t of geo.detail || []) {
+      const [x0, y0, x1, y1] = t.box;
+      const clip = `map-clip-${t.town}`;
+      out.push(`<clipPath id="${clip}"><rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}"/></clipPath>`);
+      out.push(`<g clip-path="url(#${clip})">`);
+      out.push(`<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="#fbf8ef"/>`);
+      const sea = polyPath(t.sea);
+      out.push(`<path d="${sea}" fill="#e3edf7" fill-rule="evenodd"/>`);
+      out.push(`<path d="${sea}" fill="url(#map-water-fine)" fill-rule="evenodd" opacity="0.55"/>`);
+      out.push(`<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="url(#map-grid)"/>`);
+      out.push(`<path d="${sea}" fill="none" stroke="#3d4a5c" stroke-width="1.2" fill-rule="evenodd"/>`);
+      out.push(`<g fill="none" stroke-linecap="round" stroke-linejoin="round">`);
+      out.push(`<path d="${t.creeks.map((l) => pathOf(l)).join('')}" stroke="#7fa9d6" stroke-width="1.2"/>`);
+      const side = t.streets.filter((r) => !r.main).map((r) => pathOf(r.line)).join('');
+      const main = t.streets.filter((r) => r.main).map((r) => pathOf(r.line)).join('');
+      out.push(`<path d="${side}" stroke="#a79f8e" stroke-width="4"/><path d="${side}" stroke="#fffdf6" stroke-width="2.4"/>`);
+      out.push(`<path d="${main}" stroke="#7a5a2b" stroke-width="6"/><path d="${main}" stroke="#f3cf6b" stroke-width="3.8"/>`);
+      out.push('</g>');
+      // One name per street, on its longest stretch, turned to run with it.
+      const longest = {};
+      for (const r of t.streets) {
+        if (!r.name) continue;
+        const len = lineLength(r.line);
+        if (!longest[r.name] || len > longest[r.name].len) longest[r.name] = { len, line: r.line };
+      }
+      for (const [name, { line }] of Object.entries(longest)) {
+        const pts = alongLine(line, 0.5);
+        if (!pts) continue;
+        const [[x, y], [xb, yb]] = pts;
+        let angle = Math.atan2(yb - y, xb - x) * 180 / Math.PI;
+        if (angle > 90) angle -= 180;
+        if (angle < -90) angle += 180;
+        out.push(`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${Math.round(angle)})"><g class="map-k"><text class="map-label map-label-street" y="-4" text-anchor="middle">${esc(name)}</text></g></g>`);
+      }
+      out.push('</g>');
+    }
+    out.push('</g>');
+    return out.join('\n');
+  }
+
+  function lineLength(flat) {
+    let total = 0;
+    for (let i = 2; i < flat.length; i += 2) total += Math.hypot(flat[i] - flat[i - 2], flat[i + 1] - flat[i - 1]);
+    return total;
+  }
+
+  // The town street map a room sits in, if any.
+  function detailAt(at) {
+    const [x, y] = project(at);
+    return (geo.detail || []).find((t) => x >= t.box[0] && x <= t.box[2] && y >= t.box[1] && y <= t.box[3]) || null;
   }
 
   // Road names along the printed roads, turned to run with the road.
@@ -225,85 +286,6 @@
 </g>`;
   }
 
-  // A street sketch for a town whose stops share one map spot: a box per place, laid out by the
-  // compass directions between them, lines for the ways through, "?" for places you haven't been,
-  // the one you're in circled red, and the truck where you parked it.
-  const PLAN_STEP = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0], northeast: [1, -1], northwest: [-1, -1], southeast: [1, 1], southwest: [-1, 1] };
-  const isTown = (all) => all.length > 1 && all.every((r) => r.map.at[0] === all[0].map.at[0] && r.map.at[1] === all[0].map.at[1]);
-
-  // The sketch for the town you're standing in, if you're in one: { svg, box: [x0, y0, x1, y1] }.
-  function currentPlan(game, model) {
-    const here = model.hereId && game.rooms[model.hereId];
-    if (!here || !here.map) return null;
-    const all = Object.values(game.rooms).filter((r) => r.map && r.map.site === here.map.site);
-    if (!isTown(all)) return null;
-    const byId = {};
-    for (const r of model.rooms) byId[r.id] = r;
-    const info = (game.world.mapSites || {})[here.map.site] || { name: here.map.site, label: [10, 4, 'start'] };
-    const [ax, ay] = project(all[0].map.at);
-    const [dx, dy, anchor] = info.label || [10, 4, 'start'];
-    return townPlan(game, all, byId, info, ax, ay, dx, dy, anchor, game.state.items.truck && game.state.items.truck.loc);
-  }
-
-  function townPlan(game, all, byId, info, ax, ay, dx, dy, anchor, truckAt) {
-    const ids = new Set(all.map((r) => r.id));
-    const pos = { [all[0].id]: [0, 0] };
-    const taken = new Set(['0,0']);
-    const links = [];
-    const queue = [all[0].id];
-    while (queue.length) {
-      const id = queue.shift();
-      for (const [dir, exit] of Object.entries(game.rooms[id].exits || {})) {
-        const to = typeof exit === 'string' ? exit : exit.to;
-        const step = PLAN_STEP[dir];
-        if (!step || !ids.has(to)) continue;
-        if (!(byId[id] || byId[to])) continue; // nothing you know about yet
-        const key = [id, to].sort().join('|');
-        if (!links.includes(key)) links.push(key);
-        if (pos[to]) continue;
-        let [x, y] = [pos[id][0] + step[0], pos[id][1] + step[1]];
-        while (taken.has(x + ',' + y)) y += step[1] || 1; // keep boxes from landing on each other
-        pos[to] = [x, y];
-        taken.add(x + ',' + y);
-        queue.push(to);
-      }
-    }
-    const shown = Object.keys(pos).filter((id) => byId[id] || links.some((k) => k.split('|').includes(id) && k.split('|').some((o) => byId[o])));
-    const xs = shown.map((id) => pos[id][0]);
-    const ys = shown.map((id) => pos[id][1]);
-    const CW = 128;
-    const CH = 46;
-    const gw = (Math.max(...xs) - Math.min(...xs) + 1) * CW;
-    const gh = (Math.max(...ys) - Math.min(...ys) + 1) * CH;
-    const cardW = Math.max(gw, info.name.length * 11 + 20) + 12;
-    const left = anchor === 'end' ? ax + dx - cardW : anchor === 'middle' ? ax + dx - cardW / 2 : ax + dx;
-    const top = ay + dy - 22;
-    const cx = (id) => left + 6 + (pos[id][0] - Math.min(...xs)) * CW + CW / 2;
-    const cy = (id) => top + 30 + (pos[id][1] - Math.min(...ys)) * CH + CH / 2;
-    const out = [`<g class="map-town-plan">`];
-    out.push(`<rect class="map-site-card" x="${left}" y="${top}" width="${cardW}" height="${gh + 36}" rx="5" fill="#fbf8ef" opacity="0.95" stroke="#9dbbdc" stroke-width="1"/>`);
-    out.push(`<text class="map-site-name" x="${left + 8}" y="${top + 21}" font-size="18">${esc(info.name)}</text>`);
-    out.push(`<text class="map-site-room" x="${left + cardW - 10}" y="${top + 20}" font-size="13" text-anchor="end">N ↑</text>`);
-    for (const key of links) {
-      const [a, b] = key.split('|');
-      if (!shown.includes(a) || !shown.includes(b)) continue;
-      out.push(`<line x1="${cx(a)}" y1="${cy(a)}" x2="${cx(b)}" y2="${cy(b)}" stroke="#2f2f2f" stroke-width="2" stroke-dasharray="${byId[a] && byId[b] ? 'none' : '3 4'}"/>`);
-    }
-    for (const id of shown) {
-      const known = byId[id];
-      const text = known ? known.label : '?';
-      const here = known && known.here;
-      const w = Math.max(30, text.length * 7.4 + 16);
-      out.push(`<rect x="${cx(id) - w / 2}" y="${cy(id) - 12}" width="${w}" height="24" rx="4" fill="${here ? '#fdecea' : '#fffdf6'}" stroke="${here ? '#c0392b' : '#2f2f2f'}" stroke-width="${here ? 2.4 : 1.3}"/>`);
-      out.push(`<text class="${known ? 'map-site-room' : 'map-q'}${here ? ' map-here-text' : ''}" x="${cx(id)}" y="${cy(id) + 5}" font-size="13" text-anchor="middle">${esc(text)}</text>`);
-      if (id === truckAt) out.push(truckIcon(cx(id) + w / 2 - 12, cy(id) - 22, 0.9));
-    }
-    out.push('</g>');
-    // Zoomed way out the sketch hides; just the town's name stays, by its dot.
-    out.push(`<text class="map-site-name map-plan-farname" x="${ax + dx}" y="${ay + dy}" font-size="18" text-anchor="${anchor}">${esc(info.name)}</text>`);
-    return { svg: out.join('\n'), box: [left, top, left + cardW, top + gh + 36] };
-  }
-
   // Printed town names, except where your own pin already names the place.
   function townNames(game, model) {
     const sitesInfo = game.world.mapSites || {};
@@ -324,8 +306,8 @@
     const P = (id) => project(game.rooms[id].map.at);
     return model.stubs.map((s) => {
       const from = P(s.from);
-      const route = s.road && geo.routes[s.key];
-      if (route) return lead(route.line, from, STUB_PX);
+      const route = geo.routes[s.key];
+      if (route) return lead(route.line, from, s.road ? STUB_PX : Math.min(STUB_PX, lineLength(route.line) * 0.6));
       const to = P(s.to);
       const len = Math.hypot(to[0] - from[0], to[1] - from[1]);
       const f = Math.min(1, Math.min(STUB_PX * 0.6, len * 0.6) / (len || 1));
@@ -340,17 +322,17 @@
     const model = mapModel(game);
     const pts = model.rooms.map((r) => project(r.at));
     for (const line of stubLines(game, model)) pts.push(line[line.length - 1]);
-    // In a town, frame its street sketch up close instead, so you can read where you can walk.
-    const plan = currentPlan(game, model);
-    if (plan) {
-      const here = project(game.rooms[model.hereId].map.at);
+    // In a town, frame its street map up close instead, so you can see the streets and where you can walk.
+    const hereMap = model.hereId && game.rooms[model.hereId].map;
+    const town = hereMap ? detailAt(hereMap.at) : null;
+    if (town) {
       pts.length = 0;
-      pts.push([plan.box[0], plan.box[1]], [plan.box[2], plan.box[3]], here);
+      for (const r of model.rooms) if (r.site === hereMap.site) pts.push(project(r.at));
     }
     const xs = pts.map((p) => p[0]);
     const ys = pts.map((p) => p[1]);
-    const PAD = plan ? 60 : 110;
-    const MIN = (plan ? 9 : 20) * geo.view.pxPerKm;
+    const PAD = town ? 26 : 110;
+    const MIN = (town ? 2.5 : 20) * geo.view.pxPerKm;
     let [x0, x1, y0, y1] = [Math.min(...xs) - PAD, Math.max(...xs) + PAD, Math.min(...ys) - PAD, Math.max(...ys) + PAD];
     // The key covers the left side of the panel: widen the frame to the left so nothing hides under it.
     const k = Math.min(Math.max(keyFrac || 0, 0), 0.45);
@@ -413,7 +395,14 @@
   </pattern>
   <pattern id="map-water" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
     <line x1="0" y1="0" x2="0" y2="9" stroke="#8fb0d4" stroke-width="1.4"/>
-  </pattern>`;
+  </pattern>
+  <pattern id="map-water-fine" width="1.2" height="1.2" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+    <line x1="0" y1="0" x2="0" y2="1.2" stroke="#8fb0d4" stroke-width="0.18"/>
+  </pattern>
+  <mask id="map-town-holes" maskUnits="userSpaceOnUse" x="0" y="0" width="${geo.width}" height="${geo.height}">
+    <rect width="${geo.width}" height="${geo.height}" fill="white"/>
+    ${(geo.detail || []).map((t) => `<rect x="${t.box[0]}" y="${t.box[1]}" width="${t.box[2] - t.box[0]}" height="${t.box[3] - t.box[1]}" fill="black"/>`).join('')}
+  </mask>`;
   }
 
   const PENCIL_DEFS = `<filter id="map-pencil" x="-5%" y="-5%" width="110%" height="110%">
@@ -461,23 +450,24 @@
     // Your pencil: roads you've driven, trails you've walked, water you've rowed.
     out.push(`<g filter="url(#map-pencil)" fill="none" stroke="#2f2f2f" stroke-linecap="round" stroke-linejoin="round">`);
     for (const e of model.edges) {
-      const route = e.road && geo.routes[e.key];
-      if (route) out.push(`<path d="${pathOf(route.line)}" stroke-width="3.4"/>`);
+      const route = geo.routes[e.key];
+      if (route) out.push(`<path d="${pathOf(route.line)}" stroke-width="${e.road ? 2.6 : 2.2}"${e.road ? '' : ' stroke-dasharray="1 5"'}/>`);
       else {
         const [ax, ay] = P(e.a);
         const [bx, by] = P(e.b);
-        out.push(`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke-width="2.4" stroke-dasharray="1 5"/>`);
+        out.push(`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke-width="2.2" stroke-dasharray="1 5"/>`);
       }
     }
     // Ways you haven't tried: a dashed start down the road, and a question mark.
     const marks = [];
     for (const pts of stubLines(game, model)) {
-      out.push(`<path d="${pathOf(pts.flat())}" stroke-width="3" stroke-dasharray="7 5"/>`);
+      out.push(`<path d="${pathOf(pts.flat())}" stroke-width="2.2" stroke-dasharray="7 5"/>`);
       marks.push(pts[pts.length - 1]);
     }
     out.push('</g>');
+    // Marks drawn at a fixed size on screen: placed at the spot, scaled by the zoom (.map-k, see ui.js).
     for (const [x, y] of marks) {
-      out.push(`<circle cx="${x}" cy="${y}" r="12" fill="#fffdf6" stroke="#2f2f2f" stroke-width="1.6"/><text class="map-q" x="${x}" y="${y + 7}" font-size="20" text-anchor="middle">?</text>`);
+      out.push(`<g transform="translate(${x} ${y})"><g class="map-k"><circle r="9" fill="#fffdf6" stroke="#2f2f2f" stroke-width="1.4"/><text class="map-q" y="5.5" font-size="15" text-anchor="middle">?</text></g></g>`);
     }
 
     // Pins: one pencil dot per spot you've stood, then a label block per site.
@@ -487,7 +477,12 @@
       const k = x + ',' + y;
       if (dots.has(k)) continue;
       dots.add(k);
-      out.push(`<circle cx="${x}" cy="${y}" r="5" fill="#2f2f2f" filter="url(#map-pencil)"/>`);
+      out.push(`<g transform="translate(${x} ${y})"><g class="map-k"><circle r="4" fill="#2f2f2f"/></g></g>`);
+    }
+    // Zoomed in close: each place you've been labeled at its own spot.
+    for (const r of model.rooms) {
+      const [x, y] = project(r.at);
+      out.push(`<g class="map-room-tag" transform="translate(${x} ${y})"><g class="map-k"><text class="map-site-room${r.here ? ' map-here-text' : ''}" x="7" y="4" font-size="13">${esc(r.label)}</text></g></g>`);
     }
     const sitesInfo = game.world.mapSites || {};
     const truckAt = game.state.items.truck && game.state.items.truck.loc;
@@ -497,10 +492,6 @@
       const [ax, ay] = project(all[0].map.at);
       const [dx, dy, anchor] = info.label || [10, 4, 'start'];
       // A town whose stops all share one spot on the map gets a little street sketch instead of a list.
-      if (isTown(all) && all.some((r) => r.id === model.hereId)) {
-        out.push(townPlan(game, all, byId, info, ax, ay, dx, dy, anchor, truckAt).svg);
-        continue;
-      }
       const lines = [{ text: info.name, cls: 'map-site-name', here: false }];
       if (all.length > 1) {
         for (const r of all) {
@@ -526,7 +517,7 @@
       const parked = all.find((r) => r.id === truckAt && byId[r.id]);
       if (parked) {
         const [tx, ty] = project(parked.map.at);
-        out.push(truckIcon(tx + 8, ty + 6));
+        out.push(`<g transform="translate(${tx} ${ty})"><g class="map-k">${truckIcon(6, 4)}</g></g>`);
       }
     }
 
@@ -536,7 +527,7 @@
       // A red pin with its point on the spot and a tag above it, plus a ring that pulses so you can
       // find it at any zoom. The pin group grows when you zoom out (see ui.js), anchored at its point.
       out.push(`<g id="map-you-are-here">
-  <circle class="map-you-ring" cx="${x}" cy="${y}" r="16" fill="none" stroke="#c0392b" stroke-width="3"/>
+  <g transform="translate(${x} ${y})"><g class="map-k"><circle class="map-you-ring" r="14" fill="none" stroke="#c0392b" stroke-width="3"/></g></g>
   <g class="map-pin">
     <g class="map-you-tag">
       <rect x="${x - 62}" y="${y - 70}" width="124" height="22" rx="4" fill="#c0392b"/>
