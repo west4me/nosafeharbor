@@ -39,6 +39,16 @@ VIEW = shapely.box(LON0 - 0.03, LAT0 - 0.02, LON1 + 0.03, LAT1 + 0.02)
 BBOX = VIEW.bounds
 
 
+# Street-level maps of the towns the story walks around in (see 'town detail' below). Inside these boxes the
+# roads and routes are kept at street precision too, so they sit right on the streets when you zoom in.
+TOWNS = {
+    'craig': (-133.200, 55.452, -133.095, 55.502),
+    'klawock': (-133.130, 55.530, -133.050, 55.578),
+    'coffman': (-132.870, 55.990, -132.795, 56.032),
+}
+TOWN_AREA = shapely.union_all([shapely.box(*bb) for bb in TOWNS.values()])
+
+
 def px(lon, lat):
     return [round((lon - LON0) * KM_X * PX_PER_KM, 1), round((LAT1 - lat) * KM_Y * PX_PER_KM, 1)]
 
@@ -78,13 +88,28 @@ def flat(coords, step=1):
     return [v for p in out for v in p]
 
 
-def lines(geoms, tol):
+def lines(geoms, tol, towns_fine=False):
+    """Merged, simplified lines in pixels. With towns_fine, the stretches inside the town boxes keep street precision."""
     merged = shapely.line_merge(shapely.union_all(geoms)) if geoms else shapely.GeometryCollection()
+    merged = merged.intersection(VIEW)
+    pieces = [(merged.difference(TOWN_AREA), tol, flat), (merged.intersection(TOWN_AREA), 0.00001, flat_fine)] if towns_fine else [(merged, tol, flat)]
     out = []
-    for ln in parts(shapely.simplify(merged.intersection(VIEW), tol)):
-        if ln.geom_type == 'LineString' and len(ln.coords) > 1:
-            out.append(flat(ln.coords))
+    for geom, t, fl in pieces:
+        geom = shapely.line_merge(geom) if geom.geom_type == 'MultiLineString' else geom
+        for ln in parts(shapely.simplify(geom, t)):
+            if ln.geom_type == 'LineString' and len(ln.coords) > 1:
+                out.append(fl(ln.coords))
     return out
+
+
+def flat_route(coords):
+    """A route line: street precision inside the towns, whole pixels out on the highway."""
+    out = []
+    for lon, lat in coords:
+        p = px(lon, lat) if TOWN_AREA.contains(shapely.Point(lon, lat)) else [round(v) for v in px(lon, lat)]
+        if not out or p != out[-1]:
+            out.append(p)
+    return [v for p in out for v in p]
 
 
 def polys(geom, tol, min_km2):
@@ -136,8 +161,8 @@ MAIN_NAMES = {'Kasaan Highway', 'KASAAN ROAD', 'COFFMAN COVE LOOP', 'Coffman Cov
               'Naukati Road', 'South Whale Pass Road', 'NFD 3030 ROAD', 'Sandy Beach Road'}
 is_main = lambda r: r['mtfcc_code'] in ('S1100', 'S1200') or r['name'] in MAIN_NAMES
 roads_out = {
-    'highway': lines([r['geom'] for r in roads if is_main(r)], 0.0003),
-    'road': lines([r['geom'] for r in roads if r['mtfcc_code'] == 'S1400' and not is_main(r)], 0.0003),
+    'highway': lines([r['geom'] for r in roads if is_main(r)], 0.0003, towns_fine=True),
+    'road': lines([r['geom'] for r in roads if r['mtfcc_code'] == 'S1400' and not is_main(r)], 0.0003, towns_fine=True),
     'forest': lines([r['geom'] for r in roads if r['mtfcc_code'] == 'S1500'], 0.0006),
 }
 
@@ -152,8 +177,32 @@ G = G.subgraph(max(nx.connected_components(G), key=len)).copy()
 nodes = list(G.nodes)
 
 
-def snap(p):
-    return min(nodes, key=lambda n: km(n, p))
+edges = list(G.edges)
+edge_tree = shapely.STRtree([shapely.LineString(e) for e in edges])
+
+
+def snap(H, p):
+    """Join p to the road network at the nearest point on a road (not just the nearest bend in one).
+    Splits that stretch of road in H with a new node there, and returns the node."""
+    pt = shapely.Point(p)
+    near = [edges[i] for i in edge_tree.query(pt.buffer(0.01))] or edges
+    # An edge an earlier snap already split is replaced by its pieces.
+    cands = []
+    for u, v in near:
+        if H.has_edge(u, v):
+            cands.append((u, v))
+        else:
+            cands += [(a, b) for a, b in H.edges([u, v]) if 'split' in H[a][b]]
+    u, v = min(cands, key=lambda e: shapely.LineString(e).distance(pt))
+    seg = shapely.LineString([u, v])
+    q = seg.interpolate(seg.project(pt))
+    q = (round(q.x, 6), round(q.y, 6))
+    if q in (u, v):
+        return q
+    H.remove_edge(u, v)
+    H.add_edge(u, q, w=km(u, q), split=True)
+    H.add_edge(q, v, w=km(q, v), split=True)
+    return q
 
 
 places = json.loads(subprocess.check_output(['node', str(ROOT / 'tools' / 'dump_places.js')]))
@@ -164,28 +213,29 @@ for rid, room in places['rooms'].items():
         if key in routes:
             continue
         a, b = room['at'], places['rooms'][ex['to']]['at']
-        sa, sb = snap(tuple(a)), snap(tuple(b))
+        H = G.copy()
+        sa, sb = snap(H, tuple(a)), snap(H, tuple(b))
         if not ex['road']:
             # A walk in town follows the streets, when both ends are right on one (not trails, rivers or lakes).
             if a == b or km(sa, tuple(a)) > 0.12 or km(sb, tuple(b)) > 0.12:
                 continue
-        path = nx.shortest_path(G, sa, sb, weight='w')
-        length = sum(G[u][v]['w'] for u, v in zip(path, path[1:]))
+        path = nx.shortest_path(H, sa, sb, weight='w')
+        length = sum(H[u][v]['w'] for u, v in zip(path, path[1:]))
         # Skip walks the street network can't explain: no distance at all, or far longer than the straight line.
         if not ex['road'] and (length < 0.05 or length > 3 * km(tuple(a), tuple(b)) + 0.3):
             continue
-        line = shapely.simplify(shapely.LineString([tuple(a)] + path + [tuple(b)]), 0.0002 if ex['road'] else 0.00003)
-        routes[key] = {'km': round(length, 1), 'line': flat(line.coords), **({} if ex['road'] else {'walk': True})}
+        line = shapely.LineString([tuple(a)] + path + [tuple(b)])
+        # Simplify hard out on the highway, barely at all in town, where the line has to sit on the street.
+        line = shapely.line_merge(shapely.union_all([shapely.simplify(line.difference(TOWN_AREA), 0.0002),
+                                                     shapely.simplify(line.intersection(TOWN_AREA), 0.00001)]))
+        if line.geom_type != 'LineString':
+            line = shapely.LineString([tuple(a)] + path + [tuple(b)])
+        routes[key] = {'km': round(length, 1), 'line': flat_route(line.coords), **({} if ex['road'] else {'walk': True})}
         print(f'  {"route" if ex["road"] else "walk "} {key:34s} {length:5.1f} km', file=sys.stderr)
 
 # ------------------------------------------------------------------ town detail
 # Street-level maps of the towns the story walks around in: the real shoreline, every named street and
 # the creeks, barely simplified. The game shows these when you zoom in close.
-TOWNS = {
-    'craig': (-133.200, 55.452, -133.095, 55.502),
-    'klawock': (-133.130, 55.530, -133.050, 55.578),
-    'coffman': (-132.870, 55.990, -132.795, 56.032),
-}
 STREET_ABBR = [(' Street', ' St'), (' Avenue', ' Ave'), (' Drive', ' Dr'), (' Road', ' Rd'), (' Boulevard', ' Blvd'),
                (' Court', ' Ct'), (' Lane', ' Ln'), (' Place', ' Pl')]
 

@@ -619,7 +619,7 @@
       },
 
       tavern: {
-        map: { at: [-133.1526, 55.4769], site: 'craig' },
+        map: { at: [-133.1520, 55.4772], site: 'craig' },
         name: 'Riptide Tavern',
         aliases: ['tavern', 'riptide', 'bar', 'riptide tavern'],
         desc: 'Dim and warm, smelling of fryer oil and wet wool. Glass fishing floats hang from the ceiling, stools line a long cedar bar, a jukebox glows in the corner under a muted TV, and the bulletin board by the door is buried in flyers for skiff sales and lost dogs. Front Street is out the door to the east.',
