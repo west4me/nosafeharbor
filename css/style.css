@@ -1,28 +1,69 @@
-/* No Safe Harbor: old-terminal look. Two themes: amber (default) and green. */
+/* No Safe Harbor: an old-terminal look in Southeast Alaska colors.
+   Four themes (the Theme button cycles them): Rainforest (default), Clarence Strait, Sockeye, Fog. */
 
+/* Rainforest: dark spruce and wet moss, text the color of low fog. */
 :root {
-  --bg: #120d05;
-  --panel: #1b1408;
-  --fg: #ffb547;
-  --dim: #b07a2c;
-  --bright: #ffd894;
-  --accent: #7fd1c7;
-  --clue: #9be38f;
-  --rule: #3a2a10;
-  --glow: 0 0 6px rgba(255, 181, 71, 0.35);
+  --bg: #0d1813;
+  --panel: #13221b;
+  --fg: #cfe0d2;
+  --dim: #7d9a86;
+  --bright: #eef5ee;
+  --accent: #9fd3c7;       /* people: glacier-water teal */
+  --clue: #f0a07a;         /* evidence and leads: salmonberry */
+  --rule: #24382e;
+  --bar: #7fa86b;          /* status bar: new moss */
+  --bar-fg: #0d1813;
+  --glow: 0 0 6px rgba(207, 224, 210, 0.18);
+  --scan: rgba(0, 0, 0, 0.16);
   --font: "IBM Plex Mono", "Cascadia Mono", "Consolas", "Menlo", "DejaVu Sans Mono", monospace;
 }
 
-:root[data-theme="green"] {
-  --bg: #04110a;
-  --panel: #071a10;
-  --fg: #4dff88;
-  --dim: #2c9a55;
-  --bright: #b6ffd0;
-  --accent: #ffd27a;
-  --clue: #ffe08a;
-  --rule: #0f3a22;
-  --glow: 0 0 6px rgba(77, 255, 136, 0.35);
+/* Clarence Strait: deep gray-blue water under low cloud, with a buoy-orange status bar. */
+:root[data-theme="strait"] {
+  --bg: #0c1720;
+  --panel: #12212d;
+  --fg: #d3e1ea;
+  --dim: #7f97a8;
+  --bright: #f1f6f9;
+  --accent: #8fd0e0;
+  --clue: #ffc66b;
+  --rule: #213645;
+  --bar: #e8873a;
+  --bar-fg: #0c1720;
+  --glow: 0 0 6px rgba(211, 225, 234, 0.16);
+  --scan: rgba(0, 0, 0, 0.16);
+}
+
+/* Sockeye: dark green river water with spawning-red highlights. */
+:root[data-theme="sockeye"] {
+  --bg: #101a14;
+  --panel: #17241c;
+  --fg: #e4ddd2;
+  --dim: #94a090;
+  --bright: #fff8ee;
+  --accent: #a9d39a;
+  --clue: #ff7d6b;
+  --rule: #2a3a2f;
+  --bar: #c8402f;
+  --bar-fg: #fff8ee;
+  --glow: 0 0 6px rgba(255, 125, 107, 0.14);
+  --scan: rgba(0, 0, 0, 0.14);
+}
+
+/* Fog: a light theme for daytime, rain-gray paper and spruce ink. */
+:root[data-theme="fog"] {
+  --bg: #e7ecea;
+  --panel: #dbe3e0;
+  --fg: #22322b;
+  --dim: #5f7268;
+  --bright: #0f1e17;
+  --accent: #1f6a73;
+  --clue: #b2442b;
+  --rule: #bccac4;
+  --bar: #2f5d4a;
+  --bar-fg: #eef3f0;
+  --glow: none;
+  --scan: rgba(0, 0, 0, 0);
 }
 
 * { box-sizing: border-box; }
@@ -64,7 +105,7 @@ html, body {
   pointer-events: none;
   position: fixed;
   inset: 0;
-  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 2px, rgba(0, 0, 0, 0.18) 3px);
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 2px, var(--scan) 3px);
 }
 
 #status {
@@ -74,8 +115,8 @@ html, body {
   gap: 12px;
   padding: 10px 12px;
   margin: 12px 0 0;
-  background: var(--fg);
-  color: var(--bg);
+  background: var(--bar);
+  color: var(--bar-fg);
   font-weight: 700;
   font-size: 0.9rem;
   flex-wrap: wrap;
@@ -86,8 +127,8 @@ html, body {
 #theme-toggle {
   font: inherit;
   font-size: 0.75rem;
-  background: var(--bg);
-  color: var(--fg);
+  background: var(--bar-fg);
+  color: var(--bar);
   border: 0;
   padding: 2px 8px;
   cursor: pointer;
@@ -336,7 +377,7 @@ html, body {
 .map-svg .map-legend-text { fill: #222; }
 
 #quick #map-toggle { color: var(--bright); border-color: var(--dim); }
-#quick #map-toggle[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+#quick #map-toggle[aria-pressed="true"] { background: var(--bar); color: var(--bar-fg); border-color: var(--bar); }
 
 /* ---------- Case notebook (opens over the transcript, like the map) */
 
@@ -430,7 +471,7 @@ html, body {
 .nb-places { margin: 0; }
 
 #quick #notebook-toggle { color: var(--bright); border-color: var(--dim); }
-#quick #notebook-toggle[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+#quick #notebook-toggle[aria-pressed="true"] { background: var(--bar); color: var(--bar-fg); border-color: var(--bar); }
 #quick #notebook-toggle.has-new { border-color: var(--clue); color: var(--clue); }
 
 /* ---------- Start screen */
@@ -466,7 +507,7 @@ html, body {
   border: 1px solid var(--dim);
   cursor: pointer;
 }
-.start-card button.start-primary { background: var(--fg); color: var(--bg); font-weight: 700; border-color: var(--fg); }
+.start-card button.start-primary { background: var(--bar); color: var(--bar-fg); font-weight: 700; border-color: var(--bar); }
 .start-card button:hover, .start-card button:focus-visible { outline: 2px solid var(--bright); outline-offset: 2px; }
 @media (max-width: 560px) { .start-card h1 { font-size: 1.5rem; letter-spacing: 0.15em; } }
 
@@ -488,5 +529,5 @@ html, body {
 .map-svg.near [filter] { filter: none; }
 
 /* The development copy (at /dev/) wears a stripe so it's never mistaken for the real thing. */
-.is-dev #status { background: repeating-linear-gradient(45deg, var(--fg) 0 14px, #e07b39 14px 28px); }
+.is-dev #status { background: repeating-linear-gradient(45deg, var(--bar) 0 14px, #e07b39 14px 28px); }
 .is-dev #status-loc::before { content: "DEV · "; }

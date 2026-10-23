@@ -387,16 +387,25 @@
     if (!window.getSelection || String(window.getSelection()) === '') focusInput();
   });
 
-  // Theme: amber (default) or green, remembered per browser.
-  function setTheme(t) {
-    if (t === 'green') document.documentElement.setAttribute('data-theme', 'green');
-    else document.documentElement.removeAttribute('data-theme');
-    storage.set('nosafeharbor-theme', t);
+  // Themes in Southeast Alaska colors; the button cycles them and remembers your pick.
+  const THEMES = [
+    { id: 'rainforest', name: 'Rainforest' },
+    { id: 'strait', name: 'Clarence Strait' },
+    { id: 'sockeye', name: 'Sockeye' },
+    { id: 'fog', name: 'Fog' }
+  ];
+  function setTheme(id) {
+    const t = THEMES.find((x) => x.id === id) || THEMES[0];
+    if (t.id === 'rainforest') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', t.id);
+    themeBtn.textContent = t.name;
+    themeBtn.title = `Color theme: ${t.name}. Click for the next one.`;
+    storage.set('nosafeharbor-theme', t.id);
   }
-  setTheme(storage.get('nosafeharbor-theme') || 'amber');
+  setTheme(storage.get('nosafeharbor-theme'));
   themeBtn.addEventListener('click', () => {
-    const now = document.documentElement.getAttribute('data-theme') === 'green' ? 'amber' : 'green';
-    setTheme(now);
+    const cur = THEMES.findIndex((x) => x.id === (document.documentElement.getAttribute('data-theme') || 'rainforest'));
+    setTheme(THEMES[(cur + 1) % THEMES.length].id);
     focusInput();
   });
 
