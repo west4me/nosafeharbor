@@ -292,7 +292,23 @@
     mapPanel.hidden = !open;
     mapToggle.setAttribute('aria-pressed', String(open));
     if (open) { followMe = true; drawMap(); }
+    rememberSide();
     focusInput();
+  }
+
+  // On a wide screen the map or notebook docks beside the story. Remember which one you had open
+  // (or that you closed both), and bring it back next time.
+  const wideScreen = () => !!(window.matchMedia && window.matchMedia('(min-width: 1200px)').matches);
+  function rememberSide() {
+    if (!wideScreen() || !document.getElementById('start-screen').hidden) return;
+    storage.set('nosafeharbor-side', !mapPanel.hidden ? 'map' : !nbPanel.hidden ? 'notebook' : 'none');
+    out.scrollTop = out.scrollHeight;
+  }
+  function restoreSide() {
+    if (!wideScreen()) return;
+    const side = storage.get('nosafeharbor-side') || 'map';
+    if (side === 'map') toggleMap(true);
+    else if (side === 'notebook') toggleNotebook(true);
   }
 
   // ---- the case notebook
@@ -322,6 +338,7 @@
     nbToggle.setAttribute('aria-pressed', String(open));
     if (open) { drawNotebook(); nbBody.scrollTop = 0; }
     updateNotebookBadge();
+    rememberSide();
     focusInput();
   }
 
@@ -427,6 +444,7 @@
 
   function closeStart() {
     startScreen.hidden = true;
+    restoreSide();
     focusInput();
   }
 

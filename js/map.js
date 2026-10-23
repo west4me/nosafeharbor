@@ -336,7 +336,7 @@
     const MIN = (town ? 2.5 : 20) * geo.view.pxPerKm;
     let [x0, x1, y0, y1] = [Math.min(...xs) - PAD, Math.max(...xs) + PAD, Math.min(...ys) - PAD, Math.max(...ys) + PAD];
     // The key covers the left side of the panel: widen the frame to the left so nothing hides under it.
-    const k = Math.min(Math.max(keyFrac || 0, 0), 0.45);
+    const k = Math.min(Math.max(keyFrac || 0, 0), 0.3);
     if (k) x0 -= (x1 - x0) * k / (1 - k);
     let w = Math.max(x1 - x0, MIN);
     let h = Math.max(y1 - y0, MIN / Math.max(aspect, 0.4));

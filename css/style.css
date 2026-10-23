@@ -523,7 +523,7 @@ html, body {
 .map-svg:not(.near) .map-detail { display: none; }
 .map-svg.near .map-coarse { mask: url(#map-town-holes); }
 .map-svg:not(.near) .map-room-tag { display: none; }
-.map-svg.near > rect.map-site-card, .map-svg.near > text.map-site-name, .map-svg.near > text.map-site-room,
+.map-svg.near > rect.map-site-card, .map-svg.near > text.map-site-name, .map-svg.near > text.map-site-room, .map-svg.near > text.map-q,
 .map-svg.near .map-label-water, .map-svg.near .map-label-island, .map-svg.near .map-label-lake,
 .map-svg.near .map-label-river, .map-svg.near .map-label-road { display: none; }
 .map-svg.near [filter] { filter: none; }
@@ -540,4 +540,35 @@ html, body {
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   vertical-align: 1px;
+}
+
+/* ---------- Wide screens
+   The story keeps a comfortable reading width (about 78 characters a line), and the map or the
+   notebook docks beside it instead of covering it, so the rest of the screen does useful work. */
+@media (min-width: 1200px) {
+  html, body { font-size: 17px; }
+  #app {
+    max-width: 1880px;
+    padding-left: max(28px, env(safe-area-inset-left));
+    padding-right: max(28px, env(safe-area-inset-right));
+  }
+  #stage { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 24px; }
+  #stage:has(> #map-panel:not([hidden])),
+  #stage:has(> #notebook-panel:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(480px, 50%); }
+  #output { grid-column: 1; grid-row: 1; min-height: 0; padding: 20px 12px; }
+  #output p { max-width: 820px; margin-left: auto; margin-right: auto; } /* about 78 characters */
+  #map-panel, #notebook-panel {
+    position: relative;
+    inset: auto;
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+    margin: 14px 0;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+    z-index: 1;
+  }
+}
+@media (min-width: 1600px) {
+  #stage:has(> #map-panel:not([hidden])),
+  #stage:has(> #notebook-panel:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(620px, 52%); }
 }
