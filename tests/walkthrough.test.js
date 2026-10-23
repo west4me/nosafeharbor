@@ -391,7 +391,7 @@ test('map starts with only the ferry dock, marked as you are here', () => {
   assert.match(svg, /^<svg/);
   assert.match(svg, /id="map-you-are-here"/);
   assert.match(svg, /Hollis Ferry/);
-  assert.doesNotMatch(svg, /Harris River Bridge|Coffman Cove<\/text>\n<text class="map-site/);
+  assert.doesNotMatch(svg, /Hydaburg Turnoff|Coffman Cove<\/text>\n<text class="map-site/);
   assert.match(svg, /explored 1 of 29/);
 });
 
@@ -927,7 +927,7 @@ test('playtest fixes: truck bed, readable signs, start lines vary, accuse explai
   assert.match(run(g, 'look at truck bed'), /spare tire/);
   const drive = run(g, 'w');
   assert.match(drive, /closer look/);
-  assert.match(drive, /readable up close[\s\S]*HYDABURG 40/);
+  assert.match(drive, /readable up close[\s\S]*HYDABURG 22/);
   const starts = new Set();
   for (let i = 0; i < 6; i++) {
     const out = run(g, i % 2 ? 'e' : 'w').split('. ').slice(0, 3).join('. ');

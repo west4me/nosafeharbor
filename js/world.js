@@ -258,8 +258,8 @@
           ? 'The Hollis ferry dock, empty and gray, reaching out into Clark Bay. Next to it, a long ramp runs down to the seaplane float. Spruce and hemlock crowd the hill above the small terminal building and the gravel lot. Hollis Road runs west along the shore into the trees.'
           : 'The inter-island ferry groans away from the dock behind you and swings out of Clark Bay, bound back across Clarence Strait for Ketchikan. Rain blows in sideways off the water, fine as mist and twice as wet. Next to the ferry dock, a long ramp runs down to a seaplane float. Spruce and hemlock crowd the hill above a small gray terminal building and a gravel lot. The only road out, Hollis Road, runs west along the shore into the trees.'),
         exits: {
-          west: road('hwy', "You pull out of the ferry lot and head west, wipers slapping, into a tunnel of dripping spruce. Eleven miles in, your tires drum across a bridge over a fast, high river.",
-            "On the far side a road forks off to the left, and its sign is too peppered with birdshot to read at speed. You pull onto the shoulder for a closer look, kill the engine and climb out into the rain.")
+          west: road('hwy', "You pull out of the ferry lot and head west, wipers slapping, up the Harris River valley through a tunnel of dripping spruce. For miles the river keeps you company on the left, flashing high and brown through the trees.",
+            "About ten miles in, a road forks off to the left, and its sign is too peppered with birdshot to read at speed. You pull onto the shoulder at the fork for a closer look, kill the engine and climb out into the rain.")
         },
         exitNotes: { east: 'East is Clark Bay, then Kasaan Bay, then three hours of Clarence Strait and Ketchikan. The ferry just left.' }
       },
@@ -316,17 +316,17 @@
       },
 
       hwy: {
-        map: { at: [-132.8361, 55.4479], site: 'harris' },
+        map: { at: [-132.8449, 55.4595], site: 'harris' },
         name: 'Hollis–Klawock Highway',
-        aliases: ['highway', 'hwy', 'road', 'bridge', 'harris river', 'harris river bridge'],
-        desc: "The two-lane highway winds through muskeg and second-growth forest, past old clearcuts filling back in with alder. Here it crosses the Harris River on a concrete bridge. Below, the river runs high and tea-colored from the fall rain, and you'd swear a steelhead just rolled in the tailout. Just past the bridge a green sign, shot full of holes but readable up close, points south down the Hydaburg Highway: HYDABURG 40. East goes back to the Hollis ferry. West, the highway climbs over the hills to Klawock Lake and Klawock.",
+        aliases: ['highway', 'hwy', 'road', 'fork', 'junction', 'turnoff', 'hydaburg turnoff', 'hydaburg junction'],
+        desc: "The two-lane highway winds through muskeg and second-growth forest, past old clearcuts filling back in with alder. Here the Hydaburg Highway splits off south, deep in the valley. At the fork a green sign, shot full of holes but readable up close, points down it: HYDABURG 22. East goes back down the valley to the Hollis ferry. West, the highway climbs over the hills to Klawock Lake and Klawock.",
         exits: {
-          east: road('ferry', "You drive back east down the Harris River valley, eleven miles of muskeg and old clearcuts, until the gray water of Clark Bay opens up ahead.",
+          east: road('ferry', "You drive back east down the Harris River valley, ten miles of muskeg and old clearcuts with the river on your right, until the gray water of Clark Bay opens up ahead.",
             "You pull into the ferry lot, park and climb out."),
-          west: road('klawock', "West on the highway, over the hills and down along Klawock Lake, shining like hammered tin through the alders for miles. A school bus passes going the other way and the driver lifts two fingers off the wheel. Everybody waves here. Fourteen miles from the bridge, you roll down into Klawock.",
+          west: road('klawock', "West on the highway, over the hills and down along Klawock Lake, shining like hammered tin through the alders for miles. A school bus passes going the other way and the driver lifts two fingers off the wheel. Everybody waves here. Thirteen miles from the fork, you roll down into Klawock.",
             "You park in the middle of town and climb out.")
         },
-        exitNotes: { south: "That's the Hydaburg Highway, forty miles of it down to Hydaburg, the Kaigani Haida town on Sukkwan Strait. Haida families from the old villages of Howkan, Sukkwan and Klinkwan came together there in 1911, and they raised their totem park in 1939. It's a beautiful drive. Your case is the other way." },
+        exitNotes: { south: "That's the Hydaburg Highway, twenty-two miles of it down to Hydaburg, the Kaigani Haida town on Sukkwan Strait. Haida families from the old villages of Howkan, Sukkwan and Klinkwan came together there in 1911, and they raised their totem park in 1939. It's a beautiful drive. Your case is the other way." },
         fish: "No rod, no license and no time. The steelhead will have to wait. They're good at that."
       },
 
@@ -838,7 +838,7 @@
       harris_river: {
         name: 'Harris River', loc: 'hwy', fixed: true,
         names: ['river', 'harris river', 'harris', 'water', 'tailout', 'steelhead'],
-        desc: "High, tea-stained and fast with fall rain. The tailout below the bridge is the kind of water that makes you late for things."
+        desc: "Back down the valley, out of sight from the fork: high, tea-stained and fast with fall rain, the kind of water that makes you late for things. The Hydaburg Highway crosses it on a bridge a mile south of here."
       },
 
       // --- Thorne Bay Road / trailhead / trail / river / cabin
@@ -1697,10 +1697,10 @@
         'schedule, ferry schedule, sign, notice': { desc: 'A ferry schedule in a scratched plastic case.', text: 'INTER-ISLAND FERRY — HOLLIS / KETCHIKAN\nDaily departures 8:00 AM and 3:30 PM, weather permitting.\n(Someone has added in pen: "it usually doesn\'t")' }
       },
       hwy: {
-        'bridge, concrete bridge, railing, guardrail': "A plain concrete bridge with a rusting guardrail. Someone has written CATCH & RELEASE YOUR EGO on it in paint marker. It's good advice.",
+        'fork, junction, turnoff, hydaburg road': 'Two lanes peeling off south into the trees, toward the Harris River bridge and, twenty-two miles on, Hydaburg.',
         'muskeg, bog, shore pines, pines': "Open muskeg: spongy, wet and dotted with stunted shore pines, all bonsai'd by the wind. Step in the wrong spot and you'll lose a boot.",
         'clearcuts, clearcut, alder, alders, stumps, second growth, forest, trees': 'Old clearcuts from the big logging days, the stumps gone silver, the hillsides grown back thick with alder and young spruce.',
-        'hydaburg sign, sign, green sign, hydaburg highway': 'A green highway sign: HYDABURG 40, with an arrow pointing south. Riddled with what you hope is birdshot.',
+        'hydaburg sign, sign, green sign, hydaburg highway, post, signpost': "A green highway sign: HYDABURG 22, with an arrow pointing south. Riddled with what you hope is birdshot. Someone has written CATCH & RELEASE YOUR EGO on the post in paint marker. It's good advice.",
         'gold, mine, mines, mining, tailings': "A hundred-odd years ago this valley was full of prospectors. They found gold up the Harris River, and Hollis boomed and then went bust. These days the river's gold is the steelhead.",
         'highway, road, pavement, two-lane': 'Two lanes, no shoulder, no traffic. A pickup passes and the driver waves. You wave back. That is the whole social scene.'
       },
@@ -1948,7 +1948,7 @@
 
     const SENSES = {
       ferry: { listen: "The ferry's engine fading away across the water. Rain ticking on the gravel. A raven making a noise like a dripping faucet.", smell: 'Salt water, diesel and wet spruce.' },
-      hwy: { listen: 'The Harris River, loud with rain, rushing under the bridge.', smell: 'Wet alder and river.', sit: 'You lean on the guardrail and watch the water for a minute. A steelhead rolls in the tailout. Of course it does.' },
+      hwy: { listen: 'Rain in the alders, and the tick of the cooling engine. Nothing else. Nobody else.', smell: 'Wet alder and muskeg.', sit: 'You sit on the tailgate a minute and watch the rain come down on the empty fork. A raven flies over, says one word and keeps going.' },
       thorne_road: { listen: 'Just rain, and a varied thrush whistling one long note somewhere in the trees.', smell: 'Wet gravel and spruce.' },
       trailhead: { listen: 'Ravens. The river, far off to the east. Something big snaps a branch, once. Then nothing.', smell: 'Spruce and mud. No woodsmoke. Nobody is cooking anything out here.' },
       river_trail: { listen: 'Water dripping off a thousand branches. The river, closer now, to the east.', smell: 'Rot and green. The whole forest is composting itself.' },
@@ -1990,7 +1990,7 @@
     // tools/build_geodata.py.
     const mapSites = {
       hollis: { name: 'Hollis Ferry', label: [-14, -12, 'end'] },
-      harris: { name: 'Harris River Bridge', label: [0, 26, 'middle'] },
+      harris: { name: 'Hydaburg Turnoff', label: [0, 26, 'middle'] },
       klawock: { name: 'Klawock', label: [12, -6, 'start'] },
       craig: { name: 'Craig', label: [-12, -6, 'end'] },
       lodge: { name: 'Harbor Light Lodge', label: [12, 18, 'start'] },
