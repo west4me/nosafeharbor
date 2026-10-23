@@ -200,14 +200,16 @@
         const len = lineLength(r.line);
         if (!longest[r.name] || len > longest[r.name].len) longest[r.name] = { len, line: r.line };
       }
-      for (const [name, { line }] of Object.entries(longest)) {
+      // Longest streets first, so when names crowd, the main streets keep theirs (see fitStreetNames in ui.js).
+      const named = Object.entries(longest).sort((a, b) => b[1].len - a[1].len);
+      for (const [name, { line, len }] of named) {
         const pts = alongLine(line, 0.5);
         if (!pts) continue;
         const [[x, y], [xb, yb]] = pts;
         let angle = Math.atan2(yb - y, xb - x) * 180 / Math.PI;
         if (angle > 90) angle -= 180;
         if (angle < -90) angle += 180;
-        out.push(`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${Math.round(angle)})"><g class="map-k"><text class="map-label map-label-street" y="-4" text-anchor="middle">${esc(name)}</text></g></g>`);
+        out.push(`<g class="map-street-name" data-x="${x.toFixed(1)}" data-y="${y.toFixed(1)}" data-a="${Math.round(angle)}" data-len="${len.toFixed(1)}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${Math.round(angle)})"><g class="map-k"><text class="map-label map-label-street" y="-4" text-anchor="middle">${esc(name)}</text></g></g>`);
       }
       out.push('</g>');
     }

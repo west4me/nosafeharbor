@@ -1075,6 +1075,16 @@ test('IN walks into the obvious building, and GET IN TRUCK still means the truck
   assert.match(run(g, 'sit'), /stool at the bar/);
 });
 
+test('street names carry their street length, longest first, so the map can drop ones that won\'t fit', () => {
+  const g = newGame();
+  const lens = [...renderMap(g).matchAll(/class="map-street-name"[^>]*data-len="([\d.]+)"/g)].map((m) => Number(m[1]));
+  assert.ok(lens.length > 50, `only ${lens.length} street names`);
+  // Sorted within each town, so the big streets win when names crowd.
+  let drops = 0;
+  for (let i = 1; i < lens.length; i++) if (lens[i] > lens[i - 1]) drops++;
+  assert.ok(drops <= 2, `street names not longest-first (${drops} breaks)`);
+});
+
 test('no garbled text anywhere in a full playthrough', () => {
   const g = newGame();
   for (const c of [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'e', 'drive to klawock', 'n', 's', 'w', WALKTHROUGH[WALKTHROUGH.length - 1]]) {

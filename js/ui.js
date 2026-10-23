@@ -173,8 +173,34 @@
       // Zoomed in close: the towns' street maps come out.
       svg.classList.toggle('near', s < 0.45);
     }
+    if (s < 0.45) fitStreetNames(s);
     shownBox = mapViewBox.slice();
     updateScale();
+  }
+
+  // A street keeps its name only if the street is long enough on screen to hold it and the name
+  // won't run into one already placed. Names come longest street first, so main streets win.
+  function fitStreetNames(s) {
+    const placed = [];
+    for (const g of mapScroll.querySelectorAll('.map-street-name')) {
+      const name = g.textContent;
+      const w = name.length * 6 + 10; // screen px, at the 11px label size
+      const h = 14;
+      const len = Number(g.dataset.len) / s;
+      let show = len >= w;
+      if (show) {
+        // Screen-space box around the turned name.
+        const a = Number(g.dataset.a) * Math.PI / 180;
+        const cx = Number(g.dataset.x) / s;
+        const cy = Number(g.dataset.y) / s;
+        const hw = (Math.abs(Math.cos(a)) * w + Math.abs(Math.sin(a)) * h) / 2;
+        const hh = (Math.abs(Math.sin(a)) * w + Math.abs(Math.cos(a)) * h) / 2;
+        const box = [cx - hw, cy - hh, cx + hw, cy + hh];
+        show = !placed.some((b) => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1]);
+        if (show) placed.push(box);
+      }
+      g.style.display = show ? '' : 'none';
+    }
   }
 
   // How a viewBox lands on screen: sheet units per pixel, and the letterbox offsets.
