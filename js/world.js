@@ -576,7 +576,7 @@
         map: { at: [-133.1507, 55.4773], site: 'craig' },
         name: 'Craig — Front Street',
         aliases: ['craig', 'front street', 'downtown'],
-        desc: "Craig is the biggest town on Prince of Wales, a working fishing town of about a thousand people, and the boats are the first thing you notice: seiners, trollers and skiffs filling the harbors, nets piled on the floats, gulls working every one of them. Its old Tlingit name is Shaan Seet. People came here to gather herring eggs off Fish Egg Island, just offshore, long before there was a town. Front Street sits on Craig Island, the old part of town, joined to the big island by a causeway: a few blocks of shops and tidy houses facing the water, with mountains behind the bay when the clouds lift. East along Main Street and over the causeway is South Cove Harbor. The neon OPEN sign of the Riptide Tavern glows just up the street to the west. The highway heads out over the causeway and north to Klawock, and the road south past Shelter Cove leads toward the Harbor Light Lodge.",
+        desc: "Craig is the biggest town on Prince of Wales, a working fishing town of about a thousand people, and the boats are the first thing you notice: seiners, trollers and skiffs filling the harbors, nets piled on the floats, gulls working every one of them. Its old Tlingit name is Shaan Seet. People came here to gather herring eggs off Fish Egg Island, just offshore, long before there was a town. Front Street sits on Craig Island, the old part of town, joined to the big island by a causeway: a few blocks of shops and tidy houses facing the water, with mountains behind the bay when the clouds lift. East along the highway and over the causeway is South Cove Harbor. The neon OPEN sign of the Riptide Tavern glows just up the street to the west. The highway heads out over the causeway and north to Klawock, and the road south past Shelter Cove leads toward the Harbor Light Lodge.",
         exits: {
           in: 'tavern',
           north: road('klawock', "North out of Craig with the water on your left and the hills on your right. Fifteen minutes later you coast into Klawock.",
@@ -589,18 +589,18 @@
       },
 
       harbor: {
-        map: { at: [-133.1429, 55.4761], site: 'craig' },
+        map: { at: [-133.1420, 55.4746], site: 'craig' },
         name: 'South Cove Harbor',
         aliases: ['harbor', 'docks', 'floats', 'south cove'],
-        desc: 'Seiners, trollers and skiffs rock gently in their slips along the floats and finger piers. One slip near the ramp sits empty. Gulls argue on the pilings. North, at the head of the ramp where the highway crosses the causeway, is the harbormaster\'s office. The fuel dock is north of town, out J.T. Brown Drive. Front Street is back west on Craig Island.',
+        desc: 'Seiners, trollers and skiffs rock gently in their slips along the floats and finger piers. One slip near the ramp sits empty. Gulls argue on the pilings. North, up Hamilton Drive at the head of the cove where it meets the highway, is the harbormaster\'s office. The fuel dock is north of town, out J.T. Brown Drive. Front Street is back west along the highway, over the causeway on Craig Island.',
         exits: { west: 'craig', north: 'harbormaster' }
       },
 
       harbormaster: {
-        map: { at: [-133.1432, 55.4771], site: 'craig' },
+        map: { at: [-133.1427, 55.4766], site: 'craig' },
         name: "Harbormaster's Office",
         aliases: ['harbormaster', 'office', "harbormaster's office"],
-        desc: 'A cramped office. A VHF radio crackles on the shelf and tide tables are taped to the window. A chart of the waters around Craig covers the desk, with a coffee ring right on Fish Egg Island. The door opens south onto the harbor ramp. Out front, the highway runs north toward the fuel dock and Klawock.',
+        desc: 'A cramped office. A VHF radio crackles on the shelf and tide tables are taped to the window. A chart of the waters around Craig covers the desk, with a coffee ring right on Fish Egg Island. It sits at the head of South Cove where Hamilton Drive meets the highway, and the harbor floats are down the hill to the south. Out front, the highway runs north toward the fuel dock and Klawock.',
         exits: {
           south: 'harbor',
           out: 'harbor',
@@ -1871,15 +1871,15 @@
         'gulls, gull, pilings, piling': 'Gulls fight over a herring on the pilings with the intensity of a custody hearing.',
         'ramp': 'Steep at low tide, nearly flat at high. Right now it is somewhere in between, like everything else.',
         'floats, finger piers, float, planks': 'Weathered planks on foam floats. They shift under you just enough to remind you that you are standing on water.',
-        'harbormaster office, office door': "The harbormaster's office, up the ramp to the north."
+        'harbormaster office, office door': "The harbormaster's office, up Hamilton Drive to the north where it meets the highway."
       },
       harbormaster: {
         'mug, grandpa mug': "WORLD'S OKAYEST GRANDPA. Joe drinks out of it with no irony whatsoever.",
         'tide tables, tide table, tables': { desc: 'Tide tables taped to the glass, with notes in Joe\'s handwriting.', text: 'CRAIG — OCTOBER\nJoe has circled the 11th: "HIGH 9:42 PM. FLAT CALM."' },
-        'window': 'Through the rain-streaked glass you can see the whole harbor and, past the breakwater, the low dark hump of Fish Egg Island.',
+        'window': 'Through the rain-streaked glass you can see straight down South Cove: the floats, a forest of masts and trolling poles, and gray water beyond.',
         'desk': 'Buried under the chart.',
         'shelf': 'The radio, a box of flares, a jar of pens and three empty mugs.',
-        'door, office door': 'The door out to the harbor ramp, south.',
+        'door, office door': 'The door out to the highway. The harbor is down Hamilton Drive to the south.',
         'rain gear': "Faded orange, patched with Aquaseal. It's older than Kenzie."
       },
       fuel_dock: {
