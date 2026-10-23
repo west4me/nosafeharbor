@@ -884,6 +884,28 @@ test('the map always shows the towns and main roads, named, with one clear pin',
   assert.doesNotMatch(renderMap(g), /map-label-town[^>]*>Klawock</);
 });
 
+test('BUG notes are saved with where you are and what just happened', () => {
+  const g = newGame();
+  runAll(g, ['read case file', 'look at terminal']);
+  const t = g.state.turns;
+  assert.match(run(g, 'bug'), /What went wrong\?/);
+  assert.match(run(g, 'BUG The vending machine sign says NO. Is that a joke?'), /Bug #1 noted/);
+  assert.equal(g.state.turns, t, 'a bug note is not a turn');
+  assert.equal(g.state.loc, 'ferry', 'the note is not run as commands');
+  const list = run(g, 'bugs');
+  assert.match(list, /#1 .*Hollis Ferry Terminal · turn 2/);
+  assert.match(list, /Note: The vending machine sign says NO\. Is that a joke\?/);
+  assert.match(list, /> look at terminal/);
+  assert.match(list, /small gray building/);
+  // Notes survive a new case on the same browser, and COPY hands the report to the page.
+  run(g, 'restart');
+  const g2 = new Game(buildWorld, { storage: g.storage });
+  const copied = g2.command('bugs copy').find((b) => b.event === 'copy');
+  assert.match(copied.payload, /BUG NOTES \(1\)/);
+  assert.match(run(g2, 'clear bugs'), /Cleared 1 bug note/);
+  assert.match(run(g2, 'bugs'), /No bug notes yet/);
+});
+
 test('no rowing to Sweetwater without oars, and Hazel has a spare pair', () => {
   const g = newGame();
   runAll(g, [...TO_TRAILHEAD, 'w', 'n', 'w']);

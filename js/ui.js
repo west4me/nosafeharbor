@@ -34,7 +34,13 @@
     document.title = 'DEV · ' + document.title;
   }
 
-  const game = new window.NSH.Game(window.NSH.buildWorld, { storage });
+  // Where the page is running, attached to each BUG note.
+  const bugContext = () => ({
+    site: isDev ? 'dev' : 'production',
+    screen: `${window.innerWidth}x${window.innerHeight}`,
+    theme: (document.getElementById('theme-toggle') || {}).textContent || ''
+  });
+  const game = new window.NSH.Game(window.NSH.buildWorld, { storage, context: bugContext });
 
   // On phones and tablets, focusing the input pops up the on-screen keyboard and hides half the
   // game, so only do it for you on a computer. On a touchscreen you tap the input when you're ready.
@@ -67,6 +73,23 @@
   const TRANSCRIPT_KEEP = 200;
   let transcript = [];
 
+  // BUGS COPY: put the bug notes on the clipboard (with an old-browser fallback).
+  function copyText(text) {
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* nothing more to try */ }
+      ta.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(fallback);
+    else fallback();
+  }
+
   function addLine(text, cls, fresh) {
     const p = document.createElement('p');
     p.className = fresh ? cls + ' new' : cls;
@@ -97,6 +120,7 @@
       if (b.cls === 'event') {
         if (b.event === 'map') toggleMap();
         if (b.event === 'notebook') toggleNotebook();
+        if (b.event === 'copy') copyText(b.payload);
         continue;
       }
       const p = addLine(b.text, b.cls, true);

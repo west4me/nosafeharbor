@@ -27,6 +27,9 @@
   const OLD_SAVE_KEYS = ['nosafeharbor-save-v1'];
   // The autosave is its own slot, written after every command, so SAVE/LOAD stay a separate bookmark.
   const AUTO_KEY = 'nosafeharbor-autosave-v2';
+  // Bug notes from playtesting live in their own slot: they survive RESTART, LOAD and new cases.
+  const BUGS_KEY = 'nosafeharbor-bugs-v1';
+  const RECENT_KEPT = 3;
   const COMPASS_DIRS = new Set(['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest']);
 
   function clean(phrase) {
@@ -87,6 +90,8 @@
     constructor(buildWorld, opts = {}) {
       this.buildWorld = buildWorld;
       this.storage = opts.storage || memoryStorage();
+      this.context = opts.context || (() => ({})); // where the page is running, for bug reports
+      this.recent = []; // the last few commands and what the game said, for bug reports
       this.buf = [];
       this.pending = [];
       this.newGame();
@@ -458,6 +463,12 @@
         this.print('Beg pardon?');
         return this.flush();
       }
+      // BUG takes the rest of the line exactly as typed, periods and all.
+      const bug = input.match(/^(bug|bugs|clear bugs|bugs clear|copy bugs|bugs copy)\b\s*(.*)$/i);
+      if (bug) {
+        this.bugCommand(bug[1].toLowerCase(), bug[2]);
+        return this.flush();
+      }
       const parts = input.toLowerCase().split(/\s*(?:\.(?!\d)|;|\bthen\b)\s*/).filter(Boolean);
       for (const part of parts) {
         if (this.state.over && !/^(restart|load|restore|score|notes|journal|help|map)\b/.test(part)) {
@@ -473,7 +484,75 @@
         }
       }
       this.autosave();
-      return this.flush();
+      const out = this.flush();
+      this.recent.push({ cmd: input, out: out.filter((b) => b.cls !== 'event').map((b) => b.text).join('\n') });
+      if (this.recent.length > RECENT_KEPT) this.recent.shift();
+      return out;
+    }
+
+    // ------------------------------------------------------------ playtest bug notes
+    readBugs() {
+      try { return JSON.parse(this.storage.get(BUGS_KEY)) || []; } catch (e) { return []; }
+    }
+
+    writeBugs(list) {
+      try { this.storage.set(BUGS_KEY, JSON.stringify(list)); } catch (e) { /* storage full or blocked */ }
+    }
+
+    bugCommand(verb, note) {
+      const list = this.readBugs();
+      if (verb === 'clear bugs' || verb === 'bugs clear') {
+        this.writeBugs([]);
+        this.print(list.length ? `Cleared ${list.length} bug note${list.length === 1 ? '' : 's'}.` : 'There are no bug notes to clear.', 'meta');
+        return;
+      }
+      if (verb === 'copy bugs' || verb === 'bugs copy' || (verb === 'bugs' && /^copy$/i.test(note.trim()))) {
+        if (!list.length) { this.print('No bug notes yet. Type BUG and what went wrong.', 'meta'); return; }
+        this.buf.push({ text: '', cls: 'event', event: 'copy', payload: this.bugReport(list) });
+        this.print(`Copied ${list.length} bug note${list.length === 1 ? '' : 's'}. Paste them into a message to me.`, 'meta');
+        return;
+      }
+      if (verb === 'bugs') {
+        if (!list.length) { this.print('No bug notes yet. Type BUG and what went wrong, like: BUG the ferry sign is misspelled', 'meta'); return; }
+        this.print(this.bugReport(list) + '\n\nBUGS COPY copies them all for you; CLEAR BUGS empties the list.', 'document');
+        return;
+      }
+      if (!note.trim()) {
+        this.print("What went wrong? Type BUG and a quick note, like: BUG Joe didn't answer when I asked about the tide", 'meta');
+        return;
+      }
+      const room = this.rooms[this.state.loc];
+      list.push({
+        at: new Date().toISOString(),
+        note: note.trim(),
+        place: room ? room.name : this.state.loc,
+        turn: this.state.turns,
+        score: this.state.score,
+        recent: this.recent.slice(),
+        ...this.context()
+      });
+      this.writeBugs(list);
+      this.print(`Bug #${list.length} noted, along with where you are and your last ${Math.min(this.recent.length, RECENT_KEPT) || 'few'} command${this.recent.length === 1 ? '' : 's'}. Keep playing. (BUGS lists them, BUGS COPY copies them all.)`, 'meta');
+    }
+
+    // All the notes as plain text, ready to paste into a message.
+    bugReport(list) {
+      const lines = [`NO SAFE HARBOR: BUG NOTES (${list.length})`];
+      list.forEach((b, i) => {
+        const when = new Date(b.at);
+        const stamp = isNaN(when) ? b.at : when.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        const extra = [b.site, b.screen, b.theme].filter(Boolean).join(' · ');
+        lines.push('', `#${i + 1}  ${stamp} · ${b.place} · turn ${b.turn} · score ${b.score}${extra ? ' · ' + extra : ''}`, `Note: ${b.note}`);
+        if (b.recent && b.recent.length) {
+          lines.push('Just before:');
+          for (const r of b.recent) {
+            lines.push(`  > ${r.cmd}`);
+            const said = r.out.length > 400 ? r.out.slice(0, 400) + '…' : r.out;
+            for (const l of said.split('\n')) if (l.trim()) lines.push('    ' + l);
+          }
+        }
+      });
+      return lines.join('\n');
     }
 
     // Returns false for meta commands that shouldn't use up a turn.
@@ -894,6 +973,8 @@
         'GAME        MAP (your graph-paper map), NOTEBOOK (progress, leads, evidence),',
         '            NOTES (the same, in text), SAVE, LOAD, RESTART',
         '            The game autosaves after every move. SAVE keeps a separate bookmark.',
+        'TESTING     BUG and a note (BUG the sign is misspelled) saves it with where you are;',
+        '            BUGS lists them, BUGS COPY copies them all, CLEAR BUGS empties the list',
         '',
         'You can chain commands with periods: TAKE PHOTO. READ IT.',
         'Press the up and down arrow keys to recall earlier commands.'
