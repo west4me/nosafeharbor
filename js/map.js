@@ -489,16 +489,9 @@
       const all = Object.values(game.rooms).filter((r) => r.map && r.map.site === site.id);
       const [ax, ay] = project(all[0].map.at);
       const [dx, dy, anchor] = info.label || [10, 4, 'start'];
-      // A town whose stops all share one spot on the map gets a little street sketch instead of a list.
+      // Zoomed out, a town is just its name. The places in it get their own labels when you zoom in close.
       const lines = [{ text: info.name, cls: 'map-site-name', here: false }];
-      if (all.length > 1) {
-        for (const r of all) {
-          if (!byId[r.id]) continue;
-          lines.push({ text: byId[r.id].label, cls: 'map-site-room', here: byId[r.id].here });
-        }
-        const unseen = all.filter((r) => !byId[r.id]).length;
-        if (unseen) lines.push({ text: '?', cls: 'map-q', here: false });
-      } else if (byId[all[0].id].label === 'Dark!') {
+      if (all.length === 1 && byId[all[0].id].label === 'Dark!') {
         lines.push({ text: 'Dark!', cls: 'map-site-room', here: false });
       }
       const lh = 19;
