@@ -430,12 +430,33 @@ test('the map frames where you are and where the roads lead, not the whole sheet
   assert.ok(start[2] < geo.width * 0.75, 'the opening view is zoomed in, not the whole island');
   assert.ok(Math.abs(start[2] / start[3] - 1.3) < 0.02, 'shaped to the panel');
   assert.ok(start[0] >= 0 && start[1] >= 0 && start[0] + start[2] <= geo.width + 1 && start[1] + start[3] <= geo.height + 1, 'on the sheet');
-  runAll(g, [...KEYS, 'w', 'w', 'ne', 'n', 'ne']);
+  runAll(g, [...KEYS, 'w', 'w', 'ne', 'n']);
   // On a tall panel the whole trip fits; on a wide one there's no room, so the frame keeps you in view.
   const tall = mapView(g, 0.6);
-  for (const id of ['ferry', 'klawock', 'coffman_cove']) assert.ok(inside(tall, project(g.rooms[id].map.at)), `${id} is in the frame`);
-  assert.ok(inside(mapView(g, 1.8), project(g.rooms.coffman_cove.map.at)), 'you stay in the frame on a wide panel');
+  for (const id of ['ferry', 'klawock', 'sweetwater_turnoff']) assert.ok(inside(tall, project(g.rooms[id].map.at)), `${id} is in the frame`);
+  assert.ok(inside(mapView(g, 1.8), project(g.rooms.sweetwater_turnoff.map.at)), 'you stay in the frame on a wide panel');
   assert.ok(wholeView(1.3)[2] >= geo.width);
+  // In a town, the frame closes in on the town's street sketch.
+  run(g, 'ne');
+  const town = mapView(g, 1.3);
+  assert.ok(inside(town, project(g.rooms.coffman_cove.map.at)));
+  assert.ok(town[2] < 16 * geo.view.pxPerKm, 'close enough to read the sketch');
+});
+
+test("in town, the map sketches the streets and shows where the truck is; the text says too", () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'w', 's', 'w', 'n']);
+  const svg = renderMap(g);
+  assert.match(svg, /class="map-town-plan"/);
+  for (const name of ['Front Street', 'South Cove Harbor', 'Harbormaster']) assert.match(svg, new RegExp(`>${name}<`));
+  assert.match(svg, /class="map-truck"/);
+  const look = run(g, 'look');
+  assert.match(look, /Ways out: SOUTH to South Cove Harbor/);
+  assert.match(look, /Your truck is parked at Craig — Front Street \(SOUTH, then EAST\)/);
+  assert.match(run(g, 'where is my truck'), /SOUTH, then EAST/);
+  run(g, 'walk to truck');
+  assert.equal(g.state.loc, 'craig');
+  assert.match(run(g, 'walk to truck'), /right here/);
 });
 
 test('MAP command signals the UI without using a turn', () => {

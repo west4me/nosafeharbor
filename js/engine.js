@@ -508,6 +508,8 @@
       if (/^(restart|new game|reset)$/.test(cmd)) return this.restart();
       if (/^(wait|z|rest)$/.test(cmd)) { this.print('Time passes. Somewhere, it rains harder.'); return; }
       if (/^(quit|q|exit game)$/.test(cmd)) { this.print("There's no quitting on the job. (Close the tab whenever you like. Type SAVE first if you want to keep your progress.)"); return false; }
+      if (/^(?:where is|wheres|where s|where did i (?:park|leave)|find|locate)(?: the| my)? ?(?:truck|pickup|car|rental)?(?: truck)?$/.test(cmd) && /truck|pickup|car|rental|park|leave/.test(cmd)) return this.whereIsTruck();
+      if (/^(exits|ways out|where can i go|directions)$/.test(cmd)) { this.print(this.waysOut() || "There's no obvious way out from here.", 'exits'); return false; }
       if (/^(y|yes|yeah|yep|no|nope|nah|maybe)$/.test(cmd)) { this.print('Nobody asked you anything just now. (Try a command, like LOOK.)'); return false; }
       if (/^(xyzzy|plugh)$/.test(cmd)) { this.print('A hollow voice says, "Wrong game, investigator."'); return; }
       if (/^(diagnose|health)$/.test(cmd)) { this.print('Damp, underpaid and in excellent health.'); return false; }
@@ -665,6 +667,42 @@
         this.print(it.roomDesc !== undefined ? this.t(it.roomDesc) : `There is ${it.short || 'a ' + it.name} here.`);
       }
       for (const n of this.visibleNpcs()) this.print(this.t(n.here), 'npc');
+      if (full) this.print(this.waysOut(), 'exits');
+    }
+
+    // "Ways out: north to the Harbormaster's Office, ..." plus where your truck is if it's not here,
+    // so you never have to guess where you can go.
+    waysOut() {
+      const room = this.rooms[this.state.loc];
+      if (room.id === 'truck_cab') return '';
+      const seen = new Set();
+      const ways = [];
+      for (const [dir, exit] of Object.entries(this.exitsOf(room))) {
+        const to = this.exitTo(exit);
+        if (!to || to === 'truck_cab' || !this.rooms[to] || seen.has(to)) continue;
+        if ((dir === 'in' || dir === 'out') && Object.entries(this.exitsOf(room)).some(([d, e]) => d !== dir && COMPASS_DIRS.has(d) && this.exitTo(e) === to)) continue;
+        seen.add(to);
+        const drive = typeof exit === 'object' && exit.drive;
+        ways.push(`${dir.toUpperCase()}${drive ? ' (drive)' : ''} to ${this.rooms[to].name}`);
+      }
+      let line = ways.length ? `Ways out: ${ways.join(', ')}.` : '';
+      const truck = this.state.items.truck;
+      if (truck && truck.loc && truck.loc !== room.id && this.rooms[truck.loc] && this.state.flags.read_case_file) {
+        const path = this.route(truck.loc);
+        line += ` Your truck is parked at ${this.rooms[truck.loc].name}` +
+          (path && path.length ? ` (${path.map((d) => d.toUpperCase()).join(', then ')}).` : '.');
+      }
+      return line.trim();
+    }
+
+    whereIsTruck() {
+      const truck = this.state.items.truck;
+      if (this.state.loc === 'truck_cab') { this.print("You're sitting in it."); return false; }
+      if (truck.loc === this.state.loc) { this.print("It's parked right here. (GET IN TRUCK to get in.)"); return false; }
+      const path = this.route(truck.loc);
+      this.print(`Your truck is parked at ${this.rooms[truck.loc].name}.` +
+        (path ? ` From here: ${path.map((d) => d.toUpperCase()).join(', then ')}. (Or just type WALK TO TRUCK.)` : ''));
+      return false;
     }
 
     // A room's exits, including computed ones (a room's exitsFn, or the world's extraExits, e.g. "in" to a parked truck).
@@ -725,6 +763,16 @@
         }
       }
       if (fallbackDir && exits[fallbackDir]) return this.go(fallbackDir);
+      // WALK TO TRUCK / GO BACK TO THE TRUCK: find your way to wherever you parked it.
+      const truck = this.items.truck;
+      if (truck && this.match(p, [truck])) {
+        const at = this.state.items.truck.loc;
+        if (this.state.loc === 'truck_cab') { this.print("You're sitting in it."); return false; }
+        if (at === this.state.loc) { this.print("It's right here. (GET IN TRUCK to get in.)"); return false; }
+        const path = this.route(at);
+        if (!path) { this.print(`Your truck is parked at ${this.rooms[at].name}, and you can't find a way there from here.`); return false; }
+        return this.travel(path);
+      }
       // Farther away: if you've been there before, find the way.
       const target = this.roomByName(p);
       if (target) {

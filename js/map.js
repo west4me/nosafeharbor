@@ -214,6 +214,96 @@
     return best && best.d < 60 ? best.pts : null;
   }
 
+  // A little pickup, drawn where you parked.
+  function truckIcon(x, y, scale) {
+    const k = scale || 1;
+    return `<g class="map-truck" transform="translate(${x} ${y}) scale(${k})">
+  <rect x="0" y="4" width="20" height="8" rx="1.5" fill="#2f5b8c" stroke="#fbf8ef" stroke-width="1.2"/>
+  <path d="M11,4 L13,0 H18 L20,4 Z" fill="#2f5b8c" stroke="#fbf8ef" stroke-width="1.2"/>
+  <circle cx="5" cy="12.5" r="2.6" fill="#2f2f2f" stroke="#fbf8ef" stroke-width="1"/>
+  <circle cx="16" cy="12.5" r="2.6" fill="#2f2f2f" stroke="#fbf8ef" stroke-width="1"/>
+</g>`;
+  }
+
+  // A street sketch for a town whose stops share one map spot: a box per place, laid out by the
+  // compass directions between them, lines for the ways through, "?" for places you haven't been,
+  // the one you're in circled red, and the truck where you parked it.
+  const PLAN_STEP = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0], northeast: [1, -1], northwest: [-1, -1], southeast: [1, 1], southwest: [-1, 1] };
+  const isTown = (all) => all.length > 1 && all.every((r) => r.map.at[0] === all[0].map.at[0] && r.map.at[1] === all[0].map.at[1]);
+
+  // The sketch for the town you're standing in, if you're in one: { svg, box: [x0, y0, x1, y1] }.
+  function currentPlan(game, model) {
+    const here = model.hereId && game.rooms[model.hereId];
+    if (!here || !here.map) return null;
+    const all = Object.values(game.rooms).filter((r) => r.map && r.map.site === here.map.site);
+    if (!isTown(all)) return null;
+    const byId = {};
+    for (const r of model.rooms) byId[r.id] = r;
+    const info = (game.world.mapSites || {})[here.map.site] || { name: here.map.site, label: [10, 4, 'start'] };
+    const [ax, ay] = project(all[0].map.at);
+    const [dx, dy, anchor] = info.label || [10, 4, 'start'];
+    return townPlan(game, all, byId, info, ax, ay, dx, dy, anchor, game.state.items.truck && game.state.items.truck.loc);
+  }
+
+  function townPlan(game, all, byId, info, ax, ay, dx, dy, anchor, truckAt) {
+    const ids = new Set(all.map((r) => r.id));
+    const pos = { [all[0].id]: [0, 0] };
+    const taken = new Set(['0,0']);
+    const links = [];
+    const queue = [all[0].id];
+    while (queue.length) {
+      const id = queue.shift();
+      for (const [dir, exit] of Object.entries(game.rooms[id].exits || {})) {
+        const to = typeof exit === 'string' ? exit : exit.to;
+        const step = PLAN_STEP[dir];
+        if (!step || !ids.has(to)) continue;
+        if (!(byId[id] || byId[to])) continue; // nothing you know about yet
+        const key = [id, to].sort().join('|');
+        if (!links.includes(key)) links.push(key);
+        if (pos[to]) continue;
+        let [x, y] = [pos[id][0] + step[0], pos[id][1] + step[1]];
+        while (taken.has(x + ',' + y)) y += step[1] || 1; // keep boxes from landing on each other
+        pos[to] = [x, y];
+        taken.add(x + ',' + y);
+        queue.push(to);
+      }
+    }
+    const shown = Object.keys(pos).filter((id) => byId[id] || links.some((k) => k.split('|').includes(id) && k.split('|').some((o) => byId[o])));
+    const xs = shown.map((id) => pos[id][0]);
+    const ys = shown.map((id) => pos[id][1]);
+    const CW = 128;
+    const CH = 46;
+    const gw = (Math.max(...xs) - Math.min(...xs) + 1) * CW;
+    const gh = (Math.max(...ys) - Math.min(...ys) + 1) * CH;
+    const cardW = Math.max(gw, info.name.length * 11 + 20) + 12;
+    const left = anchor === 'end' ? ax + dx - cardW : anchor === 'middle' ? ax + dx - cardW / 2 : ax + dx;
+    const top = ay + dy - 22;
+    const cx = (id) => left + 6 + (pos[id][0] - Math.min(...xs)) * CW + CW / 2;
+    const cy = (id) => top + 30 + (pos[id][1] - Math.min(...ys)) * CH + CH / 2;
+    const out = [`<g class="map-town-plan">`];
+    out.push(`<rect class="map-site-card" x="${left}" y="${top}" width="${cardW}" height="${gh + 36}" rx="5" fill="#fbf8ef" opacity="0.95" stroke="#9dbbdc" stroke-width="1"/>`);
+    out.push(`<text class="map-site-name" x="${left + 8}" y="${top + 21}" font-size="18">${esc(info.name)}</text>`);
+    out.push(`<text class="map-site-room" x="${left + cardW - 10}" y="${top + 20}" font-size="13" text-anchor="end">N ↑</text>`);
+    for (const key of links) {
+      const [a, b] = key.split('|');
+      if (!shown.includes(a) || !shown.includes(b)) continue;
+      out.push(`<line x1="${cx(a)}" y1="${cy(a)}" x2="${cx(b)}" y2="${cy(b)}" stroke="#2f2f2f" stroke-width="2" stroke-dasharray="${byId[a] && byId[b] ? 'none' : '3 4'}"/>`);
+    }
+    for (const id of shown) {
+      const known = byId[id];
+      const text = known ? known.label : '?';
+      const here = known && known.here;
+      const w = Math.max(30, text.length * 7.4 + 16);
+      out.push(`<rect x="${cx(id) - w / 2}" y="${cy(id) - 12}" width="${w}" height="24" rx="4" fill="${here ? '#fdecea' : '#fffdf6'}" stroke="${here ? '#c0392b' : '#2f2f2f'}" stroke-width="${here ? 2.4 : 1.3}"/>`);
+      out.push(`<text class="${known ? 'map-site-room' : 'map-q'}${here ? ' map-here-text' : ''}" x="${cx(id)}" y="${cy(id) + 5}" font-size="13" text-anchor="middle">${esc(text)}</text>`);
+      if (id === truckAt) out.push(truckIcon(cx(id) + w / 2 - 12, cy(id) - 22, 0.9));
+    }
+    out.push('</g>');
+    // Zoomed way out the sketch hides; just the town's name stays, by its dot.
+    out.push(`<text class="map-site-name map-plan-farname" x="${ax + dx}" y="${ay + dy}" font-size="18" text-anchor="${anchor}">${esc(info.name)}</text>`);
+    return { svg: out.join('\n'), box: [left, top, left + cardW, top + gh + 36] };
+  }
+
   // Printed town names, except where your own pin already names the place.
   function townNames(game, model) {
     const sitesInfo = game.world.mapSites || {};
@@ -246,15 +336,25 @@
   // The part of the sheet worth looking at: everywhere you've been, where you are, and where
   // the unexplored roads lead off, with some margin. Returned as an SVG viewBox [x, y, w, h]
   // shaped to the panel (aspect = width / height), never smaller than about 20 km across.
-  function mapView(game, aspect) {
+  function mapView(game, aspect, keyFrac) {
     const model = mapModel(game);
     const pts = model.rooms.map((r) => project(r.at));
     for (const line of stubLines(game, model)) pts.push(line[line.length - 1]);
+    // In a town, frame its street sketch up close instead, so you can read where you can walk.
+    const plan = currentPlan(game, model);
+    if (plan) {
+      const here = project(game.rooms[model.hereId].map.at);
+      pts.length = 0;
+      pts.push([plan.box[0], plan.box[1]], [plan.box[2], plan.box[3]], here);
+    }
     const xs = pts.map((p) => p[0]);
     const ys = pts.map((p) => p[1]);
-    const PAD = 110;
-    const MIN = 20 * geo.view.pxPerKm;
+    const PAD = plan ? 60 : 110;
+    const MIN = (plan ? 9 : 20) * geo.view.pxPerKm;
     let [x0, x1, y0, y1] = [Math.min(...xs) - PAD, Math.max(...xs) + PAD, Math.min(...ys) - PAD, Math.max(...ys) + PAD];
+    // The key covers the left side of the panel: widen the frame to the left so nothing hides under it.
+    const k = Math.min(Math.max(keyFrac || 0, 0), 0.45);
+    if (k) x0 -= (x1 - x0) * k / (1 - k);
     let w = Math.max(x1 - x0, MIN);
     let h = Math.max(y1 - y0, MIN / Math.max(aspect, 0.4));
     if (w / h < aspect) w = h * aspect; else h = w / aspect;
@@ -390,11 +490,17 @@
       out.push(`<circle cx="${x}" cy="${y}" r="5" fill="#2f2f2f" filter="url(#map-pencil)"/>`);
     }
     const sitesInfo = game.world.mapSites || {};
+    const truckAt = game.state.items.truck && game.state.items.truck.loc;
     for (const site of model.sites) {
       const info = sitesInfo[site.id] || { name: site.id, label: [10, 4, 'start'] };
       const all = Object.values(game.rooms).filter((r) => r.map && r.map.site === site.id);
       const [ax, ay] = project(all[0].map.at);
       const [dx, dy, anchor] = info.label || [10, 4, 'start'];
+      // A town whose stops all share one spot on the map gets a little street sketch instead of a list.
+      if (isTown(all) && all.some((r) => r.id === model.hereId)) {
+        out.push(townPlan(game, all, byId, info, ax, ay, dx, dy, anchor, truckAt).svg);
+        continue;
+      }
       const lines = [{ text: info.name, cls: 'map-site-name', here: false }];
       if (all.length > 1) {
         for (const r of all) {
@@ -416,6 +522,12 @@
         const prefix = i === 0 ? '' : (l.here ? '◉ ' : '· ');
         out.push(`<text class="${l.cls}${l.here ? ' map-here-text' : ''}" x="${tx}" y="${ay + dy + i * lh}" font-size="${i === 0 ? 18 : 15}" text-anchor="${anchor}">${esc(prefix + l.text)}</text>`);
       });
+      // Your truck, parked at one of this site's spots out in the country.
+      const parked = all.find((r) => r.id === truckAt && byId[r.id]);
+      if (parked) {
+        const [tx, ty] = project(parked.map.at);
+        out.push(truckIcon(tx + 8, ty + 6));
+      }
     }
 
     // You are here.

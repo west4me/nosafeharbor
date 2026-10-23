@@ -109,6 +109,14 @@
   let mapViewBox = null;
   let followMe = true;
 
+  // How much of the panel's width the open key covers, so Fit can keep things out from under it.
+  function keyFrac() {
+    const key = document.getElementById('map-legend');
+    const body = document.getElementById('map-legend-body');
+    if (!key || !body || body.hidden || !mapScroll.clientWidth) return 0;
+    return (key.offsetWidth + 16) / mapScroll.clientWidth;
+  }
+
   function panelAspect() {
     return Math.max(0.3, mapScroll.clientWidth / Math.max(1, mapScroll.clientHeight));
   }
@@ -193,7 +201,7 @@
     mapWhere.append(strong);
     const pencil = mapScroll.querySelector('.map-pencil-layer');
     if (pencil && pencil.dataset.explored) mapWhere.append(` · ${pencil.dataset.explored}`);
-    if (followMe || !mapViewBox) mapViewBox = window.NSH.mapView(game, panelAspect());
+    if (followMe || !mapViewBox) mapViewBox = window.NSH.mapView(game, panelAspect(), keyFrac());
     applyView();
   }
 
@@ -216,7 +224,7 @@
     const z = btn.dataset.zoom;
     if (z === 'in') zoomBy(1 / 1.5);
     else if (z === 'out') zoomBy(1.5);
-    else if (z === 'fit') { followMe = true; mapViewBox = window.NSH.mapView(game, panelAspect()); applyView(); }
+    else if (z === 'fit') { followMe = true; mapViewBox = window.NSH.mapView(game, panelAspect(), keyFrac()); applyView(); }
     else if (z === 'all') { followMe = false; mapViewBox = window.NSH.wholeView(panelAspect()); applyView(); }
     focusInput();
   });
