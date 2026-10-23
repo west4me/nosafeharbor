@@ -46,6 +46,7 @@ TOWNS = {
     'craig': (-133.200, 55.452, -133.095, 55.502),
     'klawock': (-133.130, 55.530, -133.050, 55.578),
     'coffman': (-132.870, 55.990, -132.795, 56.032),
+    'hollis': (-132.665, 55.472, -132.600, 55.510),
 }
 TOWN_AREA = shapely.union_all([shapely.box(*bb) for bb in TOWNS.values()])
 # Where the story happens, the coastline is kept sharper than the rest of the island, so it still looks
@@ -188,7 +189,8 @@ for name in RIVERS:
 streams_out = lines([f['geom'] for f in flows if f['gnis_name'] and f['gnis_name'] not in RIVERS], 0.0004)
 
 # ------------------------------------------------------------------ roads
-roads = read(TRAN, 'Trans_RoadSegment', ['mtfcc_code', 'name'])
+# Ferry crossings (MTFCC L4165) are filed with the roads; they aren't roads, so leave them out.
+roads = [r for r in read(TRAN, 'Trans_RoadSegment', ['mtfcc_code', 'name']) if r['mtfcc_code'] != 'L4165']
 # The island's main roads: the paved highways, plus the big gravel roads everyone drives between towns.
 MAIN_NAMES = {'Kasaan Highway', 'KASAAN ROAD', 'COFFMAN COVE LOOP', 'Coffman Cove Road', 'COFFMAN TIE',
               'NORTH PRINCE OF WALES ROAD', 'North Prince of Wales Road', 'NORTH PRINCE OF WALES', 'Thorne Bay Road',
@@ -316,8 +318,10 @@ for town, bb in TOWNS.items():
         by_name.setdefault((street_name(r['name']), is_main(r)), []).append(r['geom'])
     streets = []
     for (name, main), geoms in by_name.items():
+        # The same state highway is the Hollis–Klawock Hwy at the Hollis end.
+        shown = 'Hollis–Klawock Hwy' if town == 'hollis' and name == 'Craig–Klawock Hwy' else name
         for line in clip_lines(geoms, 0.000008):
-            streets.append({'name': name, 'main': main, 'line': line})
+            streets.append({'name': shown, 'main': main, 'line': line})
     creeks = clip_lines([f['geom'] for f in flows if f['geom'].intersects(box)], 0.000008)
     x0, y1 = px(bb[0], bb[1])
     x1, y0 = px(bb[2], bb[3])

@@ -234,7 +234,7 @@
     // ---------------------------------------------------------------- rooms
     const rooms = {
       ferry: {
-        map: { at: [-132.6223, 55.4915], site: 'hollis' },
+        map: { at: [-132.6222, 55.4919], site: 'hollis' },
         name: 'Hollis Ferry Terminal',
         aliases: ['ferry', 'hollis', 'ferry terminal', 'hollis ferry'],
         dial: (g, nums) => {
@@ -255,13 +255,13 @@
           return `You punch in ${code}. The keypad gives an unhappy beep and blinks red.`;
         },
         desc: (g) => (g.state.visited.hwy || g.state.turns > 3
-          ? 'The Hollis ferry dock, empty and gray, with Clarence Strait chopping away beyond it. Spruce and hemlock crowd the hill above the small terminal building and the gravel lot. The road runs west into the trees.'
-          : 'The inter-island ferry groans away from the dock behind you, back across Clarence Strait toward Ketchikan. Rain blows in sideways off the water, fine as mist and twice as wet. Spruce and hemlock crowd the hill above a small gray terminal building and a gravel lot. The only road out runs west into the trees.'),
+          ? 'The Hollis ferry dock, empty and gray, reaching out into Clark Bay. Next to it, a long ramp runs down to the seaplane float. Spruce and hemlock crowd the hill above the small terminal building and the gravel lot. Hollis Road runs west along the shore into the trees.'
+          : 'The inter-island ferry groans away from the dock behind you and swings out of Clark Bay, bound back across Clarence Strait for Ketchikan. Rain blows in sideways off the water, fine as mist and twice as wet. Next to the ferry dock, a long ramp runs down to a seaplane float. Spruce and hemlock crowd the hill above a small gray terminal building and a gravel lot. The only road out, Hollis Road, runs west along the shore into the trees.'),
         exits: {
           west: road('hwy', "You pull out of the ferry lot and head west, wipers slapping, into a tunnel of dripping spruce. Eleven miles in, your tires drum across a bridge over a fast, high river.",
             "On the far side a road forks off to the left, and its sign is too peppered with birdshot to read at speed. You pull onto the shoulder for a closer look, kill the engine and climb out into the rain.")
         },
-        exitNotes: { east: 'East is Clarence Strait, three hours of it, and then Ketchikan. The ferry just left.' }
+        exitNotes: { east: 'East is Clark Bay, then Kasaan Bay, then three hours of Clarence Strait and Ketchikan. The ferry just left.' }
       },
 
       truck_cab: {
@@ -1677,10 +1677,12 @@
         'ferry, inter-island ferry, boat, ship, vessel': "A white shape fading into the rain, already halfway to the point. Your ride back is in two days, assuming you've closed the case by then.",
         'dock, ramp, steel ramp, pier, slip, bollard': 'A steel ramp and a concrete dock, wet and empty. A gull stands on a bollard, looking at you like you owe it money.',
         'gull, seagull': { desc: 'It stares. You stare. The gull wins.', touch: 'The gull makes it clear that would be a mistake.' },
-        'strait, clarence strait, water, sea, ketchikan': 'Clarence Strait: gray, wide and choppy, with Ketchikan out there somewhere under the clouds.',
+        'bay, clark bay, water, sea': 'Clark Bay: sheltered, gray and flat, ringed with spruce. It opens east into Kasaan Bay, and past that is Clarence Strait.',
+        'strait, clarence strait, ketchikan, kasaan bay': 'Out past the mouth of Clark Bay and down Kasaan Bay is Clarence Strait, gray and wide, with Ketchikan somewhere on the far side of it under the clouds.',
+        'seaplane float, seaplane base, float plane, floatplane, seaplane, float, gangway': 'The Clark Bay seaplane float, at the bottom of a long gangway. No planes today. Nobody is flying in this.',
         'lot, gravel lot, parking lot, gravel': 'Gravel, room for a dozen cars, and a puddle the size of a hot tub. Just you and your rental pickup.',
         'trees, spruce, hemlock, hill, forest, woods': 'Sitka spruce and western hemlock, dark and dripping, crowding right down to the high-tide line.',
-        'road': 'One road out. It goes west.',
+        'road, hollis road': 'Hollis Road, the one road out. It runs west along the shore, then turns inland toward the highway.',
         'bench': { desc: 'A wooden bench under the overhang, somehow wet anyway.', sit: 'You sit on the bench. The wet soaks through immediately. You stand back up, wiser.' },
         'vending machine, machine': { desc: 'A vending machine with one sad bag of pretzels and a handwritten sign taped to the glass: NO.', push: 'You press the button. The machine hums, considers your request, and declines.' },
         'brochure, brochures, rack, brochure rack, pamphlet, visitor guide, guide': {
