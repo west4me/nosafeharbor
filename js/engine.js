@@ -62,6 +62,15 @@
     'touch', 'turn', 'start', 'stop', 'buy', 'accuse', 'climb', 'sit', 'knock', 'fish', 'row', 'wait', 'save', 'load',
     'restart', 'score', 'thank', 'cross', 'wade', 'switch', 'light', 'dial', 'eat', 'drink', 'travel', 'walk', 'go'];
 
+  // The short version of a room on a return visit: the sentences that tell you where things are and
+  // which way to go. The scenery you've already read stays out of the way.
+  const WAY_WORDS = /\b(north|south|east|west|northeast|northwest|southeast|southwest|upstairs|downstairs)\b/i;
+  function briefOf(desc) {
+    const sentences = String(desc).match(/[^.!?]+[.!?]+['"]?(\s+|$)/g) || [String(desc)];
+    const keep = sentences.filter((x) => WAY_WORDS.test(x));
+    return (keep.length ? keep : sentences.slice(0, 1)).join('').trim();
+  }
+
   // "the glovebox", but just "Joe Kitka".
   function theName(e) {
     return e.kind === 'npc' ? e.name : 'the ' + e.name;
@@ -575,6 +584,13 @@
 
       // --- meta
       if (/^(look|l)( around)?$/.test(cmd)) return this.describe(true);
+      if (/^(verbose|brief|superbrief)$/.test(cmd)) {
+        this.flag('verbose', cmd === 'verbose');
+        this.print(cmd === 'verbose'
+          ? 'Verbose: places are described in full every time you arrive.'
+          : 'Brief: places you have been before get a short description. (LOOK shows the full one.)', 'meta');
+        return false;
+      }
       if (/^(i|inv|inventory|invent)$/.test(cmd)) return this.inventory();
       if (/^(map|m|show map|open map|view map|close map|hide map|fold map|unfold map)$/.test(cmd)) { this.emit('map'); return false; }
       if (/^(score|points)$/.test(cmd)) { this.print(this.scoreLine()); return false; }
@@ -732,6 +748,8 @@
     // ------------------------------------------------------------ verbs
     describe(full) {
       const room = this.rooms[this.state.loc];
+      // Coming back to a place you've already seen: just the way around (LOOK shows it all again).
+      const brief = full === 'arrive' && this.state.lit[room.id] && !this.state.flags.verbose;
       if (this.isDark()) {
         this.print('Darkness', 'room-title');
         this.print('It is pitch dark under the canopy. You can hear the river somewhere ahead and something large moving through the brush nearby. You are likely to be eaten by a black bear.');
@@ -739,7 +757,8 @@
       }
       this.state.lit[room.id] = true;
       this.print(room.name, 'room-title');
-      if (full) this.print(this.t(room.desc));
+      if (brief) this.print(briefOf(this.t(room.desc)));
+      else if (full) this.print(this.t(room.desc));
       const loose = this.contentsOf(room.id).filter((id) => !this.items[id].fixed || this.items[id].listed);
       for (const id of loose) {
         const it = this.items[id];
@@ -920,7 +939,7 @@
       if (quiet) {
         if (!this.isDark()) this.state.lit[roomId] = true;
       } else {
-        this.describe(true);
+        this.describe('arrive');
       }
       const room = this.rooms[roomId];
       if (room.onEnter && !this.isDark()) room.onEnter(this, first);
@@ -961,6 +980,8 @@
         '',
         'MOVING      NORTH, SOUTH, EAST, WEST (or N, S, E, W), UP, DOWN, IN, OUT',
         'LOOKING     LOOK (L), EXAMINE thing (X thing), READ thing, SEARCH thing',
+        '            Places you return to get a short description; LOOK shows it all.',
+        '            VERBOSE always shows the full one, BRIEF goes back to short.',
         'THINGS      TAKE, DROP, OPEN, CLOSE, UNLOCK, WEAR, REMOVE,',
         '            TURN ON / TURN OFF, ENTER code, INVENTORY (I)',
         'SENSES      LISTEN, SMELL, TOUCH thing, SIT (on thing), KNOCK',

@@ -25,7 +25,20 @@
         g.flag('started_once', true);
         return 'You turn the key. The engine coughs, thinks about it, catches on the second try and settles into a rattle.';
       }
-      return 'You turn the key and the engine rattles to life.';
+      // A little variety, chosen by turn so it doesn't repeat back to back.
+      const lines = [
+        'You turn the key and the engine rattles to life.',
+        'The engine turns over on the first try, for once.',
+        'You turn the key. The old six grumbles, shakes off the damp and settles into an idle.',
+        'The starter whines a moment, then the engine catches with a cough of blue smoke.',
+        'You crank it. The truck starts, and the wipers start too, whether you asked them to or not.',
+        'The engine catches. Somewhere under the dash, something rattles in sympathy.'
+      ];
+      const pick = g.state.flags.last_start_line;
+      let n = g.state.turns % lines.length;
+      if (n === pick) n = (n + 1) % lines.length;
+      g.state.flags.last_start_line = n;
+      return lines[n];
     }
 
     function startEngine(g) {
@@ -246,7 +259,7 @@
           : 'The inter-island ferry groans away from the dock behind you, back across Clarence Strait toward Ketchikan. Rain blows in sideways off the water, fine as mist and twice as wet. Spruce and hemlock crowd the hill above a small gray terminal building and a gravel lot. The only road out runs west into the trees.'),
         exits: {
           west: road('hwy', "You pull out of the ferry lot and head west, wipers slapping, into a tunnel of dripping spruce. Eleven miles in, your tires drum across a bridge over a fast, high river.",
-            "On the far side a road forks off to the left, and the signs are too shot up to read at speed. You pull onto the shoulder to get your bearings, kill the engine and climb out into the rain.")
+            "On the far side a road forks off to the left, and its sign is too peppered with birdshot to read at speed. You pull onto the shoulder for a closer look, kill the engine and climb out into the rain.")
         },
         exitNotes: { east: 'East is Clarence Strait, three hours of it, and then Ketchikan. The ferry just left.' }
       },
@@ -306,7 +319,7 @@
         map: { at: [-132.8361, 55.4479], site: 'harris' },
         name: 'Hollis–Klawock Highway',
         aliases: ['highway', 'hwy', 'road', 'bridge', 'harris river', 'harris river bridge'],
-        desc: "The two-lane highway winds through muskeg and second-growth forest, past old clearcuts filling back in with alder. Here it crosses the Harris River on a concrete bridge. Below, the river runs high and tea-colored from the fall rain, and you'd swear a steelhead just rolled in the tailout. Just past the bridge, the Hydaburg Highway branches off to the south. East goes back to the Hollis ferry. West, the highway climbs over the hills to Klawock Lake and Klawock.",
+        desc: "The two-lane highway winds through muskeg and second-growth forest, past old clearcuts filling back in with alder. Here it crosses the Harris River on a concrete bridge. Below, the river runs high and tea-colored from the fall rain, and you'd swear a steelhead just rolled in the tailout. Just past the bridge a green sign, shot full of holes but readable up close, points south down the Hydaburg Highway: HYDABURG 40. East goes back to the Hollis ferry. West, the highway climbs over the hills to Klawock Lake and Klawock.",
         exits: {
           east: road('ferry', "You drive back east down the Harris River valley, eleven miles of muskeg and old clearcuts, until the gray water of Clark Bay opens up ahead.",
             "You pull into the ferry lot, park and climb out."),
@@ -563,7 +576,7 @@
         map: { at: [-133.1507, 55.4773], site: 'craig' },
         name: 'Craig — Front Street',
         aliases: ['craig', 'front street', 'downtown'],
-        desc: "Craig is the biggest town on the island, which means two grocery stores, three bars and a lot of boats. Its old Tlingit name is Shaan Seet, and Fish Egg Island lies just offshore, where the herring have spawned every spring for longer than anyone remembers. Front Street sits on Craig Island, the old part of town, a few blocks of bait shops, a cannery that's seen better decades and houses with skiffs in the yard. East along Main Street and over the causeway is South Cove Harbor. The neon OPEN sign of the Riptide Tavern buzzes just up the street to the west. The highway heads out over the causeway and north to Klawock, and the road south past Shelter Cove leads toward the Harbor Light Lodge.",
+        desc: "Craig is the biggest town on Prince of Wales, a working fishing town of about a thousand people, and the boats are the first thing you notice: seiners, trollers and skiffs filling the harbors, nets piled on the floats, gulls working every one of them. Its old Tlingit name is Shaan Seet. People came here to gather herring eggs off Fish Egg Island, just offshore, long before there was a town. Front Street sits on Craig Island, the old part of town, joined to the big island by a causeway: a few blocks of shops and tidy houses facing the water, with mountains behind the bay when the clouds lift. East along Main Street and over the causeway is South Cove Harbor. The neon OPEN sign of the Riptide Tavern glows just up the street to the west. The highway heads out over the causeway and north to Klawock, and the road south past Shelter Cove leads toward the Harbor Light Lodge.",
         exits: {
           in: 'tavern',
           north: road('klawock', "North out of Craig with the water on your left and the hills on your right. Fifteen minutes later you coast into Klawock.",
@@ -750,14 +763,14 @@
       // --- Hollis
       truck: {
         name: 'rental truck', short: 'your rental pickup', loc: 'ferry', fixed: true, listed: true,
-        names: ['truck', 'pickup', 'rental', 'rental truck', 'pickup truck', 'car', 'vehicle', 'truck door', 'tailgate'],
+        names: ['truck', 'pickup', 'rental', 'rental truck', 'pickup truck', 'car', 'vehicle', 'truck door', 'tailgate', 'bed', 'truck bed', 'truckbed', 'pickup bed'],
         roomDesc: (g) => {
           if (!g.flag('started_once')) return 'Your rental pickup sits in the gravel lot, beaded with rain.';
           return g.state.flags.parked_turn === g.state.turns
             ? 'Your rental pickup is parked right behind you, its engine ticking as it cools.'
             : 'Your rental pickup is parked here, beaded with rain.';
         },
-        desc: (g) => "A white pickup with a cracked windshield, mud up to the door handles and 140,000 miles of island gravel on it. A faded ISLAND AUTO RENTAL sticker is peeling off the tailgate. " +
+        desc: (g) => "A white pickup with a cracked windshield, mud up to the door handles and 140,000 miles of island gravel on it. A faded ISLAND AUTO RENTAL sticker is peeling off the tailgate, and the bed holds a spare tire, a tangle of ratchet straps and an inch of rainwater. " +
           (g.flag('truck_unlocked') ? "It's unlocked. GET IN to drive." : 'The doors are locked. Through the window you can see a glovebox and a salmon-shaped air freshener.'),
         fixedMsg: "It's a truck. You drive it, you don't carry it.",
         verbs: {
@@ -1487,7 +1500,7 @@
         names: ['reyes', 'anna reyes', 'sergeant', 'sgt', 'sgt reyes', 'sergeant reyes', 'trooper', 'anna', 'officer'],
         here: 'Sergeant Anna Reyes sits behind the front desk, reading a report as though it personally offended her.',
         desc: "Fifty, compact and still in the way of someone who has been lied to by experts.",
-        talk: () => "'Northbound Mutual,' she says, reading your badge without seeming to look at it. 'Coast Guard suspended the search on the thirteenth. Officially, Dale Haugen is missing and presumed drowned. Unofficially I've got a feeling, and feelings don't hold up in court.' She taps the desk. 'When you've got something real, come tell me who. ACCUSE and a name. Make it count.'",
+        talk: () => "'Northbound Mutual,' she says, reading your badge without seeming to look at it. 'Coast Guard suspended the search on the thirteenth. Officially, Dale Haugen is missing and presumed drowned. Unofficially I've got a feeling, and feelings don't hold up in court.' She taps the desk. 'When you know who's behind this and can back it up, come back and tell me.' (When you're ready, type ACCUSE and the person's name.)",
         topics: [
           { k: ['dale', 'haugen'], r: "'Missing, presumed drowned. Unless you know something I don't.'" },
           { k: ['rick', 'sorensen'], r: "'Filed the claim four days after his partner vanished. Fast grief.'" },
@@ -2039,7 +2052,7 @@
       { text: 'Thorne Bay', at: [-132.600, 55.655], size: 17, rotate: 0, cls: 'water' },
       { text: 'Coffman Cove', at: [-132.840, 56.030], size: 17, rotate: 0, cls: 'water' },
       { text: 'Big Salt Lake', at: [-133.020, 55.615], size: 16, rotate: -35, cls: 'water' },
-      { text: 'Fish Egg I.', at: [-133.188, 55.497], size: 15, rotate: 0, cls: 'water' }
+      { text: 'Fish Egg Island', at: [-133.1703, 55.4922], size: 14, rotate: 0, cls: 'isle' }
     ];
 
     // ---------------------------------------------------------------- the case notebook

@@ -147,13 +147,12 @@
     out.push(`<path d="${sea}" fill="none" stroke="#3d4a5c" stroke-width="1.2" stroke-linejoin="round" fill-rule="evenodd"/>`);
     out.push(`<path d="${lakes}" fill="none" stroke="#3f74ad" stroke-width="0.9" stroke-linejoin="round"/>`);
     out.push(`<g fill="none" stroke-linecap="round" stroke-linejoin="round">`);
-    for (const s of geo.streams) out.push(`<path d="${pathOf(s)}" stroke="#9ec0e4" stroke-width="0.7"/>`);
+    out.push(`<path class="map-streams" d="${geo.streams.map((l) => pathOf(l)).join('')}" stroke="#9ec0e4" stroke-width="0.7"/>`);
     for (const rv of geo.rivers) for (const l of rv.lines) out.push(`<path d="${pathOf(l)}" stroke="#4f86c2" stroke-width="1.6"/>`);
     out.push('</g>');
-    out.push(townDetail());
-    // The island-wide roads. Zoomed in on a town, they step aside there for its street map.
+    // The island-wide roads. Zoomed in on a town, its street map is drawn over them.
     out.push(`<g class="map-coarse" fill="none" stroke-linecap="round" stroke-linejoin="round">`);
-    out.push(`<path d="${geo.roads.forest.map((l) => pathOf(l)).join('')}" stroke="#cfc8ba" stroke-width="0.7" stroke-dasharray="3 3"/>`);
+    out.push(`<path class="map-forest" d="${geo.roads.forest.map((l) => pathOf(l)).join('')}" stroke="#cfc8ba" stroke-width="0.7" stroke-dasharray="3 3"/>`);
     out.push(`<path d="${geo.roads.road.map((l) => pathOf(l)).join('')}" stroke="#b9b1a2" stroke-width="1"/>`);
     // Main roads, and every road the story drives, printed like a road map: a dark casing with a yellow fill.
     const main = geo.roads.highway.concat(Object.values(geo.routes).map((r) => r.line));
@@ -161,10 +160,11 @@
     out.push(`<path d="${mainPath}" stroke="#7a5a2b" stroke-width="4.2"/>`);
     out.push(`<path d="${mainPath}" stroke="#f3cf6b" stroke-width="2.4"/>`);
     out.push('</g>');
+    out.push(townDetail());
     out.push(roadNames(game, main));
     for (const l of game.world.mapLabels || []) {
       const [x, y] = project(l.at);
-      out.push(`<text class="map-label map-label-${esc(l.cls)}" x="${x}" y="${y}" font-size="${l.size}" text-anchor="middle" transform="rotate(${l.rotate || 0} ${x} ${y})">${esc(l.text)}</text>`);
+      out.push(`<g transform="translate(${x} ${y}) rotate(${l.rotate || 0})"><g class="map-k"><text class="map-label map-label-${esc(l.cls)}" font-size="${l.size}" text-anchor="middle">${esc(l.text)}</text></g></g>`);
     }
     baseCache = { labels: game.world.mapLabels, svg: out.join('\n') };
     return baseCache.svg;
@@ -296,8 +296,8 @@
       if (pinned.some((n) => n.startsWith(t.name))) continue;
       const [x, y] = project(t.at);
       const [dx, dy, anchor] = t.label || [10, 6, 'start'];
-      out.push(`<rect x="${x - 4.5}" y="${y - 4.5}" width="9" height="9" fill="#2f2f2f" stroke="#fbf8ef" stroke-width="1.5"/>`);
-      out.push(`<text class="map-label map-label-town" x="${x + dx}" y="${y + dy}" font-size="18" text-anchor="${anchor}">${esc(t.name)}</text>`);
+      out.push(`<g transform="translate(${x} ${y})"><g class="map-k"><rect x="-4" y="-4" width="8" height="8" fill="#2f2f2f" stroke="#fbf8ef" stroke-width="1.5"/>` +
+        `<text class="map-label map-label-town" x="${dx}" y="${dy}" font-size="17" text-anchor="${anchor}">${esc(t.name)}</text></g></g>`);
     }
     return out.join('\n');
   }

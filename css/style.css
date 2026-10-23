@@ -297,7 +297,11 @@ html, body {
 /* The sheet fills the panel; which part of it shows is the SVG viewBox (pan and zoom).
    The printed sheet and your pencil layer sit exactly on top of each other. */
 .map-svg { display: block; width: 100%; height: 100%; }
-#map-scroll .map-svg { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
+#map-scroll .map-svg { position: absolute; inset: 0; transform-origin: 0 0; }
+/* While you drag or zoom, the drawn map slides as one picture (fast); when you stop it's redrawn sharp. */
+#map-scroll.moving .map-svg { will-change: transform; }
+/* Faint backcountry lines are costly to repaint; drop them while the map is being dragged. */
+#map-scroll.moving .map-forest, #map-scroll.moving .map-streams { visibility: hidden; }
 #map-scroll { touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 #map-scroll.dragging { cursor: grabbing; }
 .map-svg text { user-select: none; -webkit-user-select: none; }
@@ -339,7 +343,7 @@ html, body {
 .map-svg .map-site-room { fill: #2a2a2a; }
 .map-svg .map-here-text { fill: #a5281b; font-weight: 700; }
 .map-svg .map-you-text { font-weight: 700; letter-spacing: 1px; }
-.map-svg .map-label-town { font-family: Georgia, "Times New Roman", serif; font-weight: 700; fill: #1f1f1f; font-size: calc(18px * var(--k, 1)); }
+.map-svg .map-label-town { font-family: Georgia, "Times New Roman", serif; font-weight: 700; fill: #1f1f1f; }
 .map-svg .map-site-name { font-size: calc(18px * var(--k, 1)); }
 .map-svg.far .map-label-island { font-size: calc(30px * var(--k, 1)); }
 .map-svg .map-you-text { fill: #fffdf6; stroke: none; font-family: Arial, "Helvetica Neue", sans-serif; }
@@ -521,11 +525,13 @@ html, body {
 
 /* Town street maps only when zoomed in close; the island-wide roads step aside there. */
 .map-svg:not(.near) .map-detail { display: none; }
-.map-svg.near .map-coarse { mask: url(#map-town-holes); }
 .map-svg:not(.near) .map-room-tag { display: none; }
 .map-svg.near > rect.map-site-card, .map-svg.near > text.map-site-name, .map-svg.near > text.map-site-room, .map-svg.near > text.map-q,
-.map-svg.near .map-label-water, .map-svg.near .map-label-island, .map-svg.near .map-label-lake,
-.map-svg.near .map-label-river, .map-svg.near .map-label-road { display: none; }
+.map-svg.near .map-label-island, .map-svg.near .map-label-lake, .map-svg.near .map-label-river,
+.map-svg.near .map-label-road { display: none; }
+/* Fine detail that only clutters (and slows) the map when zoomed far out. */
+.map-svg.far .map-forest, .map-svg.far .map-streams, .map-svg.far .map-detail { display: none; }
+.map-svg .map-label-isle { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-style: italic; fill: #4a4a3a; }
 .map-svg.near [filter] { filter: none; }
 
 /* The development copy (at /dev/) carries a small "DEV PREVIEW" tag in the status bar,

@@ -906,6 +906,38 @@ test('BUG notes are saved with where you are and what just happened', () => {
   assert.match(run(g2, 'bugs'), /No bug notes yet/);
 });
 
+test('places you return to get a short description; LOOK and VERBOSE show it all', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'w']);
+  assert.match(run(g, 'look'), /woodsmoke/);
+  run(g, 'n');
+  const back = run(g, 's');
+  assert.doesNotMatch(back, /woodsmoke/, 'scenery is not repeated');
+  assert.match(back, /to the north stand the carved poles/, 'the way around still is');
+  assert.match(back, /Ways out:/);
+  assert.match(run(g, 'look'), /woodsmoke/);
+  run(g, 'verbose');
+  run(g, 'n');
+  assert.match(run(g, 's'), /woodsmoke/);
+});
+
+test('playtest fixes: truck bed, readable signs, start lines vary, accuse explained', () => {
+  const g = newGame();
+  runAll(g, KEYS);
+  assert.match(run(g, 'look at truck bed'), /spare tire/);
+  const drive = run(g, 'w');
+  assert.match(drive, /closer look/);
+  assert.match(drive, /readable up close[\s\S]*HYDABURG 40/);
+  const starts = new Set();
+  for (let i = 0; i < 6; i++) {
+    const out = run(g, i % 2 ? 'e' : 'w').split('. ').slice(0, 3).join('. ');
+    starts.add(out.replace(/^You climb into the pickup\. /, '').slice(0, 30));
+  }
+  assert.ok(starts.size >= 3, `start lines vary: ${[...starts].join(' | ')}`);
+  g.state.loc = 'trooper';
+  assert.match(run(g, 'talk to reyes'), /type ACCUSE and the person's name/);
+});
+
 test('no rowing to Sweetwater without oars, and Hazel has a spare pair', () => {
   const g = newGame();
   runAll(g, [...TO_TRAILHEAD, 'w', 'n', 'w']);
@@ -961,7 +993,8 @@ test('starting the truck is narrated once, not again when you drive', () => {
   assert.match(drive, /ticking as it cools/);
   assert.match(run(g, 'look'), /parked here, beaded with rain/); // a turn later, it has cooled
   const again = run(g, 'drive east');
-  assert.match(again, /climb into the pickup\. You turn the key and the engine rattles to life\./);
+  assert.match(again, /climb into the pickup\. /);
+  assert.doesNotMatch(again, /second try/, 'the first-start line is only used once');
   assert.doesNotMatch(again, /second try/); // the first start only happens once
 });
 

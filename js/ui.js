@@ -160,6 +160,7 @@
   function applyView() {
     if (!mapViewBox) return;
     clearTimeout(commitTimer);
+    mapScroll.classList.remove('moving');
     // Zoomed out, names and the pin grow so they stay readable, and the small print steps aside.
     const s = Math.max(mapViewBox[2] / (mapScroll.clientWidth || 1), mapViewBox[3] / (mapScroll.clientHeight || 1));
     for (const svg of mapScroll.querySelectorAll('svg')) {
@@ -192,6 +193,7 @@
     const a = A.s / B.s;
     const bx = (shownBox[0] - mapViewBox[0] - A.ox * A.s) / B.s + B.ox;
     const by = (shownBox[1] - mapViewBox[1] - A.oy * A.s) / B.s + B.oy;
+    mapScroll.classList.add('moving');
     for (const svg of mapScroll.querySelectorAll('svg')) svg.style.transform = `translate(${bx}px, ${by}px) scale(${a})`;
     updateScale();
     clearTimeout(commitTimer);
@@ -299,8 +301,10 @@
     const dy = (e.clientY - drag.y) * drag.scale;
     if (Math.abs(dx) + Math.abs(dy) > 2) followMe = false;
     mapViewBox = [drag.box[0] - dx, drag.box[1] - dy, drag.box[2], drag.box[3]];
-    previewView();
+    // Move the drawn map at most once a frame, however fast the mouse reports.
+    if (!dragFrame) dragFrame = requestAnimationFrame(() => { dragFrame = 0; if (drag) previewView(); });
   });
+  let dragFrame = 0;
   const endDrag = () => {
     if (drag) applyView();
     drag = null;
