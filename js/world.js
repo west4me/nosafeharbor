@@ -536,16 +536,16 @@
       },
 
       klawock: {
-        map: { at: [-133.0958, 55.5522], site: 'klawock' },
+        map: { at: [-133.0848, 55.5522], site: 'klawock' },
         name: 'Klawock',
         aliases: ['klawock', 'town'],
-        desc: "A small town on a wide inlet, where woodsmoke mixes with the smell of low tide. Klawock, Lawáak in Tlingit, is one of the oldest communities on the island and home of the Heinyaa Ḵwáan, whose people have fished these waters for longer than anyone has written anything down. Down by the water, rotting pilings mark where one of Alaska's first salmon canneries stood. Up the hill to the north stand the carved poles of the totem park. The Alaska State Troopers post is a low building to the west. The highway runs east back toward Hollis and south to Craig, and Big Salt Road heads northeast toward Control Lake and the Thorne River.",
+        desc: "A small town on a wide inlet, where woodsmoke mixes with the smell of low tide. Klawock, Lawáak in Tlingit, is one of the oldest communities on the island and home of the Heinyaa Ḵwáan, whose people have fished these waters for longer than anyone has written anything down. This is the heart of town, where Big Salt Road comes down to meet the highway, with a grocery store, a few businesses and houses strung along the road. Down by the water, rotting pilings mark where one of Alaska's first salmon canneries stood. The Alaska State Troopers post is a low building just across the highway to the northwest. The totem park is a short walk west along the highway and up the hill above the harbor. The highway runs east back toward Hollis and, the other way, over the bridge and south to Craig, and Big Salt Road heads northeast toward Control Lake and the Thorne River.",
         exits: {
           in: 'trooper',
           east: road('hwy', "You head east out of Klawock along Klawock Lake and over the hills. Twenty-five minutes of curves and muskeg later, you're back at the river.",
             "You pull onto the shoulder at the fork to get your bearings and climb out to stretch your legs."),
-          north: 'totem_park',
-          west: 'trooper',
+          west: 'totem_park',
+          northwest: 'trooper',
           south: road('craig', "South along the water. Bald eagles sit on the light poles like they are waiting for a bus. Six miles later, the road drops down into Craig.",
             "You park on Front Street and climb out."),
           northeast: road('thorne_road', "You head north out of Klawock past the wide tide flats of Big Salt Lake, then climb northeast through second growth and old clearcuts. Sixteen miles later the road runs out at a junction in the trees.",
@@ -554,21 +554,21 @@
       },
 
       totem_park: {
-        map: { at: [-133.096, 55.5545], site: 'klawock' },
+        map: { at: [-133.0977, 55.5538], site: 'klawock' },
         name: 'Klawock Totem Park',
         aliases: ['totem park', 'park', 'totems', 'poles'],
-        desc: "Totem poles line the hillside above the town and the inlet, more than twenty of them, red cedar weathered to silver-gray. Their figures watch the water: Raven, Eagle, Killer Whale, Wolf, Bear. The poles came from Tuxekan, the old winter village up the coast, and some have been recarved by Klawock hands as the old ones gave out. A wooden plaque stands at the foot of the path. Next to a carving shed at the edge of the park, a fresh cedar log rests on sawhorses, halfway to becoming something with wings. The path leads south back down into town.",
+        desc: "Totem poles line the hillside above the town and the inlet, more than twenty of them, red cedar weathered to silver-gray. Their figures watch the water: Raven, Eagle, Killer Whale, Wolf, Bear. The poles came from Tuxekan, the old winter village up the coast, and some have been recarved by Klawock hands as the old ones gave out. A wooden plaque stands at the foot of the path. Next to a carving shed at the edge of the park, a fresh cedar log rests on sawhorses, halfway to becoming something with wings. The path leads down the hill to the highway, and east along it back to the middle of town.",
         listen: 'Rain ticking on the cedar. The scrape of an adze. Down below, a raven says something long and complicated, and another one answers.',
         smell: 'Fresh-cut red cedar, sweet and sharp, over the salt of the inlet.',
-        exits: { south: 'klawock' }
+        exits: { east: 'klawock', down: 'klawock' }
       },
 
       trooper: {
-        map: { at: [-133.0984, 55.5527], site: 'klawock' },
+        map: { at: [-133.0864, 55.5529], site: 'klawock' },
         name: 'Alaska State Troopers Post',
         aliases: ['troopers', 'trooper post', 'post', 'trooper', 'police'],
-        desc: "A small, overheated office with a coffee maker that has seen things, a wall map of Prince of Wales Island stuck full of pins and an empty holding cell. The exit is east.",
-        exits: { east: 'klawock', out: 'klawock' },
+        desc: "A small, overheated office with a coffee maker that has seen things, a wall map of Prince of Wales Island stuck full of pins and an empty holding cell. The door out to the highway is southeast.",
+        exits: { southeast: 'klawock', out: 'klawock' },
         accuse: (g, names) => accuse(g, names)
       },
 
@@ -1827,7 +1827,7 @@
         'town, houses, house': 'Houses painted bright against the gray, smoke curling from woodstove pipes and skiffs parked in the front yards. A big dog is asleep in the middle of a side street, confident nobody is in a hurry.',
         'dog, mutt, yellow dog': { desc: 'A big yellow mutt asleep in the road. It opens one eye at you, then closes it. You have been evaluated.', touch: 'The dog thumps its tail twice without waking up. A high honor.' },
         'troopers post, post, low building': 'A low building with an Alaska State Troopers shield on the sign out front and two blue-and-gold cruisers parked a little crooked.',
-        'totem park, hill': 'The carved poles stand along the hillside to the north, facing the water.',
+        'totem park, hill': 'The carved poles stand on the hillside to the west, above the harbor, facing the water.',
         'woodsmoke, smoke, stovepipes': 'Woodsmoke from a dozen stovepipes, hanging low over the town in the wet air.',
         'school, hoop, basketball hoop': 'The school, with an outdoor basketball hoop that has clearly survived a lot of rain-delayed games. A banner over the door says WELCOME in English, and underneath it in Lingít.',
         'cannery, pilings, old pilings, cannery site': "Black stubs of pilings march out into the inlet, all that's left of the cannery. It opened in 1878, one of the first in Alaska, and ran for about fifty years. Chinese crews worked the lines. The salmon that filled the cans were the same runs the Heinyaa people had lived on for thousands of years, and the canneries and fish traps came close to emptying the rivers. These days the hatchery up the Klawock River helps the sockeye and coho along.",
@@ -2014,7 +2014,7 @@
     // Towns printed on the map (GNIS coordinates), so you can see where everything is before you go.
     const mapTowns = [
       { name: 'Hollis', at: [-132.645, 55.484] },
-      { name: 'Klawock', at: [-133.0958, 55.5522], label: [12, -6, 'start'] },
+      { name: 'Klawock', at: [-133.0848, 55.5522], label: [12, -6, 'start'] },
       { name: 'Craig', at: [-133.1483, 55.4764], label: [-12, -6, 'end'] },
       { name: 'Thorne Bay', at: [-132.5222, 55.6878] },
       { name: 'Kasaan', at: [-132.4008, 55.5389] },

@@ -67,7 +67,7 @@ const WALKTHROUGH = [
   'sw', 'w', 'n', 'n',
   'talk to dale',
   // Over to the troopers in Klawock
-  'drive to klawock', 'w',
+  'drive to klawock', 'nw',
   'accuse dale and rick'
 ];
 
@@ -173,7 +173,7 @@ test('Dale stonewalls without enough evidence', () => {
 
 test('accusing the wrong person does not end the game', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 'w']);
+  runAll(g, [...KEYS, 'w', 'w', 'nw']);
   assert.equal(g.state.loc, 'trooper');
   assert.match(run(g, 'accuse marnie'), /Try again/);
   assert.equal(g.state.over, false);
@@ -189,7 +189,7 @@ test('accusing outside the trooper post is redirected', () => {
 test('warrant ending is reachable without finding Dale', () => {
   const g = newGame();
   runAll(g, [...KEYS, 'w', 'w', 's', 'e', 'n', 'n', 'take receipt', 'read receipt', 's', 's', 'w', 's', 's', 'e', 'talk to marnie', 'w', 'w',
-    'take photo', 'read photo', 'dial 14 3 28', 'take napkin', 'read napkin', 'e', 'n', 'n', 'n', 'w']);
+    'take photo', 'read photo', 'dial 14 3 28', 'take napkin', 'read napkin', 'e', 'n', 'n', 'n', 'nw']);
   const out = run(g, 'accuse rick and dale');
   assert.match(out, /warrant/);
   assert.equal(g.state.over, true);
@@ -479,7 +479,7 @@ test('MAP command signals the UI without using a turn', () => {
 test('full walkthrough plus a few detours fills in the whole map', () => {
   const g = newGame();
   // The fastest route skips the totem park, the Coffman Cove harbor, Dog Creek and Luck Lake, so detour before accusing.
-  runAll(g, [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'w', 'e', 's', 's', 'drive to klawock', 'n', 's', 'w', WALKTHROUGH[WALKTHROUGH.length - 1]]);
+  runAll(g, [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'w', 'e', 's', 's', 'drive to klawock', 'w', 'e', 'nw', WALKTHROUGH[WALKTHROUGH.length - 1]]);
   assert.equal(g.state.over, true);
   assert.match(renderMap(g), /explored 29 of 29/);
   assert.equal(mapModel(g).stubs.length, 0);
@@ -910,15 +910,15 @@ test('places you return to get a short description; LOOK and VERBOSE show it all
   const g = newGame();
   runAll(g, [...KEYS, 'w', 'w']);
   assert.match(run(g, 'look'), /woodsmoke/);
-  run(g, 'n');
-  const back = run(g, 's');
+  run(g, 'w');
+  const back = run(g, 'e');
   assert.doesNotMatch(back, /woodsmoke/, 'scenery is not repeated');
-  assert.match(back, /to the north stand the carved poles/, 'the way around still is');
+  assert.match(back, /totem park is a short walk west/, 'the way around still is');
   assert.match(back, /Ways out:/);
   assert.match(run(g, 'look'), /woodsmoke/);
   run(g, 'verbose');
-  run(g, 'n');
-  assert.match(run(g, 's'), /woodsmoke/);
+  run(g, 'w');
+  assert.match(run(g, 'e'), /woodsmoke/);
 });
 
 test('playtest fixes: truck bed, readable signs, start lines vary, accuse explained', () => {
@@ -1055,7 +1055,7 @@ test('oars: no dropping them mid-lake, a spare pair at the cabin, and Hazel gets
 test('the ending only recaps evidence you actually found', () => {
   const g = newGame();
   // Skip the Thorne trail entirely: Hazel, Sweetwater, then Reyes.
-  runAll(g, [...KEYS, 'w', 'w', 'ne', 'n', 'ne', 'n', 'talk to hazel', 's', 'sw', 'w', 'n', 'n', 'drive to klawock', 'w']);
+  runAll(g, [...KEYS, 'w', 'w', 'ne', 'n', 'ne', 'n', 'talk to hazel', 's', 'sw', 'w', 'n', 'n', 'drive to klawock', 'nw']);
   const out = run(g, 'accuse dale and rick');
   assert.match(out, /THE CASE IS CLOSED/);
   assert.match(out, /Hazel's borrowed oars/);
@@ -1087,7 +1087,7 @@ test('street names carry their street length, longest first, so the map can drop
 
 test('no garbled text anywhere in a full playthrough', () => {
   const g = newGame();
-  for (const c of [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'e', 'drive to klawock', 'n', 's', 'w', WALKTHROUGH[WALKTHROUGH.length - 1]]) {
+  for (const c of [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'e', 'drive to klawock', 'w', 'e', 'nw', WALKTHROUGH[WALKTHROUGH.length - 1]]) {
     runClean(g, c);
   }
 });
