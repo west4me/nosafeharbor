@@ -243,7 +243,7 @@
       if (angle < -90) angle += 180;
       const rx = Math.round(x);
       const ry = Math.round(y);
-      out.push(`<text class="map-label map-label-road" x="${rx}" y="${ry - 7}" font-size="13" text-anchor="middle" transform="rotate(${Math.round(angle)} ${rx} ${ry})">${esc(r.text)}</text>`);
+      out.push(`<g transform="translate(${rx} ${ry}) rotate(${Math.round(angle)})"><g class="map-k"><text class="map-label map-label-road" y="-7" font-size="13" text-anchor="middle">${esc(r.text)}</text></g></g>`);
     }
     return out.join('\n');
   }
@@ -382,7 +382,7 @@
       }
       if (!placed) continue;
       boxes.push(placed.box);
-      out.push(`<text class="map-label map-label-${l.cls === 'lake' ? 'lake' : 'river'}" x="${l.at[0]}" y="${placed.y}" font-size="${size}" text-anchor="middle">${esc(l.text)}</text>`);
+      out.push(`<g transform="translate(${l.at[0]} ${placed.y})"><g class="map-k"><text class="map-label map-label-${l.cls === 'lake' ? 'lake' : 'river'}" font-size="${size}" text-anchor="middle">${esc(l.text)}</text></g></g>`);
     }
     return out.join('\n');
   }
@@ -509,13 +509,16 @@
       const lh = 19;
       // Handwriting fonts run wide (Segoe Print on Windows especially), so size the note card generously.
       const wMax = Math.max(...lines.map((l, i) => l.text.length * (i === 0 ? 11 : 9))) + 16;
-      const x0 = anchor === 'end' ? ax + dx - wMax : anchor === 'middle' ? ax + dx - wMax / 2 : ax + dx;
-      out.push(`<rect class="map-site-card" x="${x0 - 2}" y="${ay + dy - 18}" width="${wMax}" height="${lines.length * lh + 6}" rx="4" fill="#fbf8ef" opacity="0.92"/>`);
+      // The note card stays the same size on screen at every zoom (map-k), pinned to the town.
+      const x0 = anchor === 'end' ? dx - wMax : anchor === 'middle' ? dx - wMax / 2 : dx;
+      out.push(`<g class="map-site-note" transform="translate(${ax} ${ay})"><g class="map-k">`);
+      out.push(`<rect class="map-site-card" x="${x0 - 2}" y="${dy - 18}" width="${wMax}" height="${lines.length * lh + 6}" rx="4" fill="#fbf8ef" opacity="0.92"/>`);
       lines.forEach((l, i) => {
-        const tx = anchor === 'end' ? ax + dx - 6 : anchor === 'middle' ? ax + dx : ax + dx + 4;
+        const tx = anchor === 'end' ? dx - 6 : anchor === 'middle' ? dx : dx + 4;
         const prefix = i === 0 ? '' : (l.here ? '◉ ' : '· ');
-        out.push(`<text class="${l.cls}${l.here ? ' map-here-text' : ''}" x="${tx}" y="${ay + dy + i * lh}" font-size="${i === 0 ? 18 : 15}" text-anchor="${anchor}">${esc(prefix + l.text)}</text>`);
+        out.push(`<text class="${l.cls}${l.here ? ' map-here-text' : ''}" x="${tx}" y="${dy + i * lh}" font-size="${i === 0 ? 18 : 15}" text-anchor="${anchor}">${esc(prefix + l.text)}</text>`);
       });
+      out.push('</g></g>');
       // Your truck, parked at one of this site's spots out in the country.
       const parked = all.find((r) => r.id === truckAt && byId[r.id]);
       if (parked) {

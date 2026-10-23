@@ -344,7 +344,6 @@ html, body {
 .map-svg .map-here-text { fill: #a5281b; font-weight: 700; }
 .map-svg .map-you-text { font-weight: 700; letter-spacing: 1px; }
 .map-svg .map-label-town { font-family: Georgia, "Times New Roman", serif; font-weight: 700; fill: #1f1f1f; }
-.map-svg .map-site-name { font-size: calc(18px * var(--k, 1)); }
 .map-svg.far .map-label-island { font-size: calc(30px * var(--k, 1)); }
 .map-svg .map-you-text { fill: #fffdf6; stroke: none; font-family: Arial, "Helvetica Neue", sans-serif; }
 .map-svg .map-pin { transform-box: fill-box; transform-origin: 50% 100%; transform: scale(var(--k, 1)); }
@@ -526,7 +525,7 @@ html, body {
 /* Town street maps only when zoomed in close; the island-wide roads step aside there. */
 .map-svg:not(.near) .map-detail { display: none; }
 .map-svg:not(.near) .map-room-tag { display: none; }
-.map-svg.near > rect.map-site-card, .map-svg.near > text.map-site-name, .map-svg.near > text.map-site-room, .map-svg.near > text.map-q,
+.map-svg.near .map-site-note, .map-svg.near > text.map-q,
 .map-svg.near .map-label-island, .map-svg.near .map-label-lake, .map-svg.near .map-label-river,
 .map-svg.near .map-label-road { display: none; }
 /* Fine detail that only clutters (and slows) the map when zoomed far out. */
