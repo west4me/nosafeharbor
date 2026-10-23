@@ -23,6 +23,7 @@ from pathlib import Path
 import networkx as nx
 import pyogrio.raw as raw
 import shapely
+import shapely.prepared
 
 ROOT = Path(__file__).resolve().parent.parent
 NHD, TRAN = sys.argv[1], sys.argv[2]
@@ -47,6 +48,14 @@ TOWNS = {
     'coffman': (-132.870, 55.990, -132.795, 56.032),
 }
 TOWN_AREA = shapely.union_all([shapely.box(*bb) for bb in TOWNS.values()])
+# Where the story happens, the coastline is kept sharper than the rest of the island, so it still looks
+# right when you zoom in on it: the Craig–Klawock coast, Hollis, and Coffman Cove.
+STORY_AREA = shapely.union_all([shapely.box(*bb) for bb in [
+    (-133.32, 55.38, -132.98, 55.64),
+    (-132.72, 55.44, -132.58, 55.52),
+    (-132.92, 55.94, -132.74, 56.07),
+]])
+STORY_PREP = shapely.prepared.prep(STORY_AREA)
 
 
 def px(lon, lat):
@@ -112,15 +121,40 @@ def flat_route(coords):
     return [v for p in out for v in p]
 
 
-def polys(geom, tol, min_km2):
+def flat_story(coords):
+    """Like flat(), but to half a pixel inside the story area, where the coast is drawn sharper."""
     out = []
-    for poly in parts(shapely.simplify(geom.intersection(VIEW), tol, preserve_topology=True)):
+    for lon, lat in coords:
+        q = 0.5 if STORY_PREP.contains(shapely.Point(lon, lat)) else 1
+        p = [round(v / q) * q for v in px(lon, lat)]
+        p = [int(v) if v == int(v) else v for v in p]
+        if not out or p != out[-1]:
+            out.append(p)
+    return [v for p in out for v in p]
+
+
+def polys(geom, tol, min_km2, story_tol=None):
+    geom = geom.intersection(VIEW)
+    if story_tol:
+        # Sharper inside the story area, simplified hard everywhere else. Simplify first, then cut both on
+        # the same box line, so the two halves meet exactly and stitch back together without seams.
+        coarse = shapely.simplify(geom, tol, preserve_topology=True).buffer(0)
+        sharp = shapely.simplify(geom, story_tol, preserve_topology=True).buffer(0)
+        # A shared 1e-6° grid (about 6 cm) makes the cut edges match exactly, so the halves merge into one shape.
+        g = 1e-6
+        geom = shapely.union_all([shapely.difference(coarse, STORY_AREA, grid_size=g),
+                                  shapely.intersection(sharp, STORY_AREA, grid_size=g)], grid_size=g)
+    else:
+        geom = shapely.simplify(geom, tol, preserve_topology=True)
+    fl = flat_story if story_tol else flat
+    out = []
+    for poly in parts(geom):
         if poly.geom_type != 'Polygon':
             continue
-        rings = [flat(poly.exterior.coords)]
+        rings = [fl(poly.exterior.coords)]
         for hole in poly.interiors:
             if shapely.Polygon(hole).area * KM_X * KM_Y >= min_km2:
-                rings.append(flat(hole.coords))
+                rings.append(fl(hole.coords))
         out.append(rings)
     return out
 
@@ -128,7 +162,7 @@ def polys(geom, tol, min_km2):
 # ------------------------------------------------------------------ water
 area = read(NHD, 'NHDArea', ['ftype'])
 sea = shapely.union_all([a['geom'] for a in area if a['ftype'] == 445])  # FType 445 = Sea/Ocean
-sea_out = polys(sea, 0.0006, 0.02)
+sea_out = polys(sea, 0.0006, 0.02, story_tol=0.0001)
 
 lakes_out, labels = [], []
 for w in read(NHD, 'NHDWaterbody', ['gnis_name', 'areasqkm']):
@@ -257,6 +291,9 @@ def street_name(n):
 detail = []
 for town, bb in TOWNS.items():
     box = shapely.box(*bb)
+    # Water and shore are cut a little outside the box, so the cut edge (and its coastline stroke) is
+    # hidden by the box's clip instead of drawing a rectangle on the map.
+    wide = shapely.box(bb[0] - 0.004, bb[1] - 0.003, bb[2] + 0.004, bb[3] + 0.003)
     def clip_lines(geoms, tol):
         out = []
         merged = shapely.line_merge(shapely.union_all(geoms)) if geoms else shapely.GeometryCollection()
@@ -266,13 +303,13 @@ for town, bb in TOWNS.items():
         return out
     def fine_polys(geom):
         out = []
-        for poly in parts(shapely.simplify(geom.intersection(box), 0.000008, preserve_topology=True)):
+        for poly in parts(shapely.simplify(geom.intersection(wide), 0.000008, preserve_topology=True)):
             if poly.geom_type == 'Polygon':
                 out.append([flat_fine(poly.exterior.coords)] + [flat_fine(h.coords) for h in poly.interiors])
         return out
     sea_t = fine_polys(sea)
     # Foreshore: the tide flats and beaches that go dry at low water (NHD FType 364).
-    shore_t = fine_polys(shapely.union_all([a['geom'] for a in area if a['ftype'] == 364 and a['geom'].intersects(box)]))
+    shore_t = fine_polys(shapely.union_all([a['geom'] for a in area if a['ftype'] == 364 and a['geom'].intersects(wide)]))
     t_roads = [r for r in roads if r['geom'].intersects(box)]
     by_name = {}
     for r in t_roads:

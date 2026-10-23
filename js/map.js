@@ -182,9 +182,10 @@
       out.push(`<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="#fbf8ef"/>`);
       const sea = polyPath(t.sea);
       out.push(`<path d="${sea}" fill="#e3edf7" fill-rule="evenodd"/>`);
-      out.push(`<path d="${sea}" fill="url(#map-water-fine)" fill-rule="evenodd" opacity="0.55"/>`);
+      out.push(`<path d="${sea}" fill="url(#map-water)" fill-rule="evenodd" opacity="0.55"/>`);
       if (t.flats && t.flats.length) out.push(`<path d="${polyPath(t.flats)}" fill="#cfe0d6" fill-rule="evenodd" opacity="0.85"/>`);
       out.push(`<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="url(#map-grid)"/>`);
+      out.push(`<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="url(#map-grid-major)"/>`);
       out.push(`<path d="${sea}" fill="none" stroke="#3d4a5c" stroke-width="1.2" fill-rule="evenodd"/>`);
       out.push(`<g fill="none" stroke-linecap="round" stroke-linejoin="round">`);
       out.push(`<path d="${t.creeks.map((l) => pathOf(l)).join('')}" stroke="#7fa9d6" stroke-width="1.2"/>`);
@@ -387,7 +388,8 @@
     return out.join('\n');
   }
 
-  // Patterns for the printed sheet: the graph-paper grid and water hatching.
+  // Patterns for the printed sheet: the graph-paper grid and water hatching. The hatching's spacing is
+  // reset for each zoom (see applyView in ui.js) so it stays the same on screen, in town and out.
   function sheetDefs() {
     const G = geo.view.pxPerKm; // one graph-paper square = 1 km
     return `<pattern id="map-grid" width="${G}" height="${G}" patternUnits="userSpaceOnUse">
@@ -398,14 +400,7 @@
   </pattern>
   <pattern id="map-water" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
     <line x1="0" y1="0" x2="0" y2="9" stroke="#8fb0d4" stroke-width="1.4"/>
-  </pattern>
-  <pattern id="map-water-fine" width="1.2" height="1.2" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
-    <line x1="0" y1="0" x2="0" y2="1.2" stroke="#8fb0d4" stroke-width="0.18"/>
-  </pattern>
-  <mask id="map-town-holes" maskUnits="userSpaceOnUse" x="0" y="0" width="${geo.width}" height="${geo.height}">
-    <rect width="${geo.width}" height="${geo.height}" fill="white"/>
-    ${(geo.detail || []).map((t) => `<rect x="${t.box[0]}" y="${t.box[1]}" width="${t.box[2] - t.box[0]}" height="${t.box[3] - t.box[1]}" fill="black"/>`).join('')}
-  </mask>`;
+  </pattern>`;
   }
 
   const PENCIL_DEFS = `<filter id="map-pencil" x="-5%" y="-5%" width="110%" height="110%">

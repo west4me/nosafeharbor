@@ -174,6 +174,14 @@
       svg.classList.toggle('near', s < 0.45);
     }
     if (s < 0.45) fitStreetNames(s);
+    // Water hatching: about 9 screen pixels between lines at every zoom.
+    const hatch = mapScroll.querySelector('#map-water');
+    if (hatch) {
+      const gap = (9 * s).toFixed(3);
+      hatch.setAttribute('width', gap);
+      hatch.setAttribute('height', gap);
+      hatch.firstElementChild.setAttribute('y2', gap);
+    }
     shownBox = mapViewBox.slice();
     updateScale();
   }
