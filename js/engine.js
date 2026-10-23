@@ -59,6 +59,11 @@
     'touch', 'turn', 'start', 'stop', 'buy', 'accuse', 'climb', 'sit', 'knock', 'fish', 'row', 'wait', 'save', 'load',
     'restart', 'score', 'thank', 'cross', 'wade', 'switch', 'light', 'dial', 'eat', 'drink', 'travel', 'walk', 'go'];
 
+  // "the glovebox", but just "Joe Kitka".
+  function theName(e) {
+    return e.kind === 'npc' ? e.name : 'the ' + e.name;
+  }
+
   function capitalize(s) {
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
@@ -349,24 +354,83 @@
 
     // Resolve a noun phrase to something in scope; prints an error and returns null on failure.
     find(phrase, { npcs = true, items = true } = {}) {
+      // Answering "did you mean...?": the thing you said yes to (or picked) stands in for what you typed.
+      if (this.forced && this.forced.phrase === phrase) {
+        const e = this.forced.ent;
+        this.forced = null;
+        return e;
+      }
       const scope = [].concat(items ? this.visibleItems() : [], npcs ? this.visibleNpcs() : []);
       const m = this.match(phrase, scope);
       if (m && m.ambiguous) {
-        this.print(`Which do you mean: ${listJoin(m.ambiguous.map((e) => 'the ' + e.name))}?`);
+        this.print(`Which do you mean: ${listJoin(m.ambiguous.map((e) => theName(e)))}?`);
+        this.pendingAnswer = { cmd: this.currentCmd, phrase, ents: m.ambiguous };
         return null;
       }
       if (!m) {
         if (this.isDark()) { this.print("It's too dark to see anything like that."); return null; }
         const p = clean(phrase);
         const guess = this.guessName(p, scope);
+        const called = guess && (guess.ent.kind === 'npc' ? guess.ent.name : 'the ' + guess.name);
         if (guess && guess.sure) {
-          this.print(`(The ${guess.name}, I assume.)`, 'meta');
+          this.print(`(${capitalize(called)}, I assume.)`, 'meta');
           return guess.ent;
         }
-        this.print(`You don't see any ${p || 'such thing'} here.` + (guess ? ` Did you mean the ${guess.name}?` : ''));
+        this.print(`You don't see any ${p || 'such thing'} here.` + (guess ? ` Did you mean ${called}?` : ''));
+        if (guess) this.pendingAnswer = { cmd: this.currentCmd, phrase, ent: guess.ent };
         return null;
       }
       return m;
+    }
+
+    // An answer to the game's last question: { result } once handled, or null if this is just a new command.
+    answer(asked, cmd) {
+      const handled = this.answerInner(asked, cmd);
+      return handled === null ? null : { result: handled };
+    }
+
+    answerInner(asked, cmd) {
+      // "Talk to whom?" / "Accuse whom?" / "Where to?": a name or place fills in the blank.
+      if (asked.template) {
+        const who = cmd.replace(/^(to|at) /, '').replace(/^(the|that|this) /, '');
+        let fits = false;
+        if (asked.places) fits = !!this.roomByName(clean(who));
+        else {
+          const m = this.match(who, asked.everyone ? Object.values(this.npcs) : this.visibleNpcs());
+          fits = !!m && !m.ambiguous;
+        }
+        if (!fits) return null;
+        return this.dispatch(asked.template.replace('%', who));
+      }
+      const yes = /^(y|yes|yeah|yep|yup|sure|ok|okay|correct|right|uh huh|yes please|thats right|i did)$/.test(cmd);
+      if (/^(no|nope|nah|never ?mind|cancel|neither|none|not really)$/.test(cmd)) {
+        this.print('Okay, never mind.');
+        return false;
+      }
+      if (asked.verbs) {
+        const pick = yes && asked.verbs.length === 1 ? asked.verbs[0] : asked.verbs.find((v) => v === cmd);
+        if (pick) return this.dispatch([pick, asked.rest].filter(Boolean).join(' '));
+        if (!yes) return null;
+        this.print(`Which one: ${asked.verbs.map((v) => v.toUpperCase()).join(' or ')}?`);
+        this.pendingAnswer = asked;
+        return false;
+      }
+      let ent = null;
+      if (asked.ent && yes) ent = asked.ent;
+      else if (asked.ents) {
+        if (yes) {
+          this.print('Which one?');
+          this.pendingAnswer = asked;
+          return false;
+        }
+        const m = this.match(cmd.replace(/^(the|that|this) /, ''), asked.ents);
+        if (m && !m.ambiguous) ent = m;
+      }
+      if (!ent) return null;
+      this.forced = { phrase: asked.phrase, ent };
+      const r = this.dispatch(asked.cmd);
+      this.forced = null;
+      return r;
     }
 
     // Best near-miss for a mistyped noun among what's in reach. sure = close enough to just go with it.
@@ -419,6 +483,14 @@
       const cmd = input.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\u2018\u2019]/g, "'")
         .replace(/[^a-z0-9\s'-]/g, ' ').replace(/'/g, '').replace(/\s+/g, ' ').trim();
       if (!cmd) { this.print('Beg pardon?'); return false; }
+      // The game asked you something last turn ("Did you mean Joe Kitka?"): take YES, NO or a pick as the answer.
+      const asked = this.pendingAnswer;
+      this.pendingAnswer = null;
+      if (asked) {
+        const answered = this.answer(asked, cmd);
+        if (answered) return answered.result;
+      }
+      this.currentCmd = cmd;
       const words = cmd.split(' ');
       let m;
 
@@ -436,6 +508,7 @@
       if (/^(restart|new game|reset)$/.test(cmd)) return this.restart();
       if (/^(wait|z|rest)$/.test(cmd)) { this.print('Time passes. Somewhere, it rains harder.'); return; }
       if (/^(quit|q|exit game)$/.test(cmd)) { this.print("There's no quitting on the job. (Close the tab whenever you like. Type SAVE first if you want to keep your progress.)"); return false; }
+      if (/^(y|yes|yeah|yep|no|nope|nah|maybe)$/.test(cmd)) { this.print('Nobody asked you anything just now. (Try a command, like LOOK.)'); return false; }
       if (/^(xyzzy|plugh)$/.test(cmd)) { this.print('A hollow voice says, "Wrong game, investigator."'); return; }
       if (/^(diagnose|health)$/.test(cmd)) { this.print('Damp, underpaid and in excellent health.'); return false; }
 
@@ -516,7 +589,11 @@
 
       // --- case
       if ((m = cmd.match(/^(?:accuse|arrest|blame|report|name|charge) (.+)$/))) return this.accuse(m[1]);
-      if (/^(accuse|arrest|blame|solve)$/.test(cmd)) { this.print('Accuse whom? (Example: ACCUSE RICK)'); return false; }
+      if (/^(accuse|arrest|blame|solve)$/.test(cmd)) {
+        this.print('Accuse whom? (Example: ACCUSE RICK)');
+        this.pendingAnswer = { template: 'accuse %', everyone: true };
+        return false;
+      }
 
       // --- shopping
       if ((m = cmd.match(/^(?:buy|order|purchase|get me) (.+)$/))) return this.buy(m[1]);
@@ -563,6 +640,7 @@
         }
         if (best.length && best.length <= 3) {
           this.print(`I don't know how to "${cmd}". Did you mean ${best.map((v) => v.toUpperCase()).join(' or ')}?`);
+          this.pendingAnswer = { verbs: best, rest: words.slice(1).join(' ') };
           return false;
         }
       }
@@ -955,7 +1033,11 @@
       } else {
         const here = this.visibleNpcs();
         if (!here.length) { this.print('You say it to the trees. The trees, being polite, say nothing back.'); return; }
-        if (here.length > 1) { this.print(`Thank whom? ${listJoin(here.map((n) => n.name))} are here.`); return false; }
+        if (here.length > 1) {
+          this.print(`Thank whom? ${listJoin(here.map((n) => n.name))} are here.`);
+          this.pendingAnswer = { template: `${word} %` };
+          return false;
+        }
         npc = here[0];
       }
       this.meet(npc);
@@ -969,6 +1051,7 @@
       if (here.length === 1) return this.talk(here[0].names[0]);
       if (!here.length) { this.print("There's no one here to talk to."); return false; }
       this.print(`Talk to whom? ${listJoin(here.map((n) => n.name))} ${here.length > 1 ? 'are' : 'is'} here.`);
+      this.pendingAnswer = { template: 'talk to %' };
       return false;
     }
 
@@ -1006,7 +1089,11 @@
         if (!npcPhrase) {
           const people = this.visibleNpcs();
           if (people.length === 1) { npcPhrase = people[0].names[0]; itemPhrase = rest; }
-          else { this.print(`${capitalize(verb)} it to whom?`); return false; }
+          else {
+            this.print(`${capitalize(verb)} it to whom?`);
+            this.pendingAnswer = { template: `${verb} ${rest} to %` };
+            return false;
+          }
         }
       }
       const it = this.find(itemPhrase, { npcs: false });
@@ -1078,6 +1165,13 @@
       if (e && !e.ambiguous && e.kind === 'item' && e.verbs && e.verbs.enter) {
         this.runHandler(e, 'enter');
         return;
+      }
+      // GET IN TRUCK when the truck is parked somewhere else.
+      const truck = this.items.truck;
+      if (truck && !scope.includes(truck) && this.match(phrase, [truck]) && this.state.loc !== 'truck_cab') {
+        const at = this.rooms[this.state.items.truck.loc];
+        this.print(at ? `Your truck is parked back at ${at.name}.` : "Your truck isn't here.");
+        return false;
       }
       return this.goByName(phrase, 'in');
     }

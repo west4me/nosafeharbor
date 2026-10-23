@@ -38,6 +38,7 @@
       if (!hasKeys(g)) return "You'd need the keys for that.";
       if (g.flag('engine_on')) return "It's already running. Where to? Try DRIVE WEST (or any direction the road goes), or DRIVE TO a place you've been.";
       g.flag('engine_on', true);
+      g.pendingAnswer = { template: 'drive to %', places: true }; // "Where to?" "Klawock."
       return startLine(g) + " Where to? Try DRIVE WEST (or any direction the road goes), or DRIVE TO a place you've been.";
     }
 

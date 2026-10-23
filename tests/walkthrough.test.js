@@ -256,6 +256,48 @@ test('hint directions start from where you are, and get you there', () => {
   }
 });
 
+test('when the game asks "did you mean...?", YES, NO or a pick answers it', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'w', 's', 'w', 'n']);
+  assert.match(run(g, 'talk to jow'), /Did you mean Joe Kitka\?/);
+  assert.match(run(g, 'yes'), /insurance investigator/);
+  assert.ok(g.state.met.joe);
+  assert.match(run(g, 'yes'), /Nobody asked you anything/);
+  assert.match(run(g, 'x jow'), /Did you mean Joe Kitka\?/);
+  assert.match(run(g, 'no'), /never mind/);
+  assert.match(run(g, 'lok'), /Did you mean LOOK\?/);
+  assert.match(run(g, 'y'), /Harbormaster's Office/);
+  assert.match(run(g, 'taek report'), /TAKE or TALK/);
+  assert.match(run(g, 'take'), /already have/);
+  // Any other command just moves on.
+  run(g, 'x jow');
+  assert.match(run(g, 'look'), /Harbormaster's Office/);
+  assert.match(run(g, 'yes'), /Nobody asked/);
+  // Picking from "Which do you mean"
+  const h = newGame();
+  runAll(h, [...KEYS, 'get in truck', 'open glovebox']);
+  const which = run(h, 'take the');
+  if (/Which do you mean/.test(which)) assert.ok(h.pendingAnswer);
+  assert.match(run(h, 'get out'), /climb out/);
+  runAll(h, ['w', 'w', 's', 'w', 'n']);
+  assert.match(run(h, 'get in truck'), /parked back at Craig/);
+});
+
+test('"Talk to whom?", "Accuse whom?" and "Where to?" take a name or a place as the answer', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'w', 's', 'e']);
+  assert.match(run(g, 'talk'), /Talk to whom\?/);
+  assert.match(run(g, 'cal'), /Insurance\. Great/);
+  assert.match(run(g, 'thanks'), /Thank whom\?/);
+  assert.match(run(g, 'bonnie'), /.+/);
+  assert.match(run(g, 'accuse'), /Accuse whom\?/);
+  assert.match(run(g, 'rick'), /not a cop/);
+  runAll(g, ['w', 'get in truck']);
+  assert.match(run(g, 'start truck'), /Where to\?/);
+  run(g, 'klawock');
+  assert.equal(g.state.loc, 'klawock');
+});
+
 test('hint is always available and never empty', () => {
   const g = newGame();
   for (const c of WALKTHROUGH.slice(0, -1)) {
