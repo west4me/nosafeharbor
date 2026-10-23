@@ -1082,7 +1082,7 @@ test('street names carry their street length, longest first, so the map can drop
   // Sorted within each town, so the big streets win when names crowd.
   let drops = 0;
   for (let i = 1; i < lens.length; i++) if (lens[i] > lens[i - 1]) drops++;
-  assert.ok(drops <= 3, `street names not longest-first (${drops} breaks)`); // one break between each of the four towns
+  assert.ok(drops <= geo.detail.length - 1, `street names not longest-first (${drops} breaks)`); // at most one break between towns
 });
 
 test('no garbled text anywhere in a full playthrough', () => {

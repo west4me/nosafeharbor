@@ -2022,7 +2022,7 @@
       { name: 'Kasaan', at: [-132.4008, 55.5389] },
       { name: 'Hydaburg', at: [-132.8267, 55.2081] },
       { name: 'Coffman Cove', at: [-132.8278, 56.0139], label: [12, -10, 'start'] },
-      { name: 'Naukati Bay', at: [-133.1847, 55.8736] },
+      { name: 'Naukati Bay', at: [-133.2027, 55.8695] },
       { name: 'Whale Pass', at: [-133.1208, 56.1153] },
       { name: 'Point Baker', at: [-133.6211, 56.3528], label: [10, -6, 'start'] },
       { name: 'Port Protection', at: [-133.5981, 56.3172] },

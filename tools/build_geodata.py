@@ -47,6 +47,11 @@ TOWNS = {
     'klawock': (-133.130, 55.530, -133.050, 55.578),
     'coffman': (-132.870, 55.990, -132.795, 56.032),
     'hollis': (-132.665, 55.472, -132.600, 55.510),
+    'thorne_bay': (-132.565, 55.665, -132.490, 55.710),
+    'kasaan': (-132.430, 55.520, -132.370, 55.555),
+    'whale_pass': (-133.175, 56.085, -133.080, 56.140),
+    'naukati': (-133.245, 55.850, -133.160, 55.890),
+    'hydaburg': (-132.860, 55.190, -132.800, 55.225),
 }
 TOWN_AREA = shapely.union_all([shapely.box(*bb) for bb in TOWNS.values()])
 # Where the story happens, the coastline is kept sharper than the rest of the island, so it still looks
@@ -55,7 +60,7 @@ STORY_AREA = shapely.union_all([shapely.box(*bb) for bb in [
     (-133.32, 55.38, -132.98, 55.64),
     (-132.72, 55.44, -132.58, 55.52),
     (-132.92, 55.94, -132.74, 56.07),
-]])
+]] + [shapely.box(bb[0] - 0.02, bb[1] - 0.012, bb[2] + 0.02, bb[3] + 0.012) for bb in TOWNS.values()])
 STORY_PREP = shapely.prepared.prep(STORY_AREA)
 
 
@@ -303,15 +308,15 @@ for town, bb in TOWNS.items():
             if ln.geom_type == 'LineString' and len(ln.coords) > 1:
                 out.append(flat_fine(ln.coords))
         return out
-    def fine_polys(geom):
+    def fine_polys(geom, tol=0.000008):
         out = []
-        for poly in parts(shapely.simplify(geom.intersection(wide), 0.000008, preserve_topology=True)):
+        for poly in parts(shapely.simplify(geom.intersection(wide), tol, preserve_topology=True)):
             if poly.geom_type == 'Polygon':
                 out.append([flat_fine(poly.exterior.coords)] + [flat_fine(h.coords) for h in poly.interiors])
         return out
     sea_t = fine_polys(sea)
     # Foreshore: the tide flats and beaches that go dry at low water (NHD FType 364).
-    shore_t = fine_polys(shapely.union_all([a['geom'] for a in area if a['ftype'] == 364 and a['geom'].intersects(wide)]))
+    shore_t = fine_polys(shapely.union_all([a['geom'] for a in area if a['ftype'] == 364 and a['geom'].intersects(wide)]), 0.00003)
     t_roads = [r for r in roads if r['geom'].intersects(box)]
     by_name = {}
     for r in t_roads:
@@ -322,7 +327,7 @@ for town, bb in TOWNS.items():
         shown = 'Hollis–Klawock Hwy' if town == 'hollis' and name == 'Craig–Klawock Hwy' else name
         for line in clip_lines(geoms, 0.000008):
             streets.append({'name': shown, 'main': main, 'line': line})
-    creeks = clip_lines([f['geom'] for f in flows if f['geom'].intersects(box)], 0.000008)
+    creeks = clip_lines([f['geom'] for f in flows if f['geom'].intersects(box)], 0.00003)
     x0, y1 = px(bb[0], bb[1])
     x1, y0 = px(bb[2], bb[3])
     detail.append({'town': town, 'box': [x0, y0, x1, y1], 'sea': sea_t, 'flats': shore_t, 'streets': streets, 'creeks': creeks})
