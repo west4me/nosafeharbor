@@ -528,6 +528,16 @@ html, body {
 .map-svg.near .map-label-river, .map-svg.near .map-label-road { display: none; }
 .map-svg.near [filter] { filter: none; }
 
-/* The development copy (at /dev/) wears a stripe so it's never mistaken for the real thing. */
-.is-dev #status { background: repeating-linear-gradient(45deg, var(--bar) 0 14px, #e07b39 14px 28px); }
-.is-dev #status-loc::before { content: "DEV · "; }
+/* The development copy (at /dev/) carries a small "DEV PREVIEW" tag in the status bar,
+   so it's never mistaken for the real thing. */
+.is-dev #status-loc::before {
+  content: "DEV PREVIEW";
+  display: inline-block;
+  margin-right: 10px;
+  padding: 1px 7px;
+  border: 1.5px dashed var(--bar-fg);
+  border-radius: 3px;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  vertical-align: 1px;
+}
