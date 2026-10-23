@@ -486,3 +486,7 @@ html, body {
 .map-svg.near .map-label-water, .map-svg.near .map-label-island, .map-svg.near .map-label-lake,
 .map-svg.near .map-label-river, .map-svg.near .map-label-road { display: none; }
 .map-svg.near [filter] { filter: none; }
+
+/* The development copy (at /dev/) wears a stripe so it's never mistaken for the real thing. */
+.is-dev #status { background: repeating-linear-gradient(45deg, var(--fg) 0 14px, #e07b39 14px 28px); }
+.is-dev #status-loc::before { content: "DEV · "; }

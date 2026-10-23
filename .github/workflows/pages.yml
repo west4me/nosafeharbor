@@ -1,0 +1,51 @@
+name: Publish site
+
+# Production (the main branch) goes to the site root, nosafeharbor.io.
+# Development goes to nosafeharbor.io/dev/ so it can be tried before release.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  DEV_BRANCH: claude/zork-mystery-game-on9qfx
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: prod
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEV_BRANCH }}
+          path: dev
+      - name: Assemble the site
+        run: |
+          mkdir -p _site/dev
+          rsync -a --exclude '.git*' --exclude node_modules --exclude tests --exclude tools prod/ _site/
+          rsync -a --exclude '.git*' --exclude node_modules --exclude tests --exclude tools dev/ _site/dev/
+          # Keep the dev copy out of search results.
+          sed -i 's|<head>|<head>\n  <meta name="robots" content="noindex">|' _site/dev/index.html
+          printf 'User-agent: *\nDisallow: /dev/\n' > _site/robots.txt
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4

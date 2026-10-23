@@ -9,6 +9,15 @@
 
 ## Play it
 
+- **Production:** https://nosafeharbor.io (the `main` branch)
+- **Development preview:** https://nosafeharbor.io/dev/ (the development branch; striped status bar, separate saves)
+
+### How releases work
+
+Day-to-day work happens on the development branch. Every push there runs the tests and refreshes
+the preview at /dev/. Production only changes when `main` moves: to release, the development branch
+is merged (fast-forwarded) into `main`, and the site republishes in a minute or two.
+
 **Option 1: just open it.** Download the repo (green **Code** button → **Download ZIP**), unzip it, and
 double-click `index.html`. No install, no server, no internet needed.
 

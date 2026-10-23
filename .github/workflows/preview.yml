@@ -1,0 +1,24 @@
+name: Refresh dev preview
+
+# A push to the development branch republishes the site (from main), which picks up
+# the new development version at nosafeharbor.io/dev/.
+on:
+  push:
+    branches: [claude/zork-mystery-game-on9qfx]
+
+permissions:
+  actions: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Republish the site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/branches/main" --silent 2>/dev/null; then
+            gh workflow run pages.yml --repo "${{ github.repository }}" --ref main
+          else
+            echo "No main branch yet; nothing to publish."
+          fi

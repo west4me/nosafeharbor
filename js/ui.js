@@ -22,10 +22,17 @@
   const nbToggle = document.getElementById('notebook-toggle');
 
   // localStorage can throw (private mode, blocked storage), so wrap it.
+  // The development copy lives at /dev/ on the same site, so it keeps its own saves.
+  const isDev = /\/dev(\/|$)/.test(window.location.pathname);
+  const keyOf = (k) => (isDev ? 'dev:' + k : k);
   const storage = {
-    get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
-    set(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+    get(k) { try { return window.localStorage.getItem(keyOf(k)); } catch (e) { return null; } },
+    set(k, v) { try { window.localStorage.setItem(keyOf(k), v); return true; } catch (e) { return false; } }
   };
+  if (isDev) {
+    document.documentElement.classList.add('is-dev');
+    document.title = 'DEV · ' + document.title;
+  }
 
   const game = new window.NSH.Game(window.NSH.buildWorld, { storage });
 
@@ -338,7 +345,7 @@
     // The labels fold away on a phone (CSS), leaving "45/100 · 12".
     statusScore.innerHTML = `<span class="lbl">Score: </span>${s.score}/${s.maxScore}`;
     statusTurns.innerHTML = `<span class="lbl">Turns: </span>${s.turns}`;
-    document.title = s.over ? 'No Safe Harbor: Case Closed' : `No Safe Harbor: ${s.location}`;
+    document.title = (isDev ? 'DEV · ' : '') + (s.over ? 'No Safe Harbor: Case Closed' : `No Safe Harbor: ${s.location}`);
   }
 
   function submit(cmd) {
