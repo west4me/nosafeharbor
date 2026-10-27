@@ -2178,9 +2178,13 @@
       '',
       'Late October. Southeast Alaska.',
       '',
-      "Dale Haugen, a fishing-lodge owner who's run boats for forty years, went out in his skiff on a calm night and never came back. His business partner is now in line for a $1.5 million life insurance payout.",
+      "Twelve days ago, Dale Haugen took his skiff out of Craig on a flat-calm night. At first light it was found drifting off Fish Egg Island, swamped and empty. Dale was 61, co-owned the Harbor Light Lodge, and had run boats in these waters for forty years. The Coast Guard searched for two days. No body.",
       '',
-      "You're the investigator Northbound Mutual sent to find out why.",
+      "Dale carried a $1.5 million life insurance policy with Northbound Mutual. Three months ago he changed who gets it: not his wife, Marnie, anymore, but his business partner, Rick Sorensen. Rick filed the claim four days after the skiff turned up.",
+      '',
+      "You investigate suspicious claims for Northbound Mutual, and this one has all the warning signs: a brand-new beneficiary, a calm sea, and no body. Your job is to find out what really happened to Dale Haugen. Maybe it was an accident. Maybe it wasn't. Maybe he isn't dead at all. You have two days before the next ferry back.",
+      '',
+      "You just stepped off the ferry from Ketchikan with a small bag and a case file. Read the case file first. It tells you where your truck keys are and who to talk to.",
       '',
       'Type HELP for instructions or HINT if you get stuck.'
     ].join('\n');
