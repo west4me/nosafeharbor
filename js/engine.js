@@ -31,6 +31,10 @@
   const BUGS_KEY = 'nosafeharbor-bugs-v1';
   const RECENT_KEPT = 3;
   const COMPASS_DIRS = new Set(['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest']);
+  // A place can have a walk and a drive the same way (WEST on foot to the totem park, WEST in the truck
+  // to Craig). The drive is stored as "west_drive"; these turn that back into what you'd type.
+  const baseDir = (d) => d.replace(/_drive$/, '');
+  const dirLabel = (d, drive) => baseDir(d).toUpperCase() + (drive || /_drive$/.test(d) ? ' (drive)' : '');
 
   function clean(phrase) {
     return String(phrase || '').split(/\s+/).filter((w) => w && !STOP_WORDS.has(w)).join(' ');
@@ -617,10 +621,18 @@
       // --- movement
       if (words.length === 1 && DIRS[words[0]]) return this.go(DIRS[words[0]]);
       if ((m = cmd.match(/^(go|walk|run|drive|head|travel|move|hike|climb|row|paddle)(?: to| toward| towards)? (\w+)$/)) && DIRS[m[2]]) {
-        // DRIVE somewhere you can only walk: say so, then walk.
+        const exits = this.exitsOf(this.rooms[this.state.loc]);
         if (m[1] === 'drive' && this.state.loc !== 'truck_cab') {
-          const exit = this.exitsOf(this.rooms[this.state.loc])[DIRS[m[2]]];
+          // DRIVE WEST where there's both a walk and a drive west: the drive.
+          if (exits[`${DIRS[m[2]]}_drive`]) return this.go(`${DIRS[m[2]]}_drive`);
+          // DRIVE somewhere you can only walk: say so, then walk.
+          const exit = exits[DIRS[m[2]]];
           if (exit && !(typeof exit === 'object' && exit.drive) && this.exitTo(exit) !== 'truck_cab') this.print("(No road that way, just a short walk. You leave the truck where it is.)", 'meta');
+        }
+        // WALK WEST where the only way west is a drive: say so.
+        if (m[1] === 'walk' && !exits[DIRS[m[2]]] && exits[`${DIRS[m[2]]}_drive`]) {
+          this.print(`That's a drive, not a walk. (DRIVE ${DIRS[m[2]].toUpperCase()})`);
+          return false;
         }
         return this.go(DIRS[m[2]]);
       }
@@ -788,17 +800,17 @@
       for (const [dir, exit] of Object.entries(this.exitsOf(room))) {
         const to = this.exitTo(exit);
         if (!to || to === 'truck_cab' || !this.rooms[to] || seen.has(to)) continue;
-        if ((dir === 'in' || dir === 'out') && Object.entries(this.exitsOf(room)).some(([d, e]) => d !== dir && COMPASS_DIRS.has(d) && this.exitTo(e) === to)) continue;
+        if ((dir === 'in' || dir === 'out') && Object.entries(this.exitsOf(room)).some(([d, e]) => d !== dir && COMPASS_DIRS.has(baseDir(d)) && this.exitTo(e) === to)) continue;
         seen.add(to);
         const drive = typeof exit === 'object' && exit.drive;
-        ways.push(`${dir.toUpperCase()}${drive ? ' (drive)' : ''} to ${this.rooms[to].name}`);
+        ways.push(`${dirLabel(dir, drive)} to ${this.rooms[to].name}`);
       }
       let line = ways.length ? `Ways out: ${ways.join(', ')}.` : '';
       const truck = this.state.items.truck;
       if (truck && truck.loc && truck.loc !== room.id && this.rooms[truck.loc] && this.state.flags.read_case_file) {
         const path = this.route(truck.loc);
         line += ` Your truck is parked at ${this.rooms[truck.loc].name}` +
-          (path && path.length ? ` (${path.map((d) => d.toUpperCase()).join(', then ')}).` : '.');
+          (path && path.length ? ` (${path.map((d) => dirLabel(d)).join(', then ')}).` : '.');
       }
       return line.trim();
     }
@@ -809,7 +821,7 @@
       if (truck.loc === this.state.loc) { this.print("It's parked right here. (GET IN TRUCK to get in.)"); return false; }
       const path = this.route(truck.loc);
       this.print(`Your truck is parked at ${this.rooms[truck.loc].name}.` +
-        (path ? ` From here: ${path.map((d) => d.toUpperCase()).join(', then ')}. (Or just type WALK TO TRUCK.)` : ''));
+        (path ? ` From here: ${path.map((d) => dirLabel(d)).join(', then ')}. (Or just type WALK TO TRUCK.)` : ''));
       return false;
     }
 
@@ -830,7 +842,9 @@
         this.print(room.darkMove || 'You stumble around in the dark and get nowhere.');
         return;
       }
-      const exit = this.exitsOf(room)[dir];
+      const all = this.exitsOf(room);
+      if (!all[dir] && all[`${dir}_drive`]) dir = `${dir}_drive`;
+      const exit = all[dir];
       if (!exit && room.exitNotes && room.exitNotes[dir]) {
         // A real road or place that exists but isn't part of the case.
         this.print(this.t(room.exitNotes[dir]));
@@ -897,25 +911,43 @@
 
     // Shortest list of compass moves to a room, through places you've already been.
     // The destination itself may be new, as long as you've seen a way leading to it.
-    route(targetId) {
-      const start = this.state.loc;
-      const prev = { [start]: null };
-      const queue = [start];
+    route(targetId, opts) {
+      const steps = this.routeSteps(targetId, opts);
+      return steps && steps.map((st) => st.dir);
+    }
+
+    // The steps themselves ({dir, to}), minding the truck: a drive only starts from wherever the truck
+    // is parked (or with you in it), and the truck only moves when you drive it. opts.anywhere lets the
+    // way lead through places you haven't been yet (for hints).
+    routeSteps(targetId, opts) {
+      const anywhere = opts && opts.anywhere;
+      const truck = this.state.items.truck;
+      const startTruck = truck ? truck.loc : null;
+      const startKey = `${this.state.loc}|${startTruck}`;
+      const prev = { [startKey]: null };
+      const queue = [[this.state.loc, startTruck]];
+      let found = null;
       while (queue.length) {
-        const cur = queue.shift();
-        if (cur === targetId) break;
+        const [cur, truckAt] = queue.shift();
+        if (cur === targetId) { found = `${cur}|${truckAt}`; break; }
         for (const [dir, exit] of Object.entries(this.exitsOf(this.rooms[cur]))) {
-          if (!COMPASS_DIRS.has(dir)) continue;
+          if (!COMPASS_DIRS.has(baseDir(dir))) continue;
           const to = this.exitTo(exit);
-          if (to in prev || (!this.state.visited[to] && to !== targetId)) continue;
-          prev[to] = [cur, dir];
-          queue.push(to);
+          if (!to || to === 'truck_cab' || !this.rooms[to]) continue;
+          if (!anywhere && !this.state.visited[to] && to !== targetId) continue;
+          const drive = typeof exit === 'object' && exit.drive;
+          if (drive && !(cur === truckAt || cur === 'truck_cab')) continue;
+          const nextTruck = drive ? to : truckAt;
+          const key = `${to}|${nextTruck}`;
+          if (key in prev) continue;
+          prev[key] = [`${cur}|${truckAt}`, dir, to];
+          queue.push([to, nextTruck]);
         }
       }
-      if (!(targetId in prev)) return null;
-      const dirs = [];
-      for (let at = targetId; prev[at]; at = prev[at][0]) dirs.unshift(prev[at][1]);
-      return dirs;
+      if (!found) return null;
+      const steps = [];
+      for (let at = found; prev[at]; at = prev[at][0]) steps.unshift({ dir: prev[at][1], to: prev[at][2] });
+      return steps;
     }
 
     // Take several steps in one command; only the last stop gets a full description.

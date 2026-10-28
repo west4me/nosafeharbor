@@ -91,8 +91,9 @@
     const stubs = [];
     const seen = new Set();
     for (const r of rooms) {
-      for (const [dir, exit] of Object.entries(r.exits)) {
+      for (const [key, exit] of Object.entries(r.exits)) {
         if (typeof exit === 'object' && typeof exit.to === 'function') continue;
+        const dir = key.replace(/_drive$/, '');
         const to = game.rooms[exitTarget(exit)];
         if (!to || !to.map || !to.map.at) continue;
         const sameSpot = to.map.at[0] === r.map.at[0] && to.map.at[1] === r.map.at[1];
