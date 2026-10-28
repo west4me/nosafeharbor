@@ -576,34 +576,36 @@
         map: { at: [-133.1507, 55.4773], site: 'craig' },
         name: 'Craig — Front Street',
         aliases: ['craig', 'front street', 'downtown'],
-        desc: "Craig is the biggest town on Prince of Wales, a working fishing town of about a thousand people, and the boats are the first thing you notice: seiners, trollers and skiffs filling the harbors, nets piled on the floats, gulls working every one of them. Its old Tlingit name is Shaan Seet. People came here to gather herring eggs off Fish Egg Island, just offshore, long before there was a town. Front Street sits on Craig Island, the old part of town, joined to the big island by a causeway: a few blocks of shops and tidy houses facing the water, with mountains behind the bay when the clouds lift. East along the highway and over the causeway is South Cove Harbor. The neon OPEN sign of the Riptide Tavern glows just up the street to the west. The highway heads out over the causeway and north to Klawock, and the road south past Shelter Cove leads toward the Harbor Light Lodge.",
+        desc: "Craig is the biggest town on Prince of Wales, a working fishing town of about a thousand people, and the boats are the first thing you notice: seiners, trollers and skiffs filling the harbors, nets piled on the floats, gulls working every one of them. Its old Tlingit name is Shaan Seet. People came here to gather herring eggs off Fish Egg Island, just offshore, long before there was a town. Front Street sits on Craig Island, the old part of town, joined to the big island by a causeway: a few blocks of shops and tidy houses facing the water, with mountains behind the bay when the clouds lift. East along the highway, over the causeway, is the harbormaster's office, at the head of South Cove Harbor. The neon OPEN sign of the Riptide Tavern glows just up the street to the west. The highway heads out over the causeway and north to Klawock. To reach the Harbor Light Lodge you drive southeast: back over the causeway, then south on Port Saint Nicholas Road past Shelter Cove.",
         exits: {
           in: 'tavern',
           north: road('klawock', "North out of Craig with the water on your left and the hills on your right. Fifteen minutes later you coast into Klawock.",
             "You park in the middle of town and climb out."),
-          east: 'harbor',
+          east: { to: 'harbormaster', guard: (g) => { g.print('You walk east along the highway and over the causeway, a few minutes in the rain, to the harbormaster\'s office at the head of South Cove.', 'travel'); return null; } },
           west: 'tavern',
-          south: road('lodge_road', "You head out of town past the last houses, spray flying from the potholes.",
+          southeast: road('lodge_road', "You head back over the causeway, then turn south onto Port Saint Nicholas Road, past the last houses and the head of Shelter Cove, spray flying from the potholes.",
             "A mile and a half along, a carved sign swings in the wind: HARBOR LIGHT LODGE. You park on the shoulder by the sign and climb out.")
-        }
+        },
+        exitNotes: { south: "South of Front Street there are a few blocks of houses on Craig Island, and then water. The lodge road leaves the highway east of the causeway: drive SOUTHEAST." }
       },
 
       harbor: {
         map: { at: [-133.1420, 55.4746], site: 'craig' },
         name: 'South Cove Harbor',
         aliases: ['harbor', 'docks', 'floats', 'south cove'],
-        desc: 'Seiners, trollers and skiffs rock gently in their slips along the floats and finger piers. One slip near the ramp sits empty. Gulls argue on the pilings. North, up Hamilton Drive at the head of the cove where it meets the highway, is the harbormaster\'s office. The fuel dock is north of town, out J.T. Brown Drive. Front Street is back west along the highway, over the causeway on Craig Island.',
-        exits: { west: 'craig', north: 'harbormaster' }
+        desc: 'Seiners, trollers and skiffs rock gently in their slips along the floats and finger piers. One slip near the ramp sits empty. Gulls argue on the pilings. Up the ramp and a short walk north on Hamilton Drive, where it meets the highway, is the harbormaster\'s office. Everything else in town is past it: Front Street back west over the causeway, the fuel dock north out J.T. Brown Drive.',
+        exits: { north: 'harbormaster', up: 'harbormaster' }
       },
 
       harbormaster: {
         map: { at: [-133.1427, 55.4766], site: 'craig' },
         name: "Harbormaster's Office",
-        aliases: ['harbormaster', 'office', "harbormaster's office"],
-        desc: 'A cramped office. A VHF radio crackles on the shelf and tide tables are taped to the window. A chart of the waters around Craig covers the desk, with a coffee ring right on Fish Egg Island. It sits at the head of South Cove where Hamilton Drive meets the highway, and the harbor floats are down the hill to the south. Out front, the highway runs north toward the fuel dock and Klawock.',
+        aliases: ['harbormaster', 'office', "harbormaster's office", 'harbormaster office', 'harbormasters office', 'harbor master', 'harbor master office', "harbor master's office", 'harbor masters office'],
+        desc: 'A cramped office. A VHF radio crackles on the shelf and tide tables are taped to the window. A chart of the waters around Craig covers the desk, with a coffee ring right on Fish Egg Island. It sits on the highway at the head of South Cove, where Hamilton Drive goes down the hill to the harbor floats, south. Out front, the highway runs west over the causeway to Front Street, and north toward the fuel dock and Klawock.',
         exits: {
           south: 'harbor',
-          out: 'harbor',
+          down: 'harbor',
+          west: { to: 'craig', guard: (g) => { g.print('You walk west along the highway and back over the causeway to Front Street.', 'travel'); return null; } },
           north: { to: 'fuel_dock', guard: (g) => { g.print('A good half hour on foot: north along the highway around Crab Bay, then out J.T. Brown Drive past the seafood plant, in a steady rain.', 'travel'); return null; } }
         }
       },
@@ -1295,10 +1297,34 @@
             g.moveItem('report', 'inv');
             return "'You'd be the insurance investigator.' Joe slides a photocopy across the desk. 'My incident report. I found her myself at first light on the eleventh, wallowing off Fish Egg with her gunwales almost under. No Dale.' He sips his coffee. 'Read it. Then ask me about the weather.'";
           }
-          return "'Read the report,' Joe says. 'Then go take a look at that skiff. She's in the lodge boathouse, south of town.'";
+          return [
+            "'Read the report,' Joe says. 'Then go take a look at that skiff. She's in the lodge boathouse, out the Port Saint Nicholas road, southeast of town.'",
+            "Joe looks up from his coffee. 'You're still here. The skiff is still in the boathouse. One of those things should change.'",
+            "'I'm a harbormaster, not a tour guide,' Joe says, and then, because he can't help it: 'Boathouse. Harbor Light Lodge. Southeast. Go.'",
+            "Joe points at the door with his mug. It's a very clear point."
+          ];
         },
         topics: [
-          { k: ['weather', 'night', 'wind', 'seas', 'calm', 'storm', 'water'], r: (g) => { g.clue('calm_night'); return "'Flat calm. Glass. You could have water-skied behind a kayak out there.' Joe sets down his mug. 'I've known Dale forty years. That man doesn't fall out of a boat on a night like that.'"; } },
+          { k: ['happened', 'think', 'theory', 'accident', 'drowned', 'drown', 'dead', 'alive', 'suicide', 'murder', 'killed'], r: [
+            "Joe takes a long pull of coffee before he answers. 'What I think is, forty years of boats and that man never once fell out of one. What I know is, I found an empty skiff on a flat-calm sea. You're the one with the badge from the insurance company. You tell me.'",
+            "'I think I'm a harbormaster,' Joe says, 'and you're the investigator, and only one of us is getting paid to have theories.'",
+            "'Ask me again after you've looked at that skiff,' Joe says. 'Boats talk, if you know how to listen.'"
+          ] },
+          { k: ['weather', 'night', 'wind', 'seas', 'calm', 'storm', 'water', 'conditions', 'forecast'], r: (g) => { g.clue('calm_night'); return [
+            "'Flat calm. Glass. You could have water-skied behind a kayak out there.' Joe sets down his mug. 'I've known Dale forty years. That man doesn't fall out of a boat on a night like that.'",
+            "'Same as it was the first time you asked: flat calm. Weather doesn't change its story. People do.'",
+            "Joe glances out the window at the rain hammering sideways. 'Tonight? Lousy. That night? Glass. Write it down this time.'"
+          ]; } },
+          { k: ['rain', 'raining'], r: "'Rain?' Joe looks out the window like he's noticing it for the first time. 'That's not rain. That's October clearing its throat. Rain's in November.'" },
+          { k: ['coffee', 'cup', 'drink'], r: [
+            "Joe eyes you, then pours a second mug from a thermos older than you are. 'It's strong enough to float a halibut hook. Don't tell me it's bitter. I know it's bitter.'",
+            "'One cup per investigator,' Joe says, and pulls the thermos an inch closer to himself. 'Union rules.'"
+          ] },
+          { k: ['joe', 'yourself', 'job', 'harbormaster', 'work'], r: "'Harbormaster, eighteen years. Before that, I fished. Before that, I was a kid who wanted to fish.' He shrugs. 'I count boats out, I count boats in. Mostly the numbers match. Last week they didn't.'" },
+          { k: ['coast guard', 'search', 'helicopter'], r: "'Coast Guard flew the grid two days out of Sitka. Good people. They don't find what isn't there.' He lets that sit. 'Called it off on the thirteenth.'" },
+          { k: ['insurance', 'claim', 'money', 'policy', 'payout', 'million'], r: "Joe snorts into his mug. 'A million and a half. For a man who drove a truck with the door wired shut.' He sets the mug down. 'Not my business who gets it. But I'd want to know why it changed, if I were you. And you are you.'" },
+          { k: ['report', 'incident'], r: "'It's a page and a half and it's all true. I even spelled Fish Egg right.' He nods at your pocket. 'Read it. That's what it's for.'" },
+          { k: ['lodge', 'boathouse', 'harbor light'], r: "'Harbor Light Lodge, out the Port Saint Nicholas road southeast of town. Dale and Marnie built it up from nothing. The boathouse is down on the water. Skiff's in there.'" },
           { k: ['dale', 'haugen'], r: "'Good boatman. Careful. Wore his kill-switch lanyard every time he left the dock. I used to give him grief about it.'" },
           { k: ['skiff', 'boat', 'kittiwake'], r: "'Towed her to the Harbor Light boathouse myself. Haven't touched her since. You should look her over.'" },
           { k: ['rick', 'sorensen'], r: "Joe's face doesn't change, which says plenty. 'Rick was on the dock at six that morning, before I even called it in. Early riser, I guess.'" },
@@ -1313,7 +1339,12 @@
           { k: ['kasaan', 'longhouse', 'naay', 'great house', 'son-i-hat'], r: "'Kasaan. Chief Son-i-Hat built Naay I'waans in 1880, the Great House. It's the last Haida clan house left in Alaska. It was falling down for years. Then they fixed it, the right way, with Stormy Hamar carving, and in 2016 they opened it again.' He looks into his mug. 'I drove the grandkids over for it. Best day I've had in a long time. You go, sometime. Ask before you take pictures.'" },
           { k: ['craig', 'town', 'shaan seet', 'history'], r: "'Shaan Seet, the old name. A man named Craig Millar put up a saltery out on Fish Egg in 1907, with a Haida crew, and the town got named for him. Funny how that goes.'" }
         ],
-        askDefault: "Joe shrugs. 'Not my department.'",
+        askDefault: [
+          "Joe shrugs. 'Not my department.'",
+          "'Do I look like the visitor center?' Joe says. 'Ask me about boats, weather or Dale.'",
+          "Joe blows on his coffee. 'Next question.'",
+          "'I know tides, boats and who owes the harbor money,' Joe says. 'That isn't any of those.'"
+        ],
         show: {
           report: "'That's my report. Read it.'",
           receipt: "Joe reads it, and his eyebrows go up a sixteenth of an inch. 'Morning after. Huh.'",
@@ -1873,7 +1904,7 @@
         'gulls, gull, pilings, piling': 'Gulls fight over a herring on the pilings with the intensity of a custody hearing.',
         'ramp': 'Steep at low tide, nearly flat at high. Right now it is somewhere in between, like everything else.',
         'floats, finger piers, float, planks': 'Weathered planks on foam floats. They shift under you just enough to remind you that you are standing on water.',
-        'harbormaster office, office door': "The harbormaster's office, up Hamilton Drive to the north where it meets the highway."
+        'harbormaster office, office door': "The harbormaster's office, up the ramp and north on Hamilton Drive, where it meets the highway."
       },
       harbormaster: {
         'mug, grandpa mug': "WORLD'S OKAYEST GRANDPA. Joe drinks out of it with no irony whatsoever.",

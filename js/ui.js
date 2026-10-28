@@ -241,9 +241,13 @@
     if (!mapViewBox || !mapScroll.clientWidth) return;
     const s = Math.max(mapViewBox[2] / mapScroll.clientWidth, mapViewBox[3] / mapScroll.clientHeight);
     const pxPerKm = window.NSH.geo.view.pxPerKm / s;
-    const km = [0.5, 1, 2, 5, 10, 20, 50].find((k) => k * pxPerKm >= 60) || 50;
+    // The largest round distance that fits in 120 pixels, so the key never changes size.
+    const steps = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50];
+    const km = steps.filter((k) => k * pxPerKm <= 120).pop() || steps[0];
     scaleBar.style.width = Math.round(km * pxPerKm) + 'px';
-    scaleText.textContent = `${km} km (${(km * 0.621).toFixed(km < 2 ? 1 : 0)} mi)`;
+    scaleText.textContent = km < 1
+      ? `${Math.round(km * 1000)} m (${Math.round(km * 3281 / 50) * 50} ft)`
+      : `${km} km (${(km * 0.621).toFixed(km < 2 ? 1 : 0)} mi)`;
   }
 
   const legendToggle = document.getElementById('map-legend-toggle');

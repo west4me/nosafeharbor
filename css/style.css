@@ -373,7 +373,7 @@ html, body {
 #map-legend-toggle { font: inherit; font-weight: 700; background: none; border: 0; padding: 0; color: #222; cursor: pointer; }
 #map-legend-body > div { display: flex; align-items: center; gap: 6px; line-height: 1.5; }
 #map-legend-body svg { flex: none; }
-#map-scale { margin-top: 4px; }
+#map-scale { margin-top: 4px; width: 210px; white-space: nowrap; }
 #map-scale-bar { display: inline-block; height: 6px; border: 2px solid #2f2f2f; border-top: 0; }
 .map-legend-note { font-size: 0.7rem; color: #555; }
 .map-svg .map-legend-text { fill: #222; }

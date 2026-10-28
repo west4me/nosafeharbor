@@ -41,15 +41,15 @@ const WALKTHROUGH = [
   'read case file',
   // Hollis: keys, then the flashlight from the glovebox
   ...KEYS, 'get in truck', 'open glovebox', 'take flashlight',
-  // To Craig harbormaster
-  'w', 'w', 's', 'e', 'n',
+  // To Craig: the harbormaster's office, and a look at the harbor below it
+  'w', 'w', 's', 'e', 's', 'n',
   'talk to joe', 'read report', 'ask joe about weather',
   // Fuel dock
   'n', 'ask kenzie about rick', 'search barrel', 'take receipt', 'read receipt',
   // Tavern
-  's', 's', 'w', 'w', 'buy beer', 'give beer to cal',
+  's', 'w', 'w', 'buy beer', 'give beer to cal',
   // Lodge
-  'e', 's', 's', 'talk to rick', 'examine rod rack',
+  'e', 'se', 's', 'talk to rick', 'examine rod rack',
   'e', 'talk to marnie', 'ask marnie about rod', 'w',
   's', 'examine skiff', 'n',
   'w', 'take photo', 'read photo', 'dial 14 3 28',
@@ -146,7 +146,7 @@ test('the Thorne cannot be forded without wearing waders', () => {
 
 test('the office is locked until Marnie hands over the key', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 's', 's', 's']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 'se', 's']);
   assert.equal(g.state.loc, 'lodge');
   assert.match(run(g, 'w'), /locked/);
   runAll(g, ['e', 'talk to marnie', 'w']);
@@ -156,7 +156,7 @@ test('the office is locked until Marnie hands over the key', () => {
 
 test('wrong safe combination keeps it shut', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 's', 's', 's', 'e', 'talk to marnie', 'w', 'w']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 'se', 's', 'e', 'talk to marnie', 'w', 'w']);
   assert.match(run(g, 'dial 1 2 3'), /stays shut/);
   assert.match(run(g, 'open safe'), /will not budge/);
   assert.match(run(g, 'turn dial to 14-3-28'), /swings open/);
@@ -188,7 +188,7 @@ test('accusing outside the trooper post is redirected', () => {
 
 test('warrant ending is reachable without finding Dale', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 's', 'e', 'n', 'n', 'take receipt', 'read receipt', 's', 's', 'w', 's', 's', 'e', 'talk to marnie', 'w', 'w',
+  runAll(g, [...KEYS, 'w', 'w', 's', 'e', 'n', 'take receipt', 'read receipt', 's', 'w', 'se', 's', 'e', 'talk to marnie', 'w', 'w',
     'take photo', 'read photo', 'dial 14 3 28', 'take napkin', 'read napkin', 'e', 'n', 'n', 'n', 'nw']);
   const out = run(g, 'accuse rick and dale');
   assert.match(out, /warrant/);
@@ -258,7 +258,7 @@ test('hint directions start from where you are, and get you there', () => {
 
 test('when the game asks "did you mean...?", YES, NO or a pick answers it', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 's', 'e', 'n']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 'e']);
   assert.match(run(g, 'talk to jow'), /Did you mean Joe Kitka\?/);
   assert.match(run(g, 'yes'), /insurance investigator/);
   assert.ok(g.state.met.joe);
@@ -279,7 +279,7 @@ test('when the game asks "did you mean...?", YES, NO or a pick answers it', () =
   const which = run(h, 'take the');
   if (/Which do you mean/.test(which)) assert.ok(h.pendingAnswer);
   assert.match(run(h, 'get out'), /climb out/);
-  runAll(h, ['w', 'w', 's', 'e', 'n']);
+  runAll(h, ['w', 'w', 's', 'e']);
   assert.match(run(h, 'get in truck'), /parked back at Craig/);
 });
 
@@ -405,8 +405,8 @@ test('map pencils in visited places and the real roads between them', () => {
   assert.ok(m.edges.every((e) => e.road));
   // Unexplored roads out of places you've been show up as stubs, and so do the streets in town.
   assert.ok(m.stubs.some((s) => s.from === 'klawock' && s.dir === 'northeast'));
-  assert.ok(m.stubs.some((s) => s.from === 'craig' && s.dir === 'south'));
-  assert.ok(m.stubs.some((s) => s.from === 'craig' && s.to === 'harbor' && !s.road));
+  assert.ok(m.stubs.some((s) => s.from === 'craig' && s.dir === 'southeast'));
+  assert.ok(m.stubs.some((s) => s.from === 'craig' && s.to === 'harbormaster' && !s.road));
   // A town lists the spots inside it you've seen, with a "?" for the rest.
   const svg = renderMap(g);
   assert.match(svg, /Front Street/);
@@ -447,7 +447,7 @@ test('the map frames where you are and where the roads lead, not the whole sheet
 
 test("in town, the map has the real streets and shows where the truck is; the text says too", () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 's', 'e', 'n']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 'e', 's', 'n']);
   const svg = renderMap(g);
   // Street-level USGS detail for the towns, with the real street names.
   assert.match(svg, /class="map-detail"/);
@@ -460,8 +460,8 @@ test("in town, the map has the real streets and shows where the truck is; the te
   assert.ok(mapView(g, 1.3)[2] < 6 * geo.view.pxPerKm);
   const look = run(g, 'look');
   assert.match(look, /Ways out: SOUTH to South Cove Harbor/);
-  assert.match(look, /Your truck is parked at Craig — Front Street \(SOUTH, then WEST\)/);
-  assert.match(run(g, 'where is my truck'), /SOUTH, then WEST/);
+  assert.match(look, /Your truck is parked at Craig — Front Street \(WEST\)/);
+  assert.match(run(g, 'where is my truck'), /From here: WEST/);
   run(g, 'walk to truck');
   assert.equal(g.state.loc, 'craig');
   assert.match(run(g, 'walk to truck'), /right here/);
@@ -512,7 +512,7 @@ test('you need to know about the keypad before you can use it', () => {
 
 test('the skiff has to be looked at before its details are', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 's', 's', 's', 's']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 'se', 's', 's']);
   assert.equal(g.state.loc, 'boathouse');
   assert.match(run(g, 'x lanyard'), /don't see any lanyard/);
   assert.ok(!g.has('lanyard'));
@@ -547,7 +547,8 @@ test('the truck follows you by road and stays put when you walk', () => {
   const g = newGame();
   runAll(g, [...KEYS, 'w', 'w', 's']);
   assert.equal(g.itemState('truck').loc, 'craig');
-  run(g, 'e'); // walk to the harbor
+  run(g, 'e'); // walk to the harbormaster's office
+  run(g, 's'); // and down to the harbor
   assert.equal(g.itemState('truck').loc, 'craig');
   assert.match(run(g, 'look'), /South Cove Harbor/);
   assert.doesNotMatch(run(g, 'look'), /rental pickup is parked/);
@@ -702,7 +703,7 @@ test('the notebook logs what you do and keeps leads up to date', () => {
   m = notebookModel(g);
   assert.ok(m.doneLeads.includes('Read the case file.'));
   assert.ok(m.openLeads.some((t) => /harbormaster/.test(t)));
-  runAll(g, [...KEYS, 'w', 'w', 's', 'e', 'n', 'talk to joe', 'ask joe about weather']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 'e', 'talk to joe', 'ask joe about weather']);
   m = notebookModel(g);
   assert.ok(m.people.some((p) => p.name === 'Joe Kitka' && /harbormaster/i.test(p.role)));
   assert.ok(m.places.includes('Klawock'));
@@ -854,7 +855,7 @@ test('START TRUCK next to the truck gets you in and starts it; DRIVE to a footpa
   assert.equal(g.state.loc, 'truck_cab');
   assert.match(out, /engine/);
   assert.ok(g.flag('engine_on'));
-  runAll(g, ['w', 'w', 's', 's']);
+  runAll(g, ['w', 'w', 's', 'se']);
   assert.equal(g.state.loc, 'lodge_road');
   assert.match(run(g, 'drive south'), /just a short walk/);
   assert.equal(g.state.loc, 'lodge');
@@ -1064,7 +1065,7 @@ test('the ending only recaps evidence you actually found', () => {
 
 test('IN walks into the obvious building, and GET IN TRUCK still means the truck', () => {
   const g = newGame();
-  runAll(g, [...KEYS, 'w', 'w', 's', 's']);
+  runAll(g, [...KEYS, 'w', 'w', 's', 'se']);
   assert.equal(g.state.loc, 'lodge_road');
   run(g, 'get in truck');
   assert.equal(g.state.loc, 'truck_cab');
@@ -1083,6 +1084,36 @@ test('street names carry their street length, longest first, so the map can drop
   let drops = 0;
   for (let i = 1; i < lens.length; i++) if (lens[i] > lens[i - 1]) drops++;
   assert.ok(drops <= geo.detail.length - 1, `street names not longest-first (${drops} breaks)`); // at most one break between towns
+});
+
+test('playtest notes: Craig in real order, questions asked out loud, Joe varies his lines', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'w', 's']);
+  // From Front Street the lodge road is back over the causeway: southeast, not south.
+  assert.match(run(g, 'drive south'), /SOUTHEAST/);
+  assert.equal(g.state.loc, 'craig');
+  // East along the highway you reach the harbormaster first; the harbor is below the office.
+  run(g, 'e');
+  assert.equal(g.state.loc, 'harbormaster');
+  run(g, 's');
+  assert.equal(g.state.loc, 'harbor');
+  run(g, 'walk to harbor master office');
+  assert.equal(g.state.loc, 'harbormaster');
+  run(g, 'talk to joe');
+  // Questions without ASK JOE ABOUT still reach him.
+  assert.match(run(g, 'tell me about the weather'), /Flat calm/);
+  assert.ok(g.state.found.includes('calm_night'));
+  assert.match(run(g, 'hows the weather'), /flat calm/i);
+  assert.match(run(g, 'ask joe what he thinks happened to dale'), /forty years of boats/);
+  assert.match(run(g, 'ask joe for coffee'), /thermos/);
+  // Asking again gets a different answer.
+  const a = run(g, 'ask joe about baseball');
+  const b = run(g, 'ask joe about baseball');
+  assert.notEqual(a, b);
+  assert.notEqual(run(g, 'talk to joe'), run(g, 'talk to joe'));
+  // With nobody around, a question gets an honest shrug, not a parser error.
+  run(g, 's');
+  assert.match(run(g, "how's the weather"), /nobody here/i);
 });
 
 test('no garbled text anywhere in a full playthrough', () => {

@@ -677,8 +677,15 @@
       if ((m = cmd.match(/^say (.+?)(?: to (.+))?$/)) && THANK_WORDS.test(m[1])) return this.thank(m[2], m[1]);
       if ((m = cmd.match(/^tell (\S+(?: \S+)?) (.+)$/)) && THANK_WORDS.test(m[2])) return this.thank(m[1], m[2]);
       if ((m = cmd.match(/^(?:say|whisper|mutter) (.+)$/))) { this.print(`You say "${m[1]}" out loud. The rain keeps its opinion to itself.`); return; }
+      // "tell me about the weather", "ask about Dale": a question for whoever is here.
+      if ((m = cmd.match(/^(?:tell (?:me|us) about|ask about|what about|talk about) (.+)$/))) return this.askHere(m[1]);
       if ((m = cmd.match(/^(?:ask|question|quiz) (.+?) (?:about|regarding|re) (.+)$/))) return this.ask(m[1], m[2]);
       if ((m = cmd.match(/^(?:tell) (.+?) about (.+)$/))) return this.ask(m[1], m[2]);
+      // "ask joe what happened to dale", "ask joe for coffee": a name, then the question.
+      if ((m = cmd.match(/^(?:ask|question) (.+)$/))) {
+        const split = this.npcAndRest(m[1]);
+        if (split && split.rest) return this.ask(split.name, split.rest);
+      }
       if ((m = cmd.match(/^(?:talk|speak|chat|converse)(?: to| with)? (.+?)(?: about (.+))?$/))) return m[2] ? this.ask(m[1], m[2]) : this.talk(m[1]);
       if ((m = cmd.match(/^(?:greet|hi|hello|hey|interview|question|ask|interrogate|wave to|wave at) (.+)$/))) return this.talk(m[1]);
       if (/^(talk|speak|chat|hello|hi|hey)$/.test(cmd)) return this.talkToOnly();
@@ -718,6 +725,9 @@
       if ((m = cmd.match(/^(?:hit|kill|attack|punch|kick|break|smash|fight) (.+)$/))) { this.print('Violence is not covered under your policy.'); return; }
       if ((m = cmd.match(/^(?:touch|feel|rub|stroke|poke) (.+)$/))) return this.itemVerb('touch', m[1], 'It feels about how it looks.');
       if ((m = cmd.match(/^(?:push|pull|move|shake|lift|tug|turn) (.+)$/))) return this.itemVerb('push', m[1], 'Nothing happens.');
+
+      // A question asked out loud ("how's the weather?", "what happened to Dale?") goes to whoever is here.
+      if (/^(?:how|hows|what|whats|where|wheres|who|whos|why|when|whose|which|did|does|do you|is|was|were|are|can you|could you|any|have you|has)\b/.test(cmd)) return this.askHere(cmd);
 
       // One typo in the first word (TAEK KEYS, NROTH): fix it and try again, once.
       if (!this.fixingTypo) {
@@ -1171,7 +1181,7 @@
       if (!e) return;
       if (e.kind !== 'npc') { this.print(`You talk to the ${e.name}. It's a good listener.`); return; }
       this.meet(e);
-      this.print(this.t(e.talk), 'speech');
+      this.print(this.varied(`${e.id}_talk`, this.t(e.talk)), 'speech');
     }
 
     // THANK WALT, or GUNALCHEESH / HAWAA, Tlingit and Haida for thank you. Each person can answer in their own way.
@@ -1209,15 +1219,47 @@
       const npc = this.find(personPhrase, { items: false });
       if (!npc) return;
       if (npc.kind === 'npc') this.meet(npc);
-      const topic = clean(topicPhrase);
-      const tw = topic.split(' ');
-      for (const entry of npc.topics || []) {
-        if (entry.k.some((k) => tw.includes(k) || topic === k)) {
-          this.print(this.t(entry.r), 'speech');
-          return;
+      const topic = ` ${clean(topicPhrase.replace(/'s\b/g, '').replace(/[?!.,']/g, ''))} `;
+      (npc.topics || []).forEach((entry, i) => {
+        if (this.answered) return;
+        // A key matches a whole word or phrase anywhere in the question.
+        if (entry.k.some((k) => topic.includes(` ${k} `))) {
+          this.answered = true;
+          this.print(this.varied(`${npc.id}_topic_${i}`, this.t(entry.r)), 'speech');
         }
+      });
+      if (this.answered) { this.answered = false; return; }
+      this.print(this.varied(`${npc.id}_default`, this.t(npc.askDefault)) || `${npc.name} doesn't have much to say about that.`, 'speech');
+    }
+
+    // A question for whoever is here: the one person, or ask which one.
+    askHere(topicPhrase) {
+      const here = this.visibleNpcs();
+      if (here.length === 1) return this.ask(here[0].names[0], topicPhrase);
+      if (!here.length) { this.print("There's nobody here to ask. The rain has no comment."); return false; }
+      this.print(`Ask whom? ${listJoin(here.map((n) => n.name))} are here.`);
+      this.pendingAnswer = { template: `ask % about ${topicPhrase}` };
+      return false;
+    }
+
+    // "ask joe what happened to dale": the longest run of opening words that names someone here, and the rest.
+    npcAndRest(phrase) {
+      const words = phrase.split(' ');
+      const here = this.visibleNpcs();
+      for (let i = words.length - 1; i >= 1; i--) {
+        const head = words.slice(0, i).join(' ');
+        const npc = here.find((n) => n.names.includes(head));
+        if (npc) return { name: head, rest: words.slice(i).join(' ').replace(/^(?:for|if|whether|to tell me|to)\s+/, '') };
       }
-      this.print(this.t(npc.askDefault) || `${npc.name} doesn't have much to say about that.`, 'speech');
+      return null;
+    }
+
+    // A line that can come in several versions (an array) is said in turn, so repeats don't sound canned.
+    varied(key, said) {
+      if (!Array.isArray(said)) return said;
+      const n = this.state.flags[`said_${key}`] || 0;
+      this.state.flags[`said_${key}`] = n + 1;
+      return said[n % said.length];
     }
 
     showGive(verb, rest) {
