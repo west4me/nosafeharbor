@@ -1203,6 +1203,28 @@ test("a thing's own name beats another thing's nickname: the office lamp is not 
   assert.match(run(g, 'turn off lamp'), /flashlight is now off/, 'with no lamp around, LAMP still means the flashlight');
 });
 
+test('a drive toward where a place really lies works, and says which way the road leaves', () => {
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'nw', 'drive west', 'drive ne']);
+  assert.equal(g.state.loc, 'klawock');
+  // Craig is southwest of Klawock, but the road leaves west over the bridge.
+  const out = run(g, 'drive sw');
+  assert.equal(g.state.loc, 'craig_junction');
+  assert.match(out, /leaves WEST from here/);
+  run(g, 'drive ne');
+  run(g, 'drive s');
+  assert.equal(g.state.loc, 'craig_junction');
+  // Control Lake really is north of Klawock, up Big Salt Road.
+  run(g, 'drive ne');
+  run(g, 'drive n');
+  assert.equal(g.state.loc, 'thorne_road');
+  // Nothing lies that way: still no. (East of the ferry dock is just water.)
+  const h = newGame();
+  runAll(h, KEYS);
+  assert.doesNotMatch(run(h, 'drive east'), /leaves/);
+  assert.equal(h.state.loc, 'ferry');
+});
+
 test('no garbled text anywhere in a full playthrough', () => {
   const g = newGame();
   for (const c of [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'e', 'drive to klawock', 'w', 'e', 'nw', WALKTHROUGH[WALKTHROUGH.length - 1]]) {

@@ -850,6 +850,15 @@
       }
       const all = this.exitsOf(room);
       if (!all[dir] && all[`${dir}_drive`]) dir = `${dir}_drive`;
+      if (!all[dir] && !(room.exitNotes && room.exitNotes[dir])) {
+        // No way out exactly that way, but somewhere you can go lies roughly that way as the crow flies (Craig is
+        // southwest of Klawock, though its road leaves west over the bridge): go there, and say how.
+        const near = this.nearestWay(room, dir);
+        if (near) {
+          this.print(`(The road to ${this.rooms[near.to].name} leaves ${baseDir(near.key).toUpperCase()} from here.)`, 'meta');
+          dir = near.key;
+        }
+      }
       const exit = all[dir];
       if (!exit && room.exitNotes && room.exitNotes[dir]) {
         // A real road or place that exists but isn't part of the case.
@@ -868,6 +877,32 @@
         if (block) { this.print(block); return; }
       }
       this.moveTo(to, quiet);
+    }
+
+    // The road out whose destination lies closest to compass direction dir, less than 45° off; null if none.
+    // Only roads: they wind, so the way they leave isn't always the way the place lies. Trails go where they say.
+    nearestWay(room, dir) {
+      const BEARING = { north: 0, northeast: 45, east: 90, southeast: 135, south: 180, southwest: 225, west: 270, northwest: 315 };
+      if (!(dir in BEARING)) return null;
+      const spot = (r) => {
+        if (r.map && r.map.at) return r.map.at;
+        const as = typeof r.mapAs === 'function' ? r.mapAs(this) : r.mapAs;
+        return as && this.rooms[as] && this.rooms[as].map ? this.rooms[as].map.at : null;
+      };
+      const from = spot(room);
+      if (!from) return null;
+      const kx = Math.cos(from[1] * Math.PI / 180);
+      let best = null;
+      for (const [key, exit] of Object.entries(this.exitsOf(room))) {
+        if (!(baseDir(key) in BEARING) || !(typeof exit === 'object' && exit.drive)) continue;
+        const to = this.exitTo(exit);
+        const at = to && this.rooms[to] && spot(this.rooms[to]);
+        if (!at || (at[0] === from[0] && at[1] === from[1])) continue;
+        const b = (Math.atan2((at[0] - from[0]) * kx, at[1] - from[1]) * 180 / Math.PI + 360) % 360;
+        const off = Math.abs(((b - BEARING[dir]) + 540) % 360 - 180);
+        if (off < 45 && (!best || off < best.off)) best = { key, to, off, drive: typeof exit === 'object' && !!exit.drive };
+      }
+      return best;
     }
 
     roomByName(p) {
