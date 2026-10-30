@@ -319,6 +319,7 @@ html, body {
 .map-plan-svg .plan-outside { font-size: 2.8px; font-weight: 700; fill: #6b4a17; }
 .map-plan-svg .plan-water-label { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 2.6px; fill: #2f5b8c; }
 .map-plan-svg .plan-title { font-size: 3.6px; font-weight: 700; fill: #5a6b80; }
+.map-plan-svg .plan-exit-to { font-size: 2.4px; fill: #4b4336; }
 .map-plan-svg .plan-north { font-family: Georgia, serif; font-size: 3px; font-weight: 700; }
 @media (max-width: 560px) {
   #map-plan { padding: 2px; }

@@ -79,6 +79,15 @@
     return typeof cur.mapAs === 'function' ? cur.mapAs(game) : cur.mapAs;
   }
 
+  // Rooms inside a building with a floor plan show on the island map as one spot, the building.
+  function buildingOf(game, id) {
+    return (game.world.floorPlans || []).find((p) => (p.rooms && p.rooms[id]) || (p.outbuildings && p.outbuildings[id])) || null;
+  }
+  function spotOf(game, id) {
+    const b = buildingOf(game, id);
+    return (b ? game.rooms[Object.keys(b.rooms)[0]] : game.rooms[id]).map.at;
+  }
+
   // Everything the map shows, separate from drawing so tests can check it.
   function mapModel(game) {
     const st = game.state;
@@ -96,6 +105,9 @@
         const dir = key.replace(/_drive$/, '');
         const to = game.rooms[exitTarget(exit)];
         if (!to || !to.map || !to.map.at) continue;
+        // Inside a building, or its own front door: that's the floor plan's job, not the island map's.
+        const bld = buildingOf(game, r.id) || buildingOf(game, to.id);
+        if (bld && (buildingOf(game, r.id) === buildingOf(game, to.id) || (bld.outside && (bld.outside[r.id] || bld.outside[to.id])))) continue;
         const sameSpot = to.map.at[0] === r.map.at[0] && to.map.at[1] === r.map.at[1];
         if (sameSpot) continue; // rooms inside one town: listed under its pin, not drawn
         const road = typeof exit === 'object' && !!exit.drive;
@@ -113,13 +125,17 @@
       s.rooms.push(r.id);
     }
     return {
-      rooms: rooms.map((r) => ({
-        id: r.id,
-        at: r.map.at,
-        site: r.map.site,
-        label: r.dark && lit && !lit[r.id] ? 'Dark!' : (r.map.label || r.name),
-        here: r.id === hereId
-      })),
+      rooms: rooms.map((r) => {
+        const b = buildingOf(game, r.id);
+        return {
+          id: r.id,
+          at: spotOf(game, r.id),
+          site: r.map.site,
+          building: b ? b.id : null,
+          label: b ? b.name : r.dark && lit && !lit[r.id] ? 'Dark!' : (r.map.label || r.name),
+          here: r.id === hereId
+        };
+      }),
       sites: Object.values(sites),
       edges,
       stubs,
@@ -308,7 +324,7 @@
 
   // The pencil line for each unexplored exit: a stretch of the real road, or a short dash toward the place.
   function stubLines(game, model) {
-    const P = (id) => project(game.rooms[id].map.at);
+    const P = (id) => project(spotOf(game, id));
     return model.stubs.map((s) => {
       const from = P(s.from);
       const route = geo.routes[s.key];
@@ -440,7 +456,7 @@
   function pencilLayer(game, model) {
     const byId = {};
     for (const r of model.rooms) byId[r.id] = r;
-    const P = (id) => project(game.rooms[id].map.at);
+    const P = (id) => project(spotOf(game, id));
 
     const out = [];
     out.push(featureNames(game, model));
@@ -478,9 +494,12 @@
       dots.add(k);
       out.push(`<g transform="translate(${x} ${y})"><g class="map-k"><circle r="4" fill="#2f2f2f"/></g></g>`);
     }
-    // Zoomed in close: each place you've been labeled at its own spot.
-    for (const r of model.rooms) {
+    // Zoomed in close: each place you've been labeled at its own spot (one label per spot, yours first).
+    const tagged = new Set();
+    for (const r of [...model.rooms].sort((a, b) => b.here - a.here)) {
       const [x, y] = project(r.at);
+      if (tagged.has(x + ',' + y)) continue;
+      tagged.add(x + ',' + y);
       out.push(`<g class="map-room-tag" transform="translate(${x} ${y})"><g class="map-k"><text class="map-site-room${r.here ? ' map-here-text' : ''}" x="7" y="4" font-size="13">${esc(r.label)}</text></g></g>`);
     }
     const sitesInfo = game.world.mapSites || {};
@@ -543,7 +562,8 @@
   // where, and which way to go. Returns null when you're not in one.
   function floorPlanAt(game) {
     const loc = game.state.loc;
-    return (game.world.floorPlans || []).find((p) => (p.rooms && p.rooms[loc]) || (p.outbuildings && p.outbuildings[loc])) || null;
+    // Standing at its front door counts: you're about to go in.
+    return (game.world.floorPlans || []).find((p) => (p.rooms && p.rooms[loc]) || (p.outbuildings && p.outbuildings[loc]) || (p.outside && p.outside[loc])) || null;
   }
 
   const ARROW = { north: '↑', south: '↓', east: '→', west: '←', northeast: '↗', northwest: '↖', southeast: '↘', southwest: '↙' };
@@ -570,9 +590,14 @@
     }
     for (const [id, o] of Object.entries(plan.outside || {})) {
       const [x, y] = o.at;
-      out.push(`<rect x="2" y="${y - 3.5}" width="96" height="7" fill="#efe9da" stroke="#b9b1a2" stroke-width="0.3"/>`);
+      const isHere = id === here;
+      out.push(`<rect x="2" y="${y - 5}" width="96" height="10" fill="${isHere ? '#f6dcd6' : '#efe9da'}" stroke="${isHere ? '#2f2f2f' : '#b9b1a2'}" stroke-width="${isHere ? 0.9 : 0.3}"/>`);
       const truckHere = st.items.truck && st.items.truck.loc === id;
-      out.push(`<text class="plan-outside" x="${x}" y="${y + 1.3}" text-anchor="middle">${esc(o.label)}${truckHere ? ' · your truck' : ''}</text>`);
+      out.push(`<text class="plan-outside${isHere ? ' plan-here-text' : ''}" x="${x}" y="${y - 0.6}" text-anchor="middle">${esc(o.label)}${truckHere ? ' · your truck' : ''}</text>`);
+      if (isHere) {
+        out.push(`<g transform="translate(${x - 9.6} ${y + 2.6})"><circle r="1.2" fill="#c0392b"/><circle r="2.1" fill="none" stroke="#c0392b" stroke-width="0.35"/></g>`);
+        out.push(`<text class="plan-you" x="${x + 1.6}" y="${y + 3.3}" text-anchor="middle">YOU ARE HERE</text>`);
+      }
     }
     // Rooms.
     for (const [id, r] of Object.entries(boxes)) {
@@ -622,6 +647,30 @@
     }
     // From where you stand: which way each door goes, as you'd type it.
     const exits = game.exitsOf(game.rooms[here]);
+    if (plan.outside && plan.outside[here]) {
+      // Out on the road: the way in, at the door, and the way back to the truck's roads, at the end.
+      const [ox, oy] = plan.outside[here].at;
+      for (const [dir, exit] of Object.entries(exits)) {
+        const base = dir.replace(/_drive$/, '');
+        if (!ARROW[base]) continue;
+        const to = game.exitTo(exit);
+        if (to === 'truck_cab') continue;
+        const doorDef = (plan.doors || {})[[here, to].sort().join('|')];
+        const drive = typeof exit === 'object' && exit.drive;
+        if (doorDef) {
+          const [dx] = doorPoints(doorDef)[0];
+          out.push(`<text class="plan-exit" x="${dx}" y="${oy + 9}" text-anchor="middle">${ARROW[base]} ${base.toUpperCase()} into the lodge</text>`);
+        } else {
+          const west = /west/.test(base);
+          out.push(`<text class="plan-exit" x="${west ? 4 : 96}" y="${oy - 0.6}" text-anchor="${west ? 'start' : 'end'}">${west ? ARROW[base] + ' ' : ''}${base.toUpperCase()}${drive ? ' (drive)' : ''}${west ? '' : ' ' + ARROW[base]}</text>`);
+          out.push(`<text class="plan-exit-to" x="${west ? 4 : 96}" y="${oy + 3.2}" text-anchor="${west ? 'start' : 'end'}">${esc(game.rooms[to].name)}</text>`);
+        }
+      }
+      out.push('<text class="plan-north" x="95" y="19" text-anchor="middle">N</text><path d="M95,20.5 L93.4,25 L95,24 L96.6,25 Z" fill="#2f2f2f"/>');
+      out.push(`<text class="plan-title" x="3" y="19.5">${esc(plan.name)}</text>`);
+      out.push('</svg>');
+      return { id: plan.id, name: plan.name, outside: true, svg: out.join('') };
+    }
     const myBox = boxes[here].box;
     for (const [dir, exit] of Object.entries(exits)) {
       if (!ARROW[dir]) continue;
@@ -641,7 +690,7 @@
       else ty = by + bh - 1.6; // south wall
       out.push(`<text class="plan-exit" x="${tx}" y="${ty}" text-anchor="${anchor}">${anchor === 'end' ? `${dir.toUpperCase()} ${ARROW[dir]}` : `${ARROW[dir]} ${dir.toUpperCase()}`}</text>`);
     }
-    out.push('<text class="plan-north" x="95" y="7" text-anchor="middle">N</text><path d="M95,8.5 L93.4,13 L95,12 L96.6,13 Z" fill="#2f2f2f"/>');
+    out.push('<text class="plan-north" x="95" y="19" text-anchor="middle">N</text><path d="M95,20.5 L93.4,25 L95,24 L96.6,25 Z" fill="#2f2f2f"/>');
     out.push(`<text class="plan-title" x="3" y="18.5">${esc(plan.name)}</text>`);
     out.push('</svg>');
     return { id: plan.id, name: plan.name, svg: out.join('') };
