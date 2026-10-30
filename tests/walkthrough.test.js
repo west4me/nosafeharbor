@@ -1170,6 +1170,21 @@ test('inside the lodge, the map is a floor plan with the way to every door', () 
   assert.match(renderFloorPlan(g).svg, /class="plan-exit"[^>]*>[^<]*NORTH/);
 });
 
+test('the writing on the back of the photo is easy to read, however you ask', () => {
+  for (const c of ['read photo', 'look back photo', 'look at photo back', 'turn photo', 'flip photo', 'look at the writing on the photo',
+    'examine back of photo', 'look at the back of the photo', 'turn the photo over']) {
+    const g = newGame();
+    g.state.loc = 'office';
+    assert.match(run(g, c), /THORNE R\./, c);
+  }
+  // Looking at it says how to read it; then "the note", "the back" or "the writing" means that photo.
+  const g = newGame();
+  g.state.loc = 'office';
+  assert.match(run(g, 'look at photo'), /READ PHOTO/);
+  assert.match(run(g, 'look at note'), /THORNE R\./);
+  assert.doesNotMatch(run(g, 'look at photo'), /READ PHOTO/, 'no reminder once read');
+});
+
 test('no garbled text anywhere in a full playthrough', () => {
   const g = newGame();
   for (const c of [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'e', 'drive to klawock', 'w', 'e', 'nw', WALKTHROUGH[WALKTHROUGH.length - 1]]) {

@@ -669,6 +669,11 @@
 
       // --- looking
       if ((m = cmd.match(/^(?:read back of|look at back of|flip|flip over|turn over|look on back of) (.+)$/)) || (m = cmd.match(/^(?:flip|turn) (.+) over$/))) return this.read(m[1]);
+      // TURN PHOTO / TURN AROUND THE PHOTO: turning over something with writing on it means reading it.
+      if ((m = cmd.match(/^(?:turn|rotate|turn around) (.+)$/))) {
+        const it = this.match(m[1], this.visibleItems());
+        if (it && !it.ambiguous && it.text) { this.print('You turn it over.', 'meta'); return this.read(m[1]); }
+      }
       if ((m = cmd.match(/^(?:look|l) (?:at|in|inside|into|under|behind|on|through) (.+)$/)) ||
           (m = cmd.match(/^(?:x|examine|inspect|check|study|search|investigate|describe|look over|check out|exam|ex) (.+)$/))) return this.examine(m[1]);
       if ((m = cmd.match(/^(?:look|l) (.+)$/))) {
@@ -1056,6 +1061,21 @@
 
     examine(phrase) {
       if (/^(around|room|here|area)$/.test(clean(phrase))) return this.describe(true);
+      // LOOK AT THE BACK OF THE PHOTO, LOOK BACK PHOTO, PHOTO BACK, THE WRITING ON IT, THE NOTE:
+      // looking at the writing on something is reading it.
+      const ASPECT = /\b(back|backside|reverse|other side|writing|written|pencil|handwriting|inscription|scribbles?|scribbling|words|message|note)\b/g;
+      if (ASPECT.test(phrase)) {
+        const scope = this.visibleItems();
+        const whole = this.match(phrase, scope);
+        // Something here that's really called that, with nothing written on it, is just looked at.
+        if (!(whole && !whole.ambiguous && !whole.text)) {
+          const rest = clean(phrase.replace(ASPECT, ' ').replace(/\b(at|of|on|in|side|its|it|the|that|this)\b/g, ' ').replace(/\s+/g, ' ').trim());
+          const target = whole && !whole.ambiguous && whole.text ? whole
+            : rest ? this.match(rest, scope)
+              : scope.find((e) => e.id === this.lastLooked);
+          if (target && !target.ambiguous && target.text) return this.read(target.names[0]);
+        }
+      }
       if (/^(me|myself|self)$/.test(clean(phrase))) {
         this.print(this.isWorn('waders') ? 'Damp investigator, chest waders, a look of grim purpose.' : 'Damp investigator. Sensible shoes, for a city.');
         return;
@@ -1065,6 +1085,11 @@
       if (e.kind === 'npc') { this.print(this.t(e.desc)); return; }
       if (this.runHandler(e, 'examine')) return;
       this.print(this.t(e.desc) || `You see nothing special about the ${e.name}.`);
+      if (e.text) {
+        this.lastLooked = e.id;
+        // Something with writing on it: say how to read it, until you have.
+        if (!this.state.flags[`read_${e.id}`]) this.print(`(READ ${e.names[0].toUpperCase()} to read what it says.)`, 'meta');
+      }
       const st = this.state.items[e.id];
       if (e.container && st.open) this.print(this.contentsLine(e.id));
       if (e.onExamine) e.onExamine(this);
@@ -1082,6 +1107,8 @@
         return;
       }
       this.print(this.t(e.text), 'document');
+      this.state.flags[`read_${e.id}`] = true;
+      this.lastLooked = e.id;
       if (e.onRead) e.onRead(this);
       if (e.onExamine) e.onExamine(this);
     }
