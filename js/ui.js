@@ -264,7 +264,39 @@
   legendToggle.addEventListener('click', () => { setLegend(legendBody.hidden); focusInput(); });
 
   // Two stacked layers: the printed sheet (drawn once) and your pencil work (redrawn every move).
+  // Inside a building with several rooms, the map shows the building's floor plan, unless you've asked
+  // for the island. Walking into a different building brings the plan back.
+  const mapPlan = document.getElementById('map-plan');
+  const planToggle = document.getElementById('map-plan-toggle');
+  let islandWanted = false;
+  let lastPlanId = null;
+  function drawPlan() {
+    const plan = window.NSH.renderFloorPlan ? window.NSH.renderFloorPlan(game) : null;
+    if (!plan || plan.id !== lastPlanId) islandWanted = false;
+    lastPlanId = plan ? plan.id : null;
+    planToggle.hidden = !plan;
+    const showPlan = !!plan && !islandWanted;
+    mapPanel.classList.toggle('plan-mode', showPlan);
+    mapPlan.hidden = !showPlan;
+    if (plan) planToggle.textContent = showPlan ? 'Island map' : 'Building';
+    if (!showPlan) return false;
+    mapPlan.innerHTML = plan.svg;
+    mapWhere.textContent = '';
+    mapWhere.append('You are here: ');
+    const strong = document.createElement('strong');
+    strong.textContent = game.status().location;
+    mapWhere.append(strong);
+    mapWhere.append(` · inside ${plan.name}`);
+    return true;
+  }
+  planToggle.addEventListener('click', () => {
+    islandWanted = !islandWanted;
+    drawMap();
+    focusInput();
+  });
+
   function drawMap() {
+    if (drawPlan()) return;
     if (!mapScroll.querySelector('.map-sheet')) mapScroll.innerHTML = window.NSH.renderSheet(game);
     const old = mapScroll.querySelector('.map-pencil-layer');
     if (old) old.remove();

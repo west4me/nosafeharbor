@@ -2221,6 +2221,32 @@
       return goDo(g, 'trooper', 'Go to the State Troopers post in Klawock and ACCUSE whoever is responsible. Maybe more than one person.');
     }
 
+    // Floor plans for buildings with more than one room. Inside one, the map shows the building instead of
+    // the island. Boxes are in plan units (the plan is 100 wide), north up; doors sit on the shared walls.
+    const floorPlans = [
+      {
+        id: 'lodge',
+        name: 'Harbor Light Lodge',
+        rooms: {
+          lodge: { box: [34, 22, 32, 32], label: 'Great Room' },
+          office: { box: [7, 24, 27, 30], label: "Dale's Office", locked: (g) => !g.flag('office_unlocked') },
+          kitchen: { box: [66, 24, 27, 30], label: 'Kitchen' }
+        },
+        // A separate building down the path, on pilings over the water.
+        outbuildings: { boathouse: { box: [37, 70, 26, 19], label: 'Boathouse' } },
+        outside: { lodge_road: { at: [50, 8], label: 'Lodge Road' } },
+        doors: {
+          'lodge|lodge_road': [50, 22],
+          'lodge|office': [34, 38],
+          'kitchen|lodge': [66, 38],
+          'boathouse|lodge': [[50, 54], [50, 70]] // the lodge's back door, and the boathouse door down the path
+        },
+        paths: [[[50, 22], [50, 11.5]], [[50, 54], [50, 70]]],
+        water: [0, 80, 100, 20],
+        waterLabel: 'the water'
+      }
+    ];
+
     // ------------------------------------------------------------ intro etc.
     const intro = [
       'NO SAFE HARBOR',
@@ -2243,7 +2269,7 @@
       title: 'No Safe Harbor',
       start: 'ferry',
       maxScore: Object.values(clues).reduce((s, c) => s + c.points, 0),
-      intro, clues, rooms, items, npcs, hint, mapSites, mapLabels, mapTowns, mapRoads, leads, theory, summary,
+      intro, clues, rooms, items, npcs, hint, mapSites, mapLabels, mapTowns, mapRoads, floorPlans, leads, theory, summary,
       // "in" from wherever your truck is parked.
       // IN gets you into your truck, wherever it's parked, unless the place has a building you'd walk into.
       extraExits: (g, room) => {

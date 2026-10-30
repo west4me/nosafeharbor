@@ -538,12 +538,122 @@
   }
 
   root.NSH = root.NSH || {};
+  // ------------------------------------------------------------------ floor plans
+  // Inside a building with several rooms, the map is the building: rooms where they sit, doors, who's
+  // where, and which way to go. Returns null when you're not in one.
+  function floorPlanAt(game) {
+    const loc = game.state.loc;
+    return (game.world.floorPlans || []).find((p) => (p.rooms && p.rooms[loc]) || (p.outbuildings && p.outbuildings[loc])) || null;
+  }
+
+  const ARROW = { north: '↑', south: '↓', east: '→', west: '←', northeast: '↗', northwest: '↖', southeast: '↘', southwest: '↙' };
+
+  function renderFloorPlan(game) {
+    const plan = floorPlanAt(game);
+    if (!plan) return null;
+    const st = game.state;
+    const here = st.loc;
+    const boxes = Object.assign({}, plan.rooms, plan.outbuildings);
+    const out = [];
+    out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="map-plan-svg" role="img" data-plan="${esc(plan.id)}" aria-label="Floor plan of ${esc(plan.name)}. You are in ${esc(game.rooms[here].name)}.">`);
+    out.push('<defs><pattern id="plan-water" width="2.4" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="2.4" stroke="#8fb0d4" stroke-width="0.4"/></pattern></defs>');
+    out.push('<rect width="100" height="100" fill="#fbf8ef"/>');
+    // Water, paths and the road outside.
+    if (plan.water) {
+      const [x, y, w, h] = plan.water;
+      out.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e3edf7"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#plan-water)"/>`);
+      out.push(`<line x1="${x}" y1="${y}" x2="${x + w}" y2="${y}" stroke="#3d4a5c" stroke-width="0.4"/>`);
+      if (plan.waterLabel) out.push(`<text class="plan-water-label" x="${x + w - 2}" y="${y + h - 3}" text-anchor="end">${esc(plan.waterLabel)}</text>`);
+    }
+    for (const line of plan.paths || []) {
+      out.push(`<polyline points="${line.map((p) => p.join(',')).join(' ')}" fill="none" stroke="#a79f8e" stroke-width="1.2" stroke-dasharray="1.6 1.4" stroke-linecap="round"/>`);
+    }
+    for (const [id, o] of Object.entries(plan.outside || {})) {
+      const [x, y] = o.at;
+      out.push(`<rect x="2" y="${y - 3.5}" width="96" height="7" fill="#efe9da" stroke="#b9b1a2" stroke-width="0.3"/>`);
+      const truckHere = st.items.truck && st.items.truck.loc === id;
+      out.push(`<text class="plan-outside" x="${x}" y="${y + 1.3}" text-anchor="middle">${esc(o.label)}${truckHere ? ' · your truck' : ''}</text>`);
+    }
+    // Rooms.
+    for (const [id, r] of Object.entries(boxes)) {
+      const [x, y, w, h] = r.box;
+      const seen = !!st.visited[id];
+      const isHere = id === here;
+      const fill = isHere ? '#f6dcd6' : seen ? '#fffdf6' : '#e7e2d6';
+      out.push(`<rect class="plan-room${isHere ? ' plan-here' : ''}" x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="#2f2f2f" stroke-width="${isHere ? 0.9 : 0.6}"/>`);
+      const cx = x + w / 2;
+      out.push(`<text class="plan-room-name${isHere ? ' plan-here-text' : ''}" x="${cx}" y="${y + 8.6}" text-anchor="middle">${esc(seen || isHere ? r.label : '?')}</text>`);
+      // Under the name: you (if you're here), then who else is in the room.
+      let line = y + 12.6;
+      if (isHere) {
+        out.push(`<g transform="translate(${cx - 9.6} ${line - 0.7})"><circle r="1.2" fill="#c0392b"/><circle r="2.1" fill="none" stroke="#c0392b" stroke-width="0.35"/></g>`);
+        out.push(`<text class="plan-you" x="${cx + 1.6}" y="${line}" text-anchor="middle">YOU ARE HERE</text>`);
+        line += 4;
+      }
+      if (r.locked && r.locked(game) && !seen) {
+        out.push(`<text class="plan-note" x="${cx}" y="${line}" text-anchor="middle">locked</text>`);
+        line += 3.6;
+      }
+      // People you've met, where they are now, in rooms you've seen.
+      if (seen || isHere) {
+        for (const n of Object.values(game.npcs)) {
+          if (n.loc !== id || !(st.met || {})[n.id]) continue;
+          out.push(`<text class="plan-note" x="${cx}" y="${line}" text-anchor="middle">${esc(n.name)}</text>`);
+          line += 3.6;
+        }
+      }
+    }
+    // Doors: a gap in the wall where two places meet. A door between separate buildings has a point
+    // on each one's wall.
+    const doorPoints = (d) => (Array.isArray(d[0]) ? d : [d]);
+    const onWall = ([px, py], [x, y, w, h]) => {
+      const inX = px >= x - 0.5 && px <= x + w + 0.5;
+      const inY = py >= y - 0.5 && py <= y + h + 0.5;
+      return (inY && (Math.abs(px - x) < 0.5 || Math.abs(px - x - w) < 0.5)) || (inX && (Math.abs(py - y) < 0.5 || Math.abs(py - y - h) < 0.5));
+    };
+    for (const [key, d] of Object.entries(plan.doors || {})) for (const [dx, dy] of doorPoints(d)) {
+      const r = Object.values(boxes).find((b) => onWall([dx, dy], b.box));
+      if (!r) continue;
+      const [x, , w] = r.box;
+      const vertical = Math.abs(dx - x) < 0.5 || Math.abs(dx - (x + w)) < 0.5;
+      out.push(vertical
+        ? `<line x1="${dx}" y1="${dy - 2.6}" x2="${dx}" y2="${dy + 2.6}" stroke="#fbf8ef" stroke-width="1.4"/>`
+        : `<line x1="${dx - 2.6}" y1="${dy}" x2="${dx + 2.6}" y2="${dy}" stroke="#fbf8ef" stroke-width="1.4"/>`);
+    }
+    // From where you stand: which way each door goes, as you'd type it.
+    const exits = game.exitsOf(game.rooms[here]);
+    const myBox = boxes[here].box;
+    for (const [dir, exit] of Object.entries(exits)) {
+      if (!ARROW[dir]) continue;
+      const to = game.exitTo(exit);
+      const doorDef = (plan.doors || {})[[here, to].sort().join('|')];
+      if (!doorDef) continue;
+      const door = doorPoints(doorDef).find((pt) => onWall(pt, myBox)) || doorPoints(doorDef)[0];
+      // Inside your room, right by the door it goes through.
+      const [bx, by, bw, bh] = myBox;
+      let tx = door[0];
+      let ty = door[1];
+      let anchor = 'middle';
+      // Side doors are labeled low in the room, clear of the name and the people.
+      if (Math.abs(door[0] - bx) < 0.5) { tx = bx + 1.6; ty = by + bh - 5.6; anchor = 'start'; } // west wall
+      else if (Math.abs(door[0] - bx - bw) < 0.5) { tx = bx + bw - 1.6; ty = by + bh - 5.6; anchor = 'end'; } // east wall
+      else if (Math.abs(door[1] - by) < 0.5) ty = by + 3.6; // north wall
+      else ty = by + bh - 1.6; // south wall
+      out.push(`<text class="plan-exit" x="${tx}" y="${ty}" text-anchor="${anchor}">${anchor === 'end' ? `${dir.toUpperCase()} ${ARROW[dir]}` : `${ARROW[dir]} ${dir.toUpperCase()}`}</text>`);
+    }
+    out.push('<text class="plan-north" x="95" y="7" text-anchor="middle">N</text><path d="M95,8.5 L93.4,13 L95,12 L96.6,13 Z" fill="#2f2f2f"/>');
+    out.push(`<text class="plan-title" x="3" y="18.5">${esc(plan.name)}</text>`);
+    out.push('</svg>');
+    return { id: plan.id, name: plan.name, svg: out.join('') };
+  }
+
   root.NSH.renderMap = renderMap;
+  root.NSH.renderFloorPlan = renderFloorPlan;
   root.NSH.renderSheet = renderSheet;
   root.NSH.renderPencil = renderPencil;
   root.NSH.mapModel = mapModel;
   root.NSH.project = project;
   root.NSH.mapView = mapView;
   root.NSH.wholeView = wholeView;
-  if (typeof module === 'object' && module.exports) module.exports = { renderMap, renderSheet, renderPencil, mapModel, project, mapView, wholeView };
+  if (typeof module === 'object' && module.exports) module.exports = { renderMap, renderSheet, renderPencil, mapModel, project, mapView, wholeView, renderFloorPlan };
 })(typeof window !== 'undefined' ? window : globalThis);

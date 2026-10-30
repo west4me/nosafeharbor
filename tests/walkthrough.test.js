@@ -1144,6 +1144,32 @@ test('playtest notes: Craig in real order, questions asked out loud, Joe varies 
   assert.match(run(g, "how's the weather"), /nobody here/i);
 });
 
+test('inside the lodge, the map is a floor plan with the way to every door', () => {
+  const { renderFloorPlan } = require('../js/map.js');
+  const g = newGame();
+  runAll(g, [...KEYS, 'w', 'nw', 'drive west', 's']);
+  assert.equal(renderFloorPlan(g), null, 'outside, the island map');
+  run(g, 's');
+  const plan = renderFloorPlan(g);
+  assert.equal(plan.id, 'lodge');
+  // Every way out of the Great Room is marked at its door, as you'd type it.
+  for (const dir of ['NORTH', 'SOUTH', 'EAST', 'WEST']) assert.match(plan.svg, new RegExp(`class="plan-exit"[^>]*>[^<]*${dir}`));
+  assert.match(plan.svg, />Great Room</);
+  assert.match(plan.svg, />YOU ARE HERE</);
+  assert.match(plan.svg, />locked</, 'the office door is locked until Marnie hands over the key');
+  assert.match(plan.svg, />Lodge Road · your truck</);
+  // People you've met show up where they are; rooms you haven't seen are a "?".
+  run(g, 'talk to rick');
+  assert.match(renderFloorPlan(g).svg, />Rick Sorensen</);
+  assert.doesNotMatch(renderFloorPlan(g).svg, />Kitchen</);
+  run(g, 'e');
+  assert.match(renderFloorPlan(g).svg, />Kitchen</);
+  // The boathouse, down the path, is on the same plan.
+  runAll(g, ['w', 's']);
+  assert.equal(renderFloorPlan(g).id, 'lodge');
+  assert.match(renderFloorPlan(g).svg, /class="plan-exit"[^>]*>[^<]*NORTH/);
+});
+
 test('no garbled text anywhere in a full playthrough', () => {
   const g = newGame();
   for (const c of [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'e', 'drive to klawock', 'w', 'e', 'nw', WALKTHROUGH[WALKTHROUGH.length - 1]]) {
