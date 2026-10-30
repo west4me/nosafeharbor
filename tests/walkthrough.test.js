@@ -1150,11 +1150,8 @@ test('inside the lodge, the map is a floor plan with the way to every door', () 
   runAll(g, [...KEYS, 'w', 'nw', 'drive west']);
   assert.equal(renderFloorPlan(g), null, 'in town, the island map');
   run(g, 's');
-  // At the front door the plan is already up, with the way in and the way back to the truck's road.
-  const road = renderFloorPlan(g);
-  assert.ok(road && road.outside);
-  assert.match(road.svg, /SOUTH into the lodge/);
-  assert.match(road.svg, /NORTHWEST \(drive\)/);
+  // Outside on Lodge Road it's still the island map: the plan is only for inside.
+  assert.equal(renderFloorPlan(g), null, 'outside the building, the island map');
   // On the island map the lodge is one spot with one name, and no lines between its rooms.
   const isl = renderMap(g);
   assert.equal((isl.match(/map-room-tag/g) || []).length, new Set(mapModel(g).rooms.map((r) => r.at.join())).size);

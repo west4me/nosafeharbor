@@ -286,7 +286,7 @@
     const strong = document.createElement('strong');
     strong.textContent = game.status().location;
     mapWhere.append(strong);
-    mapWhere.append(` · ${plan.outside ? 'outside' : 'inside'} ${plan.name}`);
+    mapWhere.append(` · inside ${plan.name}`);
     return true;
   }
   planToggle.addEventListener('click', () => {

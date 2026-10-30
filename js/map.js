@@ -562,8 +562,7 @@
   // where, and which way to go. Returns null when you're not in one.
   function floorPlanAt(game) {
     const loc = game.state.loc;
-    // Standing at its front door counts: you're about to go in.
-    return (game.world.floorPlans || []).find((p) => (p.rooms && p.rooms[loc]) || (p.outbuildings && p.outbuildings[loc]) || (p.outside && p.outside[loc])) || null;
+    return (game.world.floorPlans || []).find((p) => (p.rooms && p.rooms[loc]) || (p.outbuildings && p.outbuildings[loc])) || null;
   }
 
   const ARROW = { north: '↑', south: '↓', east: '→', west: '←', northeast: '↗', northwest: '↖', southeast: '↘', southwest: '↙' };
@@ -647,30 +646,6 @@
     }
     // From where you stand: which way each door goes, as you'd type it.
     const exits = game.exitsOf(game.rooms[here]);
-    if (plan.outside && plan.outside[here]) {
-      // Out on the road: the way in, at the door, and the way back to the truck's roads, at the end.
-      const [ox, oy] = plan.outside[here].at;
-      for (const [dir, exit] of Object.entries(exits)) {
-        const base = dir.replace(/_drive$/, '');
-        if (!ARROW[base]) continue;
-        const to = game.exitTo(exit);
-        if (to === 'truck_cab') continue;
-        const doorDef = (plan.doors || {})[[here, to].sort().join('|')];
-        const drive = typeof exit === 'object' && exit.drive;
-        if (doorDef) {
-          const [dx] = doorPoints(doorDef)[0];
-          out.push(`<text class="plan-exit" x="${dx}" y="${oy + 9}" text-anchor="middle">${ARROW[base]} ${base.toUpperCase()} into the lodge</text>`);
-        } else {
-          const west = /west/.test(base);
-          out.push(`<text class="plan-exit" x="${west ? 4 : 96}" y="${oy - 0.6}" text-anchor="${west ? 'start' : 'end'}">${west ? ARROW[base] + ' ' : ''}${base.toUpperCase()}${drive ? ' (drive)' : ''}${west ? '' : ' ' + ARROW[base]}</text>`);
-          out.push(`<text class="plan-exit-to" x="${west ? 4 : 96}" y="${oy + 3.2}" text-anchor="${west ? 'start' : 'end'}">${esc(game.rooms[to].name)}</text>`);
-        }
-      }
-      out.push('<text class="plan-north" x="95" y="19" text-anchor="middle">N</text><path d="M95,20.5 L93.4,25 L95,24 L96.6,25 Z" fill="#2f2f2f"/>');
-      out.push(`<text class="plan-title" x="3" y="19.5">${esc(plan.name)}</text>`);
-      out.push('</svg>');
-      return { id: plan.id, name: plan.name, outside: true, svg: out.join('') };
-    }
     const myBox = boxes[here].box;
     for (const [dir, exit] of Object.entries(exits)) {
       if (!ARROW[dir]) continue;
