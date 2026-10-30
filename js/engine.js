@@ -347,22 +347,24 @@
       const p = clean(phrase);
       if (!p) return null;
       const pw = p.split(' ');
-      const exact = [];
-      const partial = [];
+      // How well each thing answers to the phrase: its own name beats a nickname, an exact match beats a
+      // partial one. (LAMP is the desk lamp's name, but only a nickname for the flashlight.)
+      let best = 0;
+      let pick = [];
       for (const e of ents) {
-        let hit = null;
-        for (const n of e.names) {
-          if (n === p) { hit = 'exact'; break; }
+        let score = 0;
+        e.names.forEach((n, i) => {
           const nw = n.split(' ');
-          if (pw.every((x) => nw.includes(x)) || nw.every((x) => pw.includes(x))) hit = hit || 'partial';
-        }
-        if (hit === 'exact') exact.push(e);
-        else if (hit === 'partial') partial.push(e);
+          const s = n === p ? (i === 0 ? 4 : 3)
+            : (pw.every((x) => nw.includes(x)) || nw.every((x) => pw.includes(x))) ? (i === 0 ? 2 : 1) : 0;
+          score = Math.max(score, s);
+        });
+        if (!score) continue;
+        if (score > best) { best = score; pick = [e]; } else if (score === best) pick.push(e);
       }
-      const pick = exact.length ? exact : partial;
       if (pick.length === 1) return pick[0];
       if (pick.length > 1) {
-        // Prefer things you're carrying, then portable things.
+        // Still a tie: prefer things you're carrying.
         const carried = pick.filter((e) => e.kind === 'item' && this.inInv(e.id));
         if (carried.length === 1) return carried[0];
         return { ambiguous: pick };
@@ -370,7 +372,6 @@
       return null;
     }
 
-    // Resolve a noun phrase to something in scope; prints an error and returns null on failure.
     find(phrase, { npcs = true, items = true } = {}) {
       // Answering "did you mean...?": the thing you said yes to (or picked) stands in for what you typed.
       if (this.forced && this.forced.phrase === phrase) {

@@ -1185,6 +1185,18 @@ test('the writing on the back of the photo is easy to read, however you ask', ()
   assert.doesNotMatch(run(g, 'look at photo'), /READ PHOTO/, 'no reminder once read');
 });
 
+test("a thing's own name beats another thing's nickname: the office lamp is not the flashlight", () => {
+  const g = newGame();
+  g.moveItem('flashlight', 'inv');
+  g.state.loc = 'office';
+  assert.match(run(g, 'look at lamp'), /banker's lamp/);
+  assert.match(run(g, 'turn on desk lamp'), /Warm green light/);
+  assert.equal(g.itemState('flashlight').on, false);
+  assert.match(run(g, 'turn on flashlight'), /flashlight is now on/);
+  g.state.loc = 'ferry';
+  assert.match(run(g, 'turn off lamp'), /flashlight is now off/, 'with no lamp around, LAMP still means the flashlight');
+});
+
 test('no garbled text anywhere in a full playthrough', () => {
   const g = newGame();
   for (const c of [...WALKTHROUGH.slice(0, -1), 'drive to coffman cove', 'e', 'drive to klawock', 'w', 'e', 'nw', WALKTHROUGH[WALKTHROUGH.length - 1]]) {

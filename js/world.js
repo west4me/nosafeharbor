@@ -1993,7 +1993,7 @@
       },
       office: {
         'window': 'Rain on the glass, and the gray water beyond.',
-        'lamp, green lamp, bankers lamp': { desc: "A banker's lamp with a green glass shade.", turnon: 'Warm green light. The office somehow looks emptier.', turnoff: 'Click. Gray again.' },
+        'lamp, desk lamp, green lamp, green-shaded lamp, green shaded lamp, bankers lamp, banker\'s lamp, office lamp': { desc: "A banker's lamp with a green glass shade.", turnon: 'Warm green light. The office somehow looks emptier.', turnoff: 'Click. Gray again.' },
         'chair, desk chair, leather chair': { desc: "A cracked leather desk chair, worn into the shape of the man who used to sit in it.", sit: "You sit in Dale's chair. It's too big for you in all the wrong ways." },
         'nameplate': 'D. HAUGEN, in brass.',
         'walls, wall, door': 'Wood paneling covered in charts and the calendar. The door is east, back to the great room.'
